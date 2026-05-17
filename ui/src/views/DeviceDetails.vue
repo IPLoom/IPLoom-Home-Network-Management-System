@@ -906,7 +906,7 @@
     </div>
 
     <div v-else-if="activeTab === 'access'" class="space-y-12">
-      <InternetSchedules :deviceId="device.id" />
+      <InternetSchedules :device="device" />
       
       <div class="border-t border-white/5 pt-12">
         <DeviceQuotaManager :deviceId="device.id" />

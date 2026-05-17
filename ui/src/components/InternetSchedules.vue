@@ -29,9 +29,13 @@
         <div class="p-4 bg-rose-50 dark:bg-rose-900/20 rounded-2xl border border-rose-100 dark:border-rose-800/30">
           <div class="text-[10px] font-black uppercase text-rose-600 dark:text-rose-400 mb-1">Current Status</div>
           <div class="flex items-center gap-2">
-            <div :class="isCurrentlyBlockedBySchedule ? 'bg-rose-500' : 'bg-emerald-500'" class="w-2.5 h-2.5 rounded-full"></div>
+            <div :class="(device.is_blocked || isCurrentlyBlockedBySchedule) ? 'bg-rose-500' : 'bg-emerald-500'" class="w-2.5 h-2.5 rounded-full"></div>
             <div class="text-lg font-bold text-slate-900 dark:text-white">
-              {{ isCurrentlyBlockedBySchedule ? 'Blocked by Schedule' : 'Allowed' }}
+              <span v-if="device.is_manual_block">Manually Blocked</span>
+              <span v-else-if="device.is_quota_exceeded">Blocked by Quota</span>
+              <span v-else-if="isCurrentlyBlockedBySchedule">Blocked by Schedule</span>
+              <span v-else-if="device.is_blocked">Blocked</span>
+              <span v-else>Allowed</span>
             </div>
           </div>
         </div>
@@ -260,8 +264,8 @@ import { useNotifications } from '@/composables/useNotifications'
 import { DateTime } from 'luxon'
 
 const props = defineProps({
-  deviceId: {
-    type: String,
+  device: {
+    type: Object,
     required: true
   }
 })
@@ -291,7 +295,7 @@ const form = reactive({
 
 const fetchSchedules = async () => {
   try {
-    const res = await api.get(`/internet-schedules/devices/${props.deviceId}/schedules`)
+    const res = await api.get(`/internet-schedules/devices/${props.device.id}/schedules`)
     schedules.value = res.data
   } catch (e) {
     console.error('Failed to fetch schedules:', e)
@@ -425,7 +429,7 @@ const saveSchedule = async () => {
   try {
     const payload = {
       ...form,
-      device_id: props.deviceId,
+      device_id: props.device.id,
       days: form.days.sort().join(',')
     }
 
@@ -433,7 +437,7 @@ const saveSchedule = async () => {
       await api.patch(`/internet-schedules/schedules/${editingSchedule.value.id}`, payload)
       notifySuccess('Schedule updated')
     } else {
-      await api.post(`/internet-schedules/devices/${props.deviceId}/schedules`, payload)
+      await api.post(`/internet-schedules/devices/${props.device.id}/schedules`, payload)
       notifySuccess('Schedule created')
     }
     
