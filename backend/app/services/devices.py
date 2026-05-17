@@ -83,7 +83,7 @@ async def batch_upsert_devices(devices_data: List[Dict[str, Any]]) -> List[str]:
     if not devices_data:
         return []
 
-    def sync_batch_upsert():
+    def _sync_batch_upsert_inner():
         conn = get_connection()
         try:
             now = utc_now()
@@ -264,6 +264,24 @@ async def batch_upsert_devices(devices_data: List[Dict[str, Any]]) -> List[str]:
             return upserted_ids, new_devices_to_enrich, online_notifications
         finally:
             conn.close()
+
+    def sync_batch_upsert():
+        import time
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                return _sync_batch_upsert_inner()
+            except Exception as e:
+                err_str = str(e).lower()
+                if "write-write conflict" in err_str or "database is locked" in err_str:
+                    if attempt < max_retries - 1:
+                        logger.warning(f"Database lock or write conflict (attempt {attempt+1}/{max_retries}). Retrying in 1s...")
+                        time.sleep(1)
+                    else:
+                        logger.error(f"Failed to batch upsert devices after {max_retries} attempts: {e}")
+                        raise
+                else:
+                    raise
 
     upserted_ids, to_enrich, to_notify = await asyncio.to_thread(sync_batch_upsert)
 

@@ -275,7 +275,20 @@ class AdguardClient:
                         "last_activity": last_act.isoformat() if last_act else None
                     })
                     
-                    conn_main.execute("UPDATE devices SET dns_stats = ? WHERE id = ?", [stats_json, dev_id])
+                    max_retries = 3
+                    for attempt in range(max_retries):
+                        try:
+                            conn_main.execute("UPDATE devices SET dns_stats = ? WHERE id = ?", [stats_json, dev_id])
+                            break
+                        except Exception as e:
+                            if "write-write conflict" in str(e).lower() or "database is locked" in str(e).lower():
+                                if attempt < max_retries - 1:
+                                    time.sleep(1)
+                                else:
+                                    logger.error(f"Failed to update device {dev_id} stats after {max_retries} attempts: {e}")
+                                    raise
+                            else:
+                                raise
                 
                 # 4. Update Main DB Cursor (last_sync and last_run)
                 config["last_sync"] = parse_iso_utc(datetime.fromtimestamp(new_last_sync_ts, tz=timezone.utc).isoformat()).isoformat()
