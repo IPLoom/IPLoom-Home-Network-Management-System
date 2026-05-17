@@ -101,11 +101,47 @@
 
                     <!-- System Hub: Live & Notifications -->
                     <div class="flex items-center gap-1.5 p-1 bg-slate-50/80 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/30">
-                        <div v-if="deviceStore.stats.new_24h > 0" 
-                            @click="router.push('/devices')"
-                            class="hidden sm:flex items-center gap-1.5 px-3 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 cursor-pointer hover:bg-emerald-500/20 transition-all group">
-                            <Radar class="w-3.5 h-3.5 animate-pulse" />
-                            <span class="text-[10px] font-black uppercase tracking-widest">{{ deviceStore.stats.new_24h }} New Today</span>
+                        <!-- New Devices Alert -->
+                        <div v-if="hasNewDevices" class="relative" v-click-outside="() => showNewDevices = false">
+                            <button @click="toggleNewDevices"
+                                class="hidden sm:flex items-center gap-1.5 px-3 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 cursor-pointer hover:bg-emerald-500/20 transition-all group relative">
+                                <Radar class="w-3.5 h-3.5 animate-pulse" />
+                                <span class="text-[10px] font-black uppercase tracking-widest">{{ deviceStore.stats.new_24h }} New</span>
+                                <span class="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 border border-white dark:border-slate-900"></span>
+                                </span>
+                            </button>
+
+                            <!-- New Devices Popover -->
+                            <transition enter-active-class="transition duration-200 ease-out" enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100" leave-active-class="transition duration-150 ease-in" leave-from-class="transform scale-100 opacity-100" leave-to-class="transform scale-95 opacity-0">
+                                <div v-if="showNewDevices" class="absolute right-0 mt-3 w-72 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden z-50">
+                                    <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between bg-emerald-50/50 dark:bg-emerald-900/10">
+                                        <h3 class="text-[10px] font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-400">Newly Discovered</h3>
+                                        <button @click="dismissNewDevices" class="text-[9px] font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">Dismiss</button>
+                                    </div>
+                                    <div class="max-h-80 overflow-y-auto custom-scrollbar">
+                                        <div v-if="deviceStore.newDevices.length === 0" class="p-8 text-center text-slate-500 text-[10px] font-medium">Loading devices...</div>
+                                        <button v-for="device in deviceStore.newDevices" :key="device.id" @click="goToDevice(device)" 
+                                            class="w-full flex items-center gap-3 px-4 py-3 hover:bg-emerald-50 dark:hover:bg-emerald-500/5 transition-colors text-left border-b border-slate-50 dark:border-slate-700/30 last:border-0 group/new">
+                                            <div class="p-2 bg-slate-100 dark:bg-slate-700 rounded-xl group-hover/new:bg-emerald-100 dark:group-hover/new:bg-emerald-900/30 transition-colors">
+                                                <component :is="getIcon(device.icon || 'help-circle')" class="h-4 w-4 text-slate-600 dark:text-emerald-500" />
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="text-xs font-bold text-slate-900 dark:text-white truncate">{{ device.display_name || device.name }}</div>
+                                                <div class="text-[10px] text-slate-500 font-mono">{{ device.ip }}</div>
+                                            </div>
+                                            <ChevronRightIcon class="h-3 w-3 text-slate-300 group-hover/new:text-emerald-500 transition-colors" />
+                                        </button>
+                                    </div>
+                                    <div class="p-2 border-t border-slate-100 dark:border-slate-700/50">
+                                        <router-link to="/devices" @click="showNewDevices = false" class="w-full py-2 px-4 text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-xl transition-all flex items-center justify-between">
+                                            <span>Manage all devices</span>
+                                            <ArrowRightIcon class="h-3 w-3" />
+                                        </router-link>
+                                    </div>
+                                </div>
+                            </transition>
                         </div>
 
                         <div class="hidden sm:flex items-center gap-1.5 px-3 h-9 rounded-lg border transition-colors duration-500"
@@ -156,6 +192,7 @@
                                 </div>
                             </transition>
                         </div>
+
                     </div>
 
                     <!-- User Profile -->
@@ -223,10 +260,12 @@ import {
     Zap,
     Share2 as Share2Icon,
     Router as RouterIcon,
-    ShieldCheck as ShieldCheckIcon
+    ShieldCheck as ShieldCheckIcon,
+    ChevronRight as ChevronRightIcon,
+    Radar
 } from 'lucide-vue-next'
 import { useNotifications } from '@/composables/useNotifications'
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import AppLogo from './AppLogo.vue'
 import { useSearchStore } from '@/stores/search'
 import { useNotificationStore } from '@/stores/notifications'
@@ -236,7 +275,6 @@ import { useDeviceStore } from '@/stores/devices'
 import { useRouter } from 'vue-router'
 import { formatRelativeTime, parseUTC } from '@/utils/date'
 import { useWebSockets } from '@/composables/useWebSockets'
-import { Radar } from 'lucide-vue-next'
 
 defineEmits(['toggle-mobile-menu'])
 
@@ -251,10 +289,41 @@ const ws = useWebSockets()
 const showResults = ref(false)
 const showNotifications = ref(false)
 const showUserMenu = ref(false)
+const showNewDevices = ref(false)
+
+// Last seen timestamp for "New" badge dismissal
+const lastDismissed = ref(localStorage.getItem('new_devices_last_dismissed') || '0')
+
+const hasNewDevices = computed(() => {
+    if (deviceStore.stats.new_24h <= 0) return false
+    // If we have new devices in 24h, we check if they were already dismissed
+    // For simplicity, if new_24h > 0 and user hasn't dismissed in last hour, show it
+    // Or more precisely: if we have new ones, show it. Dismissing just hides it until next one.
+    return lastDismissed.value !== 'all_seen'
+})
+
+const toggleNewDevices = () => {
+    showNewDevices.value = !showNewDevices.value
+    if (showNewDevices.value) {
+        showResults.value = false
+        showNotifications.value = false
+        showUserMenu.value = false
+        deviceStore.fetchNewDevices()
+    }
+}
+
+const dismissNewDevices = () => {
+    showNewDevices.value = false
+    lastDismissed.value = 'all_seen'
+    localStorage.setItem('new_devices_last_dismissed', 'all_seen')
+}
 
 watch(ws.lastNotification, (notif) => {
     if (notif && notif.event_type === 'new_device') {
         deviceStore.fetchStats()
+        // Reset dismissal if a literal new device event arrives
+        lastDismissed.value = 'new_event'
+        localStorage.removeItem('new_devices_last_dismissed')
     }
 })
 
@@ -264,6 +333,7 @@ onMounted(() => {
     integrationStore.fetchStatuses()
     deviceStore.fetchStats()
 })
+
 
 const getIntegrationStatus = (key) => {
     if (key === 'mqtt') return integrationStore.mqttStatus.reachable
@@ -374,8 +444,10 @@ const clearSearch = () => {
 
 const goToDevice = (device) => {
     showResults.value = false
+    showNewDevices.value = false
     router.push({ name: 'DeviceDetails', params: { id: device.id } })
 }
+
 
 const goToDevices = () => {
     showResults.value = false

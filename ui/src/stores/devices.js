@@ -10,6 +10,7 @@ export const useDeviceStore = defineStore('devices', () => {
     new_24h: 0,
     untrusted: 0
   })
+  const newDevices = ref([])
   const isLoading = ref(false)
 
   const fetchStats = async () => {
@@ -27,9 +28,21 @@ export const useDeviceStore = defineStore('devices', () => {
     }
   }
 
+  const fetchNewDevices = async () => {
+    try {
+      const response = await api.get('/devices/', { params: { new_only: true, limit: 10, sort_by: 'first_seen', sort_order: 'desc' } })
+      newDevices.value = response.data.items
+    } catch (error) {
+      console.error('Failed to fetch new devices:', error)
+    }
+  }
+
   return {
     stats,
+    newDevices,
     isLoading,
-    fetchStats
+    fetchStats,
+    fetchNewDevices
   }
 })
+

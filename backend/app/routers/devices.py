@@ -12,6 +12,7 @@ async def _internal_list_devices(
     device_type: str | None = None, 
     status: str | None = None,
     search: str | None = None,
+    new_only: bool = False,
     sort_by: str = "ip",
     sort_order: str = "asc",
     page: int = 1,
@@ -31,6 +32,8 @@ async def _internal_list_devices(
             if status:
                 clauses.append("status = ?")
                 params.append(status)
+            if new_only:
+                clauses.append("first_seen > now() - interval '24 hours'")
             if search:
                 clauses.append("(ip ILIKE ? OR mac ILIKE ? OR name ILIKE ? OR display_name ILIKE ? OR vendor ILIKE ?)")
                 # Support multi-word wild search by replacing spaces with %
@@ -76,7 +79,7 @@ async def _internal_list_devices(
                 base_sql += " WHERE " + " AND ".join(clauses)
                 
             # Validate sort_by to prevent injection
-            allowed_sort = ["ip", "mac", "display_name", "device_type", "last_seen", "status", "vendor"]
+            allowed_sort = ["ip", "mac", "display_name", "device_type", "last_seen", "status", "vendor", "first_seen"]
             if sort_by not in allowed_sort:
                 safe_sort = "ip"
             else:
@@ -172,6 +175,7 @@ async def list_devices(
     device_type: Annotated[str | None, Query()] = None,
     status: Annotated[str | None, Query()] = None,
     search: Annotated[str | None, Query()] = None,
+    new_only: Annotated[bool, Query()] = False,
     sort_by: Annotated[str, Query()] = "ip",
     sort_order: Annotated[str, Query()] = "asc",
     page: Annotated[int, Query(ge=1)] = 1,
@@ -181,11 +185,13 @@ async def list_devices(
         device_type=device_type, 
         status=status, 
         search=search,
+        new_only=new_only,
         sort_by=sort_by,
         sort_order=sort_order,
         page=page,
         limit=limit
     )
+
 
 @router.get("/{device_id}", response_model=DeviceRead)
 async def get_device(device_id: str):
