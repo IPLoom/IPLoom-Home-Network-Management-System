@@ -41,6 +41,12 @@
                         <ShieldCheck class="w-4 h-4" />
                         DNS Security
                     </button>
+                    <button @click="currentView = 'security'"
+                        class="px-5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2"
+                        :class="currentView === 'security' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'">
+                        <ShieldAlert class="w-4 h-4" />
+                        Network Security
+                    </button>
                 </div>
             </div>
         </div>
@@ -495,6 +501,194 @@
                 <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
         </div>
+
+        <div v-else-if="currentView === 'security'">
+            <div v-if="loading" class="h-96 flex items-center justify-center">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+            <div v-else class="space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Untrusted Devices -->
+                    <div class="premium-card shadow-sm flex flex-col">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                                <ShieldAlert class="w-5 h-5 text-amber-500" />
+                                Untrusted Devices
+                            </h3>
+                            <div class="flex gap-2">
+                                <button @click="changeSecPage('untrusted', -1)" :disabled="secPage.untrusted === 1"
+                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    <ChevronLeft class="w-4 h-4" />
+                                </button>
+                                <span class="text-xs font-mono self-center">Page {{ secPage.untrusted }} / {{ secTotal.untrusted }}</span>
+                                <button @click="changeSecPage('untrusted', 1)" :disabled="secPage.untrusted >= secTotal.untrusted"
+                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    <ChevronRight class="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-3 flex-1">
+                            <div v-for="dev in securityData.untrusted_devices" :key="dev.id" class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-100 dark:border-slate-700">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
+                                        <component :is="getIcon(dev.icon || dev.device_type)" class="w-5 h-5 text-slate-500" />
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-semibold text-slate-900 dark:text-white">{{ dev.display_name || dev.name }}</div>
+                                        <div class="text-xs text-slate-500 dark:text-slate-400 font-mono">{{ dev.ip }} • {{ dev.mac }}</div>
+                                    </div>
+                                </div>
+                                <button @click="triggerApprove(dev.id)" class="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-lg transition-colors shadow-sm flex items-center gap-1.5">
+                                    <CheckCircle class="w-3.5 h-3.5" /> Approve
+                                </button>
+                            </div>
+                            <div v-if="securityData.untrusted_devices.length === 0" class="text-center py-8 text-slate-500 text-sm italic">
+                                No untrusted devices found.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Risky Open Ports -->
+                    <div class="premium-card shadow-sm flex flex-col">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Unlock class="w-5 h-5 text-red-500" />
+                                Risky Open Ports
+                            </h3>
+                            <div class="flex gap-2">
+                                <button @click="changeSecPage('riskyPorts', -1)" :disabled="secPage.riskyPorts === 1"
+                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    <ChevronLeft class="w-4 h-4" />
+                                </button>
+                                <span class="text-xs font-mono self-center">Page {{ secPage.riskyPorts }} / {{ secTotal.riskyPorts }}</span>
+                                <button @click="changeSecPage('riskyPorts', 1)" :disabled="secPage.riskyPorts >= secTotal.riskyPorts"
+                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    <ChevronRight class="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-3 flex-1">
+                            <div v-for="(port, idx) in securityData.risky_ports" :key="idx" class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-100 dark:border-slate-700">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
+                                        <component :is="getIcon(port.icon)" class="w-5 h-5 text-slate-500" />
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-semibold text-slate-900 dark:text-white">{{ port.display_name || port.name }}</div>
+                                        <div class="text-xs text-slate-500 dark:text-slate-400 font-mono">{{ port.ip }}</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-xs font-bold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded">
+                                        Port {{ port.port }}
+                                    </div>
+                                    <div class="text-[10px] text-slate-500 mt-0.5 uppercase">{{ port.service || 'unknown' }}</div>
+                                </div>
+                            </div>
+                            <div v-if="securityData.risky_ports.length === 0" class="text-center py-8 text-slate-500 text-sm italic">
+                                No risky ports detected.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Blocked Devices -->
+                    <div class="premium-card shadow-sm flex flex-col">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Lock class="w-5 h-5 text-slate-700 dark:text-slate-300" />
+                                Blocked Devices
+                            </h3>
+                            <div class="flex gap-2">
+                                <button @click="changeSecPage('blocked', -1)" :disabled="secPage.blocked === 1"
+                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    <ChevronLeft class="w-4 h-4" />
+                                </button>
+                                <span class="text-xs font-mono self-center">Page {{ secPage.blocked }} / {{ secTotal.blocked }}</span>
+                                <button @click="changeSecPage('blocked', 1)" :disabled="secPage.blocked >= secTotal.blocked"
+                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    <ChevronRight class="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-3 flex-1">
+                            <div v-for="dev in securityData.blocked_devices" :key="dev.id" class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-100 dark:border-slate-700">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
+                                        <component :is="getIcon(dev.icon || dev.device_type)" class="w-5 h-5 text-slate-500" />
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-semibold text-slate-900 dark:text-white">{{ dev.display_name || dev.name }}</div>
+                                        <div class="text-[10px] flex gap-1 mt-1">
+                                            <span v-if="dev.is_manual_block" class="px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Manual</span>
+                                            <span v-if="dev.is_quota_exceeded" class="px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">Quota</span>
+                                            <span v-if="dev.is_scheduled_block" class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Schedule</span>
+                                            <span v-if="dev.is_blocked && !dev.is_manual_block && !dev.is_quota_exceeded && !dev.is_scheduled_block" class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-300">System</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <router-link :to="`/devices/${dev.id}`" class="p-1.5 text-slate-400 hover:text-blue-500 transition-colors">
+                                    <ChevronRight class="w-4 h-4" />
+                                </router-link>
+                            </div>
+                            <div v-if="securityData.blocked_devices.length === 0" class="text-center py-8 text-slate-500 text-sm italic">
+                                No devices are currently blocked.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- New Devices (7 Days) -->
+                    <div class="premium-card shadow-sm flex flex-col">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Clock class="w-5 h-5 text-blue-500" />
+                                New Devices (Last 7 Days)
+                            </h3>
+                            <div class="flex gap-2">
+                                <button @click="changeSecPage('newDevices', -1)" :disabled="secPage.newDevices === 1"
+                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    <ChevronLeft class="w-4 h-4" />
+                                </button>
+                                <span class="text-xs font-mono self-center">Page {{ secPage.newDevices }} / {{ secTotal.newDevices }}</span>
+                                <button @click="changeSecPage('newDevices', 1)" :disabled="secPage.newDevices >= secTotal.newDevices"
+                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    <ChevronRight class="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-3 flex-1">
+                            <div v-for="dev in securityData.new_devices_7d" :key="dev.id" class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-100 dark:border-slate-700">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
+                                        <component :is="getIcon(dev.icon || dev.device_type)" class="w-5 h-5 text-slate-500" />
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-semibold text-slate-900 dark:text-white">{{ dev.display_name || dev.name }}</div>
+                                        <div class="text-xs text-slate-500 dark:text-slate-400 font-mono">{{ dev.vendor || 'Unknown Vendor' }}</div>
+                                    </div>
+                                </div>
+                                <div class="text-xs text-slate-400 font-mono">
+                                    {{ new Date(dev.first_seen).toLocaleDateString() }}
+                                </div>
+                            </div>
+                            <div v-if="securityData.new_devices_7d.length === 0" class="text-center py-8 text-slate-500 text-sm italic">
+                                No new devices discovered recently.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <ConfirmationModal
+            :isOpen="showApproveModal"
+            title="Approve Device"
+            message="Are you sure you want to mark this device as trusted? This will remove it from the untrusted list."
+            confirmText="Approve"
+            type="primary"
+            :loading="approving"
+            @close="showApproveModal = false"
+            @confirm="confirmApproveDevice"
+        />
     </div>
 </template>
 
@@ -506,7 +700,8 @@ import { useNotifications } from '@/composables/useNotifications'
 import { parseUTC } from '@/utils/date'
 import { getIcon } from '@/utils/icons'
 import {
-    Router, Settings, Download, Upload, Users, Activity, ShieldCheck, ChevronLeft, ChevronRight, ShieldAlert
+    Router, Settings, Download, Upload, Users, Activity, ShieldCheck, ChevronLeft, ChevronRight, ShieldAlert,
+    CheckCircle, Unlock, Lock, Clock
 } from 'lucide-vue-next'
 import { formatBytes } from '@/utils/format'
 
@@ -528,6 +723,109 @@ const vendorSeries = ref([])
 const categorySeries = ref([])
 const typeSeries = ref([])
 const heatmapSeries = ref([])
+
+const securityData = reactive({
+    untrusted_devices: [],
+    blocked_devices: [],
+    new_devices_7d: [],
+    risky_ports: [],
+})
+
+const { notify } = useNotifications()
+
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+
+const showApproveModal = ref(false)
+const pendingApproveId = ref(null)
+const approving = ref(false)
+
+const secPage = reactive({ untrusted: 1, blocked: 1, newDevices: 1, riskyPorts: 1 })
+const secTotal = reactive({ untrusted: 1, blocked: 1, newDevices: 1, riskyPorts: 1 })
+
+const fetchUntrusted = async () => {
+    try {
+        const res = await api.get(`/analytics/security/untrusted?page=${secPage.untrusted}&limit=5`)
+        securityData.untrusted_devices = res.data.items || []
+        secTotal.untrusted = res.data.pages || 1
+        
+        if (securityData.untrusted_devices.length === 0 && secPage.untrusted > 1) {
+            secPage.untrusted--
+            await fetchUntrusted()
+        }
+    } catch (e) { console.error(e) }
+}
+
+const fetchBlocked = async () => {
+    try {
+        const res = await api.get(`/analytics/security/blocked?page=${secPage.blocked}&limit=5`)
+        securityData.blocked_devices = res.data.items || []
+        secTotal.blocked = res.data.pages || 1
+    } catch (e) { console.error(e) }
+}
+
+const fetchNewDevices = async () => {
+    try {
+        const res = await api.get(`/analytics/security/new-devices?page=${secPage.newDevices}&limit=5`)
+        securityData.new_devices_7d = res.data.items || []
+        secTotal.newDevices = res.data.pages || 1
+    } catch (e) { console.error(e) }
+}
+
+const fetchRiskyPorts = async () => {
+    try {
+        const res = await api.get(`/analytics/security/risky-ports?page=${secPage.riskyPorts}&limit=5`)
+        securityData.risky_ports = res.data.items || []
+        secTotal.riskyPorts = res.data.pages || 1
+    } catch (e) { console.error(e) }
+}
+
+const changeSecPage = (type, delta) => {
+    const newPage = secPage[type] + delta
+    if (newPage >= 1 && newPage <= secTotal[type]) {
+        secPage[type] = newPage
+        if (type === 'untrusted') fetchUntrusted()
+        else if (type === 'blocked') fetchBlocked()
+        else if (type === 'newDevices') fetchNewDevices()
+        else if (type === 'riskyPorts') fetchRiskyPorts()
+    }
+}
+
+const fetchSecurityData = async () => {
+    loading.value = true
+    try {
+        await Promise.all([
+            fetchUntrusted(),
+            fetchBlocked(),
+            fetchNewDevices(),
+            fetchRiskyPorts()
+        ])
+    } catch (e) {
+        notify('Failed to load network security data', 'error')
+    } finally {
+        loading.value = false
+    }
+}
+
+const triggerApprove = (deviceId) => {
+    pendingApproveId.value = deviceId
+    showApproveModal.value = true
+}
+
+const confirmApproveDevice = async () => {
+    if (!pendingApproveId.value) return
+    approving.value = true
+    try {
+        await api.patch(`/devices/${pendingApproveId.value}`, { is_trusted: true })
+        notify('Device approved and trusted', 'success')
+        await fetchUntrusted()
+        showApproveModal.value = false
+    } catch (e) {
+        notify('Failed to approve device', 'error')
+    } finally {
+        approving.value = false
+        pendingApproveId.value = null
+    }
+}
 
 // getIcon is now imported from @/utils/icons
 
@@ -590,6 +888,8 @@ const fetchData = async () => {
     } else if (currentView.value === 'dns') {
         if (dnsConfigured.value) await fetchDnsData()
         else loading.value = false
+    } else if (currentView.value === 'security') {
+        await fetchSecurityData()
     }
 }
 

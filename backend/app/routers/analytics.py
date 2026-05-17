@@ -823,7 +823,300 @@ def get_analytics_summary():
         }
     except Exception as e:
         logger.error(f"Summary Error: {e}")
+    conn = get_dns_connection()
+    conn_main = get_connection()
+    dev_row = conn_main.execute("SELECT ip FROM devices WHERE id = ?", [device_id]).fetchone()
+    device_ip = dev_row[0] if dev_row else None
+
+    where_clause = "(device_id = ?"
+    params = [device_id]
+    if device_ip:
+        where_clause += " OR client_ip = ?"
+        params.append(device_ip)
+    where_clause += ")"
+
+    try:
+        res = conn.execute(f"SELECT COUNT(*) FROM dns_logs WHERE {where_clause}", params).fetchone()
+        return {"total": res[0] or 0}
+    except Exception as e:
+        logger.error(f"Error fetching DNS logs count: {e}")
+        return {"total": 0}
+    finally:
+        conn.close()
+        conn_main.close()
+
+@router.get("/dns/logs/{device_id}")
+def get_device_dns_logs(device_id: str, limit: int = 50, offset: int = 0):
+    """
+    Returns recent DNS queries for a specific device.
+    """
+    logger.debug(f"Fetching DNS logs for device: {device_id} (limit: {limit})")
+    conn = get_dns_connection()
+    # Fallback IP matching
+    conn_main = get_connection()
+    dev_row = conn_main.execute("SELECT ip FROM devices WHERE id = ?", [device_id]).fetchone()
+    device_ip = dev_row[0] if dev_row else None
+
+    where_clause = "(device_id = ?"
+    params = [device_id]
+    if device_ip:
+        where_clause += " OR client_ip = ?"
+        params.append(device_ip)
+    where_clause += ")"
+
+    try:
+        # Get logs joined with domains
+        rows = conn.execute(f"""
+            SELECT 
+                l.timestamp,
+                d.domain,
+                l.status,
+                l.response_time,
+                l.is_blocked,
+                d.category
+            FROM dns_logs l
+            JOIN dns_domains d ON l.domain_id = d.id
+            WHERE {where_clause}
+            ORDER BY l.timestamp DESC
+            LIMIT ? OFFSET ?
+        """, params + [limit, offset]).fetchall()
+        
+        return [{
+            "timestamp": r[0],
+            "domain": r[1],
+            "status": r[2],
+            "response_time": r[3],
+            "is_blocked": bool(r[4]),
+            "category": r[5]
+        } for r in rows]
+    except Exception as e:
+        logger.error(f"Device DNS Logs Error: {e}")
+        return []
+    finally:
+        conn.close()
+        conn_main.close()
+
+@router.get("/dns/query-types")
+def get_dns_query_types(range: str = "24h"):
+    """
+    Returns breakdown of DNS queries by type (A, AAAA, PTR, etc.)
+    """
+    conn = get_dns_connection()
+    start_time, end_time, _, _ = get_date_range(range)
+    try:
+        rows = conn.execute("""
+            SELECT query_type, COUNT(*) as count
+            FROM dns_logs
+            WHERE timestamp >= ? AND timestamp <= ? AND query_type IS NOT NULL
+            GROUP BY query_type
+            ORDER BY count DESC
+        """, [start_time, end_time]).fetchall()
+        
+        return [{"label": r[0], "value": r[1]} for r in rows]
+    except Exception as e:
+        logger.error(f"DNS Query Types Error: {e}")
+        return []
+    finally:
+        conn.close()
+
+@router.get("/dns/risky-devices")
+def get_dns_risky_devices(range: str = "24h", limit: int = 5):
+    """
+    Returns devices with the highest DNS block rates.
+    """
+    conn_dns = get_dns_connection()
+    conn_main = get_connection()
+    start_time, end_time, _, _ = get_date_range(range)
+    try:
+        # Get devices with at least 10 queries to avoid noise
+        rows = conn_dns.execute("""
+            SELECT 
+                device_id,
+                COUNT(*) as total,
+                COUNT(CASE WHEN is_blocked = TRUE THEN 1 END) as blocked
+            FROM dns_logs
+            WHERE timestamp >= ? AND timestamp <= ? AND device_id IS NOT NULL
+            GROUP BY device_id
+            HAVING total >= 10
+            ORDER BY (CAST(blocked AS FLOAT) / total) DESC
+            LIMIT ?
+        """, [start_time, end_time, limit]).fetchall()
+        
+        results = []
+        for r in rows:
+            dev_id, total, blocked = r
+            # Resolve name
+            d_row = conn_main.execute("SELECT name, display_name, icon, ip FROM devices WHERE id = ?", [dev_id]).fetchone()
+            if d_row:
+                results.append({
+                    "id": dev_id,
+                    "name": d_row[1] or d_row[0],
+                    "icon": d_row[2],
+                    "ip": d_row[3],
+                    "total": total,
+                    "blocked": blocked,
+                    "block_rate": round((blocked / total * 100), 1) if total > 0 else 0
+                })
+        return results
+    except Exception as e:
+        logger.error(f"DNS Risky Devices Error: {e}")
+        return []
+    finally:
+        conn_dns.close()
+        conn_main.close()
+
+@router.get("/summary")
+def get_analytics_summary():
+    """
+    Consolidated summary for the Dashboard (24h default)
+    """
+    conn_main = get_connection()
+    conn_dns = get_dns_connection()
+    
+    now = utc_now()
+    start_24h = now - timedelta(hours=24)
+    
+    try:
+        # 1. Traffic Totals
+        traffic_row = conn_main.execute("""
+            SELECT SUM(down_rate), SUM(up_rate)
+            FROM device_traffic_history
+            WHERE timestamp >= ?
+        """, [start_24h]).fetchone()
+        
+        # 2. DNS Totals
+        dns_row = conn_dns.execute("""
+            SELECT 
+                COUNT(*), 
+                COUNT(CASE WHEN is_blocked = TRUE THEN 1 END),
+                MODE(device_id)
+            FROM dns_logs
+            WHERE timestamp >= ?
+        """, [start_24h]).fetchone()
+        
+        total_queries = dns_row[0] or 0
+        blocked_queries = dns_row[1] or 0
+        top_client_id = dns_row[2]
+        
+        top_client_name = "None"
+        if top_client_id:
+            c_row = conn_main.execute("SELECT name, display_name FROM devices WHERE id = ?", [top_client_id]).fetchone()
+            if c_row:
+                top_client_name = c_row[1] or c_row[0]
+
+        return {
+            "traffic": {
+                "download": traffic_row[0] or 0,
+                "upload": traffic_row[1] or 0
+            },
+            "dns": {
+                "total": total_queries,
+                "blocked": blocked_queries,
+                "block_rate": round((blocked_queries / total_queries * 100), 1) if total_queries > 0 else 0,
+                "top_client": top_client_name
+            }
+        }
+    except Exception as e:
+        logger.error(f"Summary Error: {e}")
         return {}
     finally:
         conn_dns.close()
         conn_main.close()
+
+@router.get("/security/untrusted")
+def get_security_untrusted(page: int = 1, limit: int = 10):
+    conn = get_connection()
+    try:
+        offset = (page - 1) * limit
+        count = conn.execute("SELECT COUNT(*) FROM devices WHERE is_trusted = FALSE AND status = 'online'").fetchone()[0]
+        
+        rows = conn.execute("""
+            SELECT id, ip, mac, name, display_name, vendor, icon, device_type, brand, brand_icon, last_seen
+            FROM devices 
+            WHERE is_trusted = FALSE AND status = 'online'
+            ORDER BY last_seen DESC
+            LIMIT ? OFFSET ?
+        """, [limit, offset]).fetchall()
+        
+        keys = ["id", "ip", "mac", "name", "display_name", "vendor", "icon", "device_type", "brand", "brand_icon", "last_seen"]
+        items = [dict(zip(keys, r)) for r in rows]
+        
+        return { "items": items, "total": count, "page": page, "pages": (count + limit - 1) // limit }
+    finally:
+        conn.close()
+
+@router.get("/security/blocked")
+def get_security_blocked(page: int = 1, limit: int = 10):
+    conn = get_connection()
+    try:
+        offset = (page - 1) * limit
+        base_where = "WHERE is_blocked = TRUE OR is_manual_block = TRUE OR is_scheduled_block = TRUE OR is_quota_exceeded = TRUE"
+        count = conn.execute(f"SELECT COUNT(*) FROM devices {base_where}").fetchone()[0]
+        
+        rows = conn.execute(f"""
+            SELECT id, ip, mac, name, display_name, vendor, icon, device_type, brand, brand_icon, 
+                   is_manual_block, is_scheduled_block, is_quota_exceeded, is_blocked
+            FROM devices 
+            {base_where}
+            ORDER BY last_seen DESC
+            LIMIT ? OFFSET ?
+        """, [limit, offset]).fetchall()
+        
+        keys = ["id", "ip", "mac", "name", "display_name", "vendor", "icon", "device_type", "brand", "brand_icon", "is_manual_block", "is_scheduled_block", "is_quota_exceeded", "is_blocked"]
+        items = [dict(zip(keys, r)) for r in rows]
+        
+        return { "items": items, "total": count, "page": page, "pages": (count + limit - 1) // limit }
+    finally:
+        conn.close()
+
+@router.get("/security/new-devices")
+def get_security_new_devices(page: int = 1, limit: int = 10):
+    conn = get_connection()
+    try:
+        offset = (page - 1) * limit
+        import datetime
+        seven_days_ago = utc_now() - datetime.timedelta(days=7)
+        
+        count = conn.execute("SELECT COUNT(*) FROM devices WHERE first_seen >= ?", [seven_days_ago]).fetchone()[0]
+        
+        rows = conn.execute("""
+            SELECT id, ip, mac, name, display_name, vendor, icon, device_type, brand, brand_icon, first_seen
+            FROM devices 
+            WHERE first_seen >= ?
+            ORDER BY first_seen DESC
+            LIMIT ? OFFSET ?
+        """, [seven_days_ago, limit, offset]).fetchall()
+        
+        keys = ["id", "ip", "mac", "name", "display_name", "vendor", "icon", "device_type", "brand", "brand_icon", "first_seen"]
+        items = [dict(zip(keys, r)) for r in rows]
+        
+        return { "items": items, "total": count, "page": page, "pages": (count + limit - 1) // limit }
+    finally:
+        conn.close()
+
+@router.get("/security/risky-ports")
+def get_security_risky_ports(page: int = 1, limit: int = 10):
+    conn = get_connection()
+    try:
+        offset = (page - 1) * limit
+        risky_ports_list = [21, 22, 23, 135, 139, 445, 3389]
+        placeholders = ','.join(['?'] * len(risky_ports_list))
+        
+        count = conn.execute(f"SELECT COUNT(*) FROM device_ports WHERE port IN ({placeholders})", risky_ports_list).fetchone()[0]
+        
+        params = risky_ports_list + [limit, offset]
+        rows = conn.execute(f"""
+            SELECT d.id, d.ip, d.name, d.display_name, d.icon, d.vendor, p.port, p.protocol, p.service
+            FROM device_ports p
+            JOIN devices d ON p.device_id = d.id
+            WHERE p.port IN ({placeholders})
+            ORDER BY d.ip, p.port
+            LIMIT ? OFFSET ?
+        """, params).fetchall()
+        
+        keys = ["id", "ip", "name", "display_name", "icon", "vendor", "port", "protocol", "service"]
+        items = [dict(zip(keys, r)) for r in rows]
+        
+        return { "items": items, "total": count, "page": page, "pages": (count + limit - 1) // limit }
+    finally:
+        conn.close()
