@@ -102,6 +102,18 @@
                 <input v-model="openwrt.pass" type="password" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-sm" placeholder="••••••••">
               </div>
             </div>
+
+            <!-- Access Point Toggle -->
+            <div class="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-2xl mt-4">
+              <div>
+                <div class="text-xs font-bold text-slate-800">Use as Wireless Access Point</div>
+                <div class="text-[10px] text-slate-400 font-medium">Query OpenWRT's radios for Wi-Fi clients, RSSI, and bands</div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" v-model="openwrt.is_access_point" class="sr-only peer">
+                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500"></div>
+              </label>
+            </div>
           </div>
         </div>
 
@@ -262,7 +274,7 @@ const saving = ref(false)
 const skippedSteps = ref({})
 
 const mqtt = ref({ host: '', port: 1883, user: '', pass: '' })
-const openwrt = ref({ host: '', port: 22, user: 'root', pass: '' })
+const openwrt = ref({ host: '', port: 22, user: 'root', pass: '', is_access_point: true })
 const adguard = ref({ url: '', user: 'admin', pass: '' })
 const network = ref({ subnet: '', interval: 5, autoScan: true })
 
@@ -351,7 +363,8 @@ const finishOnboarding = async () => {
         url: `http://${openwrt.value.host}`,
         username: openwrt.value.user,
         password: openwrt.value.pass,
-        interval: 15
+        interval: 15,
+        is_access_point: openwrt.value.is_access_point
       })
     }
 

@@ -252,6 +252,20 @@
           </div>
 
           <div class="space-y-4">
+            <!-- Access Point Toggle -->
+            <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700/50">
+              <div>
+                <div class="text-sm font-semibold text-slate-900 dark:text-white">Use as Wireless Access Point</div>
+                <div class="text-xs text-slate-500">Query OpenWRT's radios for Wi-Fi client details, RSSI signals, and bands</div>
+              </div>
+              <label class="premium-switch group">
+                <div class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" v-model="settings.openwrt_is_access_point" class="sr-only peer">
+                  <div class="premium-switch-slider peer-checked:bg-indigo-600"></div>
+                </div>
+              </label>
+            </div>
+
             <!-- URL & Usage -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -491,7 +505,7 @@
             <div v-if="assetsLoading" class="flex justify-center py-4">
               <Loader2 class="w-5 h-5 animate-spin text-slate-400" />
             </div>
-            <div v-else-if="assets.length > 0" class="grid grid-cols-5 gap-3 max-h-48 overflow-y-auto custom-scrollbar p-1">
+            <div v-else-if="assets.length > 0" class="grid grid-cols-5 gap-3 max-h-48 overflow-y-auto overflow-x-hidden custom-scrollbar p-1">
               <div v-for="asset in assets" :key="asset.id" 
                 class="group relative aspect-square bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-2.5 flex items-center justify-center shadow-sm hover:shadow-md hover:border-indigo-500/50 transition-all duration-300"
               >
@@ -798,7 +812,7 @@
           <div>
             <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Select Icon</label>
             <div
-              class="grid grid-cols-6 gap-2 p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 max-h-40 overflow-auto">
+              class="grid grid-cols-6 gap-2 p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 max-h-40 overflow-y-auto overflow-x-hidden custom-scrollbar">
               <button v-for="icon in availableIcons" :key="icon" @click="ruleForm.icon = icon"
                 class="p-2 rounded-lg transition-all flex items-center justify-center border border-transparent"
                 :class="ruleForm.icon === icon ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800' : 'hover:bg-white dark:hover:bg-slate-800 text-slate-400 dark:text-slate-600'">
@@ -854,6 +868,7 @@ const settings = reactive({
   openwrt_password: '',
   openwrt_interval: 15,
   openwrt_enabled: true,
+  openwrt_is_access_point: true,
   adguard_url: '',
   adguard_username: '',
   adguard_password: '',
@@ -901,6 +916,7 @@ const fetchSettings = async () => {
         settings.openwrt_password = owRes.data.password
         settings.openwrt_interval = owRes.data.interval
         settings.openwrt_enabled = owRes.data.enabled !== false
+        settings.openwrt_is_access_point = owRes.data.is_access_point !== false
         openWrtStatus.value = owRes.data.verified ? 'online' : null
       }
     } catch { }
@@ -1178,7 +1194,8 @@ const saveSettings = async () => {
         username: settings.openwrt_username,
         password: settings.openwrt_password,
         interval: parseInt(settings.openwrt_interval) || 15,
-        enabled: settings.openwrt_enabled
+        enabled: settings.openwrt_enabled,
+        is_access_point: settings.openwrt_is_access_point
       })
       // Update status from backend auto-verification
       openWrtStatus.value = owRes.data.verified ? 'online' : null
@@ -1532,5 +1549,32 @@ onUnmounted(() => {
 
 input:checked + .premium-switch-slider::after {
   transform: translateX(1rem);
+}
+
+/* Custom Thin Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #334155;
 }
 </style>

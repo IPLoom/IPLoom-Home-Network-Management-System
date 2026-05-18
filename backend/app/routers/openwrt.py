@@ -17,6 +17,7 @@ class OpenWRTConfig(BaseModel):
     enabled: bool = True
     interval: int = 15 # minutes
     verified: bool = False
+    is_access_point: bool = True
 
 class VerifyRequest(BaseModel):
     url: str

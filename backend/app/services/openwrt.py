@@ -269,8 +269,22 @@ class OpenWRTClient:
         try:
             self.login()
             
+            # Fetch integration config to see if wireless query should be skipped
+            is_ap = True
+            conn_temp = get_connection()
+            try:
+                row = conn_temp.execute("SELECT config FROM integrations WHERE name = 'openwrt'").fetchone()
+                if row:
+                    try:
+                        integration_conf = json.loads(row[0])
+                        is_ap = integration_conf.get("is_access_point", True)
+                    except:
+                        pass
+            finally:
+                conn_temp.close()
+            
             leases = self.get_dhcp_leases()
-            wireless_assoc = self.get_wireless_devices()
+            wireless_assoc = self.get_wireless_devices() if is_ap else {}
             traffic_data = self.get_traffic_stats()
             traffic_deltas = traffic_data["deltas"]
             traffic_totals = traffic_data["totals"]
@@ -372,12 +386,34 @@ class OpenWRTClient:
                         attrs["wlan_ssid"] = wlan["ssid"]
                         attrs["wlan_rx_rate"] = wlan["rx_rate"]
                         attrs["wlan_tx_rate"] = wlan["tx_rate"]
-                        # Also flag as wireless
                         attrs["connection_type"] = "wireless"
-                    elif lease:
-                        # If in DHCP but not in wireless associations, it might be wired
-                        # (Or it's just not currently active in association table)
-                        attrs["connection_type"] = "wired"
+                    else:
+                        # Clean up active wireless link stats when not associated
+                        attrs.pop("wlan_rssi", None)
+                        attrs.pop("wlan_band", None)
+                        attrs.pop("wlan_ssid", None)
+                        attrs.pop("wlan_rx_rate", None)
+                        attrs.pop("wlan_tx_rate", None)
+                        
+                        # Smart preservation and intrinsic classification fallbacks
+                        existing_conn_type = attrs.get("connection_type")
+                        display_name = row[2] if row else None
+                        
+                        intrinsically_wireless = False
+                        combined_str = f"{mac} {hostname or ''} {name or ''} {display_name or ''}".lower()
+                        wireless_kws = [
+                            "wiz", "bulb", "tasmota", "esphome", "esp32", "esp8266", "shelly", "sonoff",
+                            "smart", "plug", "camera", "phone", "tablet", "mobile", "deco", "motion",
+                            "motor-controller", "labbulb", "dining-motion", "android", "iphone", "ipad",
+                            "galaxy", "pixel", "oneplus", "xiaomi", "huawei", "television", "smarttv"
+                        ]
+                        if any(kw in combined_str for kw in wireless_kws):
+                            intrinsically_wireless = True
+                            
+                        if existing_conn_type == "wireless" or intrinsically_wireless:
+                            attrs["connection_type"] = "wireless"
+                        elif lease:
+                            attrs["connection_type"] = "wired"
                     
                     # Insert into history (Always record traffic if available)
                     if t_total["down"] > 0 or t_total["up"] > 0:

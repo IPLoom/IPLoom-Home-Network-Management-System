@@ -106,6 +106,22 @@
                   <span class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Network Resource</span>
                   <div class="w-1 h-1 bg-slate-300 dark:bg-slate-700 rounded-full"></div>
                   <span class="text-[9px] font-black uppercase tracking-[0.2em] text-blue-500">{{ device.ip }}</span>
+                  
+                  <template v-if="device.attributes?.connection_type === 'wireless'">
+                    <div class="w-1 h-1 bg-slate-300 dark:bg-slate-700 rounded-full"></div>
+                    <div class="flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.2em] text-blue-500" 
+                      v-tooltip="device.attributes.wlan_ssid ? `Connected to ${device.attributes.wlan_ssid} (${device.attributes.wlan_rssi} dBm)` : 'Connected via Wi-Fi Wireless'">
+                      <Wifi class="w-3 h-3" />
+                      <span>WiFi</span>
+                    </div>
+                  </template>
+                  <template v-else-if="device.attributes?.connection_type === 'wired'">
+                    <div class="w-1 h-1 bg-slate-300 dark:bg-slate-700 rounded-full"></div>
+                    <div class="flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.2em] text-emerald-500" v-tooltip="'Connected via Ethernet LAN'">
+                      <Network class="w-3 h-3" />
+                      <span>LAN</span>
+                    </div>
+                  </template>
                 </div>
                 <div class="flex items-center gap-3">
                   <input v-model="form.display_name" type="text" 

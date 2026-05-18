@@ -235,11 +235,17 @@
                           v-tooltip="`${device.dns_stats.blocked} blocked queries`">
                           <ShieldAlert class="h-3 w-3" /> DNS
                         </span>
-                        <!-- Wireless Indicator -->
                         <span v-if="device.attributes?.connection_type === 'wireless'"
                           class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 border border-blue-100 dark:border-blue-800 flex items-center gap-1"
-                          v-tooltip="`Connected to ${device.attributes.wlan_ssid} (${device.attributes.wlan_rssi} dBm)`">
-                          <Wifi class="h-3 w-3" /> {{ device.attributes.wlan_band }}
+                          v-tooltip="device.attributes.wlan_ssid ? `Connected to ${device.attributes.wlan_ssid}` : 'Connected via Wi-Fi Wireless'">
+                          <Wifi class="h-3 w-3" /> {{ device.attributes.wlan_band || 'Wi-Fi' }} 
+                          <span v-if="device.attributes.wlan_rssi" class="opacity-80 ml-0.5">({{ device.attributes.wlan_rssi }} dBm)</span>
+                        </span>
+                        <!-- Wired Indicator -->
+                        <span v-if="device.attributes?.connection_type === 'wired'"
+                          class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800 flex items-center gap-1"
+                          v-tooltip="'Connected via Ethernet LAN'">
+                          <Network class="h-3 w-3" /> LAN
                         </span>
                         <!-- Firewall Blocked Indicator -->
                         <span v-if="device.is_blocked"
@@ -517,7 +523,7 @@ import EditDeviceModal from '@/components/EditDeviceModal.vue'
 import DiscoveryModal from '@/components/DiscoveryModal.vue'
 import { getIcon } from '@/utils/icons'
 import * as LucideIcons from 'lucide-vue-next'
-const { Eye, Pencil, Trash2, Download, Upload, RefreshCw, Loader2, Search, ChevronUp, ChevronDown, ChevronRight, ArrowUpDown, Activity, Wifi, Database, ZapOff, Ticket, Filter, Layers, ShieldCheck, ShieldAlert, Radar, Ban, Zap, Clock } = LucideIcons
+const { Eye, Pencil, Trash2, Download, Upload, RefreshCw, Loader2, Search, ChevronUp, ChevronDown, ChevronRight, ArrowUpDown, Activity, Wifi, Network, Database, ZapOff, Ticket, Filter, Layers, ShieldCheck, ShieldAlert, Radar, Ban, Zap, Clock } = LucideIcons
 import { DateTime } from 'luxon'
 import { formatRelativeTime, parseUTC } from '@/utils/date'
 import { useNotifications } from '@/composables/useNotifications'
