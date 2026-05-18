@@ -310,13 +310,19 @@ async def run_scan_job(scan_id: str, target: str, scan_type: str = "arp", option
 
         # 5. Save Results & Finalize
         def save_and_update():
+            from app.services.devices import format_mac
             conn = get_connection()
             try:
                 save_now = utc_now()
                 for res in processed_results:
+                    res_mac = res["mac"]
+                    if res_mac:
+                        res_mac = format_mac(res_mac)
+                        if not res_mac or res_mac.lower() in ("unknown", "n/a", "none"):
+                            res_mac = None
                     conn.execute(
                         "INSERT INTO scan_results (id, scan_id, ip, mac, hostname, open_ports, first_seen, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                        [res["result_id"], scan_id, res["ip"], res["mac"], res["hostname"], json.dumps(res["ports_list"]), save_now, save_now]
+                        [res["result_id"], scan_id, res["ip"], res_mac, res["hostname"], json.dumps(res["ports_list"]), save_now, save_now]
                     )
                 conn.commit()
             finally:

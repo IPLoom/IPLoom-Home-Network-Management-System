@@ -1,8 +1,11 @@
 import uuid
+import logging
 from typing import List, Optional
 from app.core.db import get_connection, commit
 from app.models.internet_schedules import DeviceBlockScheduleCreate, DeviceBlockScheduleUpdate, DeviceBlockScheduleRead
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 async def _update_device_has_schedule(device_id: str):
     conn = get_connection()

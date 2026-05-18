@@ -101,6 +101,13 @@ async def batch_upsert_devices(devices_data: List[Dict[str, Any]]) -> List[str]:
             for data in devices_data:
                 ip = data["ip"]
                 mac = data.get("mac")
+                
+                # Format and clean MAC: treat "unknown"/empty as None (NULL)
+                if mac:
+                    mac = format_mac(mac)
+                    if not mac or mac.lower() in ("unknown", "n/a", "none"):
+                        mac = None
+                        
                 hostname = data.get("hostname")
                 ports = data.get("ports", [])
                 
@@ -108,7 +115,7 @@ async def batch_upsert_devices(devices_data: List[Dict[str, Any]]) -> List[str]:
                 existing_device = None
                 
                 # Optimized: Fetch all necessary fields in one go
-                if mac and mac.lower() != "unknown":
+                if mac:
                     existing_device = conn.execute(
                         f"{get_base_query()} WHERE d.mac = ?", 
                         [mac]

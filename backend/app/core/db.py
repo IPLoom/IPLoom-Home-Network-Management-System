@@ -182,6 +182,14 @@ def migrate_db(conn: duckdb.DuckDBPyConnection) -> None:
         )
     """)
 
+    # Ensure integrations table exists
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS integrations (
+            name   TEXT PRIMARY KEY,
+            config TEXT
+        )
+    """)
+
     # Ensure device_status_history table exists
     conn.execute("""
         CREATE TABLE IF NOT EXISTS device_status_history (
@@ -349,6 +357,15 @@ def migrate_db(conn: duckdb.DuckDBPyConnection) -> None:
     assets_dir = Path(settings.assets_dir)
     (assets_dir / "brand_icons").mkdir(parents=True, exist_ok=True)
     (assets_dir / "device_icons").mkdir(parents=True, exist_ok=True)
+
+    # Clean up "unknown" or empty MAC addresses to be NULL so COALESCE works correctly
+    try:
+        print("Migration: Cleaning up 'unknown' and empty MAC addresses to NULL...")
+        conn.execute("UPDATE devices SET mac = NULL WHERE mac IS NULL OR LOWER(mac) = 'unknown' OR TRIM(mac) = ''")
+        conn.execute("UPDATE scan_results SET mac = NULL WHERE mac IS NULL OR LOWER(mac) = 'unknown' OR TRIM(mac) = ''")
+        commit()
+    except Exception as e:
+        print(f"Migration error (MAC cleanup): {e}")
 
     seed_custom_assets(conn)
     commit()

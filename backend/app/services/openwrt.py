@@ -192,6 +192,25 @@ class OpenWRTClient:
         traffic_data = self._calculate_deltas(stats)
         return traffic_data
 
+    def get_arp_table(self):
+        """Retrieve local ARP table from the OpenWRT router using getHostHints."""
+        logger.info("OpenWRT: Fetching ARP table via getHostHints...")
+        res = self._call("luci-rpc", "getHostHints", optional=True)
+        
+        arp_entries = {}
+        if isinstance(res, dict):
+            for mac, info in res.items():
+                if not isinstance(info, dict):
+                    continue
+                ipaddrs = info.get("ipaddrs")
+                ip = ipaddrs[0] if ipaddrs and isinstance(ipaddrs, list) else None
+                mac_lower = mac.lower()
+                if ip and mac_lower and mac_lower != "00:00:00:00:00:00" and len(mac_lower) == 17:
+                    arp_entries[ip] = mac_lower
+        
+        logger.info(f"OpenWRT: Found {len(arp_entries)} entries in ARP table via getHostHints.")
+        return arp_entries
+
     def _calculate_deltas(self, current_stats):
         """Calculates usage since last sync using a local cache file"""
         cache_file = "data/openwrt_stats.json"
@@ -255,6 +274,7 @@ class OpenWRTClient:
             traffic_data = self.get_traffic_stats()
             traffic_deltas = traffic_data["deltas"]
             traffic_totals = traffic_data["totals"]
+            arp_map = self.get_arp_table()
             
             conn = get_connection()
             try:
@@ -265,6 +285,17 @@ class OpenWRTClient:
                 for l in leases:
                     if l.get("mac"):
                         dhcp_map[l["mac"].lower()] = l
+
+                # Add ARP entries to our DHCP map for static devices
+                for ip, mac in arp_map.items():
+                    mac_lower = mac.lower()
+                    if mac_lower not in dhcp_map:
+                        dhcp_map[mac_lower] = {
+                            "ip": ip,
+                            "mac": mac_lower,
+                            "hostname": None,
+                            "expires": 0
+                        }
 
                 # 2. Get set of ALL MACs involved (Traffic + DHCP + Wireless)
                 all_macs = set(dhcp_map.keys())
@@ -316,23 +347,17 @@ class OpenWRTClient:
                         existing_ip_type = 'dynamic'
 
                     # Determine IP and IP Type
-                    if lease:
+                    if lease and lease.get("expires", 0) > 0:
                         ip = lease["ip"]
-                        # Prioritize lease IP if different, but if we don't update IP in devices, we just use it for record?
-                        # Wait, we DO update attributes. We should probably respect Lease IP for Dynamic devices.
-                        # But user said only scanner updates status. Did user imply only scanner updates IP too?
-                        # Probably. But if it's dynamic, OpenWRT is the source of truth for IP assignment.
-                        # "OpenART intergation will only set ip_type." => User said ONLY ip_type.
-                        # So we will NOT update IP in devices table. We will just use the lease IP for our internal logic if needed.
                         ip_type = "dynamic"
                         hostname = lease["hostname"] if lease["hostname"] and lease["hostname"] != "*" else None
                         attrs["dhcp_expires"] = lease["expires"]
                         if hostname: attrs["dhcp_hostname"] = hostname
                     else:
                         # Static / No Lease - use existing DB info
-                        ip = existing_ip
+                        ip = lease["ip"] if lease else existing_ip
                         ip_type = "static" 
-                        hostname = None
+                        hostname = lease["hostname"] if lease else None
 
                     # Use lease hostname if available
                     name = existing_name or hostname or f"Device-{mac[-5:]}"
