@@ -68,7 +68,7 @@ async def trigger_discovery():
             conn.close()
 
     target = await asyncio.to_thread(get_discovery_target)
-    from app.services.worker import enqueue_scan
+    from app.services.workers.scan_runner import enqueue_scan
     scan_id = await enqueue_scan(target, "arp")
     
     if not scan_id:

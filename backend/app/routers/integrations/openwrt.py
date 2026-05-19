@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional
-from app.services.openwrt import OpenWRTClient
+from app.services.integrations.openwrt import OpenWRTClient
 from app.core.db import get_connection
 import json
 import logging
@@ -28,7 +28,6 @@ class VerifyRequest(BaseModel):
 def get_config():
     conn = get_connection()
     try:
-        conn.execute("CREATE TABLE IF NOT EXISTS integrations (name TEXT PRIMARY KEY, config TEXT)")
         row = conn.execute("SELECT config FROM integrations WHERE name = 'openwrt'").fetchone()
         
         # Also fetch verified status from config table
@@ -52,8 +51,6 @@ def get_config():
 def save_config(config: OpenWRTConfig):
     conn = get_connection()
     try:
-        conn.execute("CREATE TABLE IF NOT EXISTS integrations (name TEXT PRIMARY KEY, config TEXT)")
-        
         row = conn.execute("SELECT config FROM integrations WHERE name = 'openwrt'").fetchone()
         existing = json.loads(row[0]) if row else {}
         
@@ -216,3 +213,65 @@ async def unblock_device_endpoint(mac: str):
         raise HTTPException(status_code=500, detail=f"Failed to unblock device: {str(e)}")
     finally:
         conn.close()
+
+
+@router.get("/data")
+def get_openwrt_data():
+    conn = get_connection()
+    try:
+        # Check config & verified
+        row = conn.execute("SELECT config FROM integrations WHERE name = 'openwrt'").fetchone()
+        config = json.loads(row[0]) if row else {}
+
+        v_row = conn.execute("SELECT value FROM config WHERE key = 'openwrt_verified'").fetchone()
+        verified = (v_row[0] == "true") if v_row else False
+
+        if not verified or not config.get("enabled", True):
+            return {
+                "verified": verified,
+                "enabled": config.get("enabled", False),
+                "devices": []
+            }
+
+        # Fetch devices synced by OpenWrt
+        rows = conn.execute(
+            """
+            SELECT id, ip, mac, name, display_name, status, attributes, last_seen
+            FROM devices
+            WHERE json_extract_string(attributes, '$.last_sync') = 'openwrt'
+            """
+        ).fetchall()
+
+        devices = []
+        for r in rows:
+            dev_id, ip, mac, name, display_name, status, attrs_str, last_seen = r
+            attrs = {}
+            if attrs_str:
+                try:
+                    attrs = json.loads(attrs_str)
+                except:
+                    pass
+
+            devices.append({
+                "id": dev_id,
+                "ip": ip,
+                "mac": mac,
+                "name": display_name or name or mac or "Unknown",
+                "status": status,
+                "last_seen": last_seen.isoformat() if last_seen else None,
+                "attributes": attrs
+            })
+
+        return {
+            "verified": verified,
+            "enabled": config.get("enabled", True),
+            "last_run": config.get("last_run"),
+            "url": config.get("url"),
+            "devices": devices
+        }
+    except Exception as e:
+        logger.error(f"Error fetching OpenWrt integration data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+

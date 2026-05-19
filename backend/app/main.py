@@ -9,12 +9,12 @@ from app.routers.scans import router as scans_router
 from app.routers.devices import router as devices_router
 from app.routers.internet_schedules import router as internet_schedules_router
 from app.routers.internet_quotas import router as internet_quotas_router
-from app.services.worker import scheduler_loop, scan_runner_loop
+from app.services.workers import scheduler_loop, scan_runner_loop
 from app.routers.ssh import router as ssh_router
 from app.routers.events import router as events_router
 from app.routers.mqtt import router as mqtt_router
 from app.routers.classification import router as classification_router
-from app.routers.openwrt import router as openwrt_router
+from app.routers.integrations import router as integrations_router
 from app.routers.analytics import router as analytics_router
 from app.routers.system import router as system_router
 from app.routers.assets import router as assets_router
@@ -163,10 +163,7 @@ app.include_router(events_router, prefix="/api/v1/events", tags=["events"], depe
 app.include_router(mqtt_router, prefix="/api/v1/mqtt", tags=["mqtt"], dependencies=[Depends(get_current_user)])
 app.include_router(classification_router, prefix="/api/v1/classification", tags=["classification"], dependencies=[Depends(get_current_user)])
 
-app.include_router(openwrt_router, prefix="/api/v1/integrations/openwrt", tags=["openwrt"], dependencies=[Depends(get_current_user)])
-
-from app.routers.adguard import router as adguard_router
-app.include_router(adguard_router, prefix="/api/v1/integrations/adguard", tags=["adguard"], dependencies=[Depends(get_current_user)])
+app.include_router(integrations_router, prefix="/api/v1/integrations", dependencies=[Depends(get_current_user)])
 
 app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["analytics"], dependencies=[Depends(get_current_user)])
 

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional
-from app.services.adguard import AdguardClient
+from app.services.integrations.adguard import AdguardClient
 from app.core.db import get_connection, commit
 import json
 import logging
@@ -41,9 +41,6 @@ from app.core.date_utils import now as utc_now
 def save_config(config: AdguardConfig):
     conn = get_connection()
     try:
-        # Check if table exists
-        conn.execute("CREATE TABLE IF NOT EXISTS integrations (name TEXT PRIMARY KEY, config JSON)")
-        
         # Fetch existing to merge
         row = conn.execute("SELECT config FROM integrations WHERE name = 'adguard'").fetchone()
         existing = json.loads(row[0]) if row else {}
@@ -114,3 +111,99 @@ def trigger_sync(background_tasks: BackgroundTasks):
         return {"status": "queued", "message": "Adguard sync started in background"}
     finally:
         conn.close()
+
+
+@router.get("/data")
+def get_adguard_data():
+    conn = get_connection()
+    try:
+        # Check config & verified
+        row = conn.execute("SELECT config FROM integrations WHERE name = 'adguard'").fetchone()
+        config = json.loads(row[0]) if row else {}
+
+        verified = config.get("verified", False)
+        if not verified or not config.get("enabled", True):
+            return {
+                "verified": verified,
+                "enabled": config.get("enabled", False),
+                "stats": None
+            }
+
+        # Query stats from DNS db
+        from app.core.dns_db import get_dns_connection
+        from app.core.date_utils import now as utc_now
+        from datetime import timedelta
+        conn_dns = get_dns_connection()
+        
+        now = utc_now()
+        start_24h = now - timedelta(hours=24)
+        
+        try:
+            # 24h Stats
+            stats_row = conn_dns.execute(
+                """
+                SELECT 
+                    COUNT(*), 
+                    COUNT(CASE WHEN is_blocked = TRUE THEN 1 END),
+                    AVG(response_time)
+                FROM dns_logs
+                WHERE timestamp >= ?
+                """,
+                [start_24h]
+            ).fetchone()
+            
+            total = stats_row[0] or 0
+            blocked = stats_row[1] or 0
+            avg_time = stats_row[2] or 0
+            
+            # Recent Blocked Queries (Top 10)
+            blocked_rows = conn_dns.execute(
+                """
+                SELECT l.timestamp, d.domain, l.client_ip, l.query_type, d.category
+                FROM dns_logs l
+                JOIN dns_domains d ON l.domain_id = d.id
+                WHERE l.is_blocked = TRUE
+                ORDER BY l.timestamp DESC
+                LIMIT 10
+                """
+            ).fetchall()
+            
+            recent_blocked = [
+                {
+                    "timestamp": r[0].isoformat() if r[0] else None,
+                    "domain": r[1],
+                    "client_ip": r[2],
+                    "query_type": r[3],
+                    "category": r[4]
+                }
+                for r in blocked_rows
+            ]
+
+            return {
+                "verified": verified,
+                "enabled": config.get("enabled", True),
+                "last_run": config.get("last_run"),
+                "url": config.get("url"),
+                "stats": {
+                    "total_queries_24h": total,
+                    "blocked_queries_24h": blocked,
+                    "block_percentage_24h": round((blocked / total * 100), 2) if total > 0 else 0,
+                    "avg_response_time_ms": round(avg_time, 2)
+                },
+                "recent_blocked": recent_blocked
+            }
+        except Exception as dns_err:
+            logger.error(f"Error querying DNS DB for Adguard tab: {dns_err}")
+            return {
+                "verified": verified,
+                "enabled": config.get("enabled", True),
+                "last_run": config.get("last_run"),
+                "url": config.get("url"),
+                "stats": None
+            }
+    except Exception as e:
+        logger.error(f"Error fetching Adguard integration data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
