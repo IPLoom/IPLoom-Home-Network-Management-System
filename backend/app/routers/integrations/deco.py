@@ -170,7 +170,7 @@ def get_signal_history(device_id: str, hours: int = 24):
             SELECT rssi, band, mesh_node, source, timestamp
             FROM wifi_signal_history
             WHERE device_id = ?
-            AND timestamp >= CURRENT_TIMESTAMP - INTERVAL ? HOUR
+            AND timestamp >= CURRENT_TIMESTAMP - (CAST(? AS INTEGER) * INTERVAL '1 hour')
             ORDER BY timestamp ASC
             """,
             [device_id, hours],
@@ -215,10 +215,11 @@ def get_deco_data():
         # Fetch devices that are Deco nodes or clients synced by Deco
         rows = conn.execute(
             """
-            SELECT id, ip, mac, name, display_name, status, attributes, last_seen
-            FROM devices
-            WHERE json_extract_string(attributes, '$.last_sync') = 'deco'
-               OR json_extract_string(attributes, '$.deco_role') IS NOT NULL
+            SELECT d.id, d.ip, d.mac, d.name, d.display_name, d.status, d.attributes, d.last_seen, s.attributes, d.icon
+            FROM devices d
+            LEFT JOIN device_discovery_sources s ON d.id = s.device_id AND s.source = 'deco'
+            WHERE s.device_id IS NOT NULL
+               OR json_extract_string(d.attributes, '$.deco_role') IS NOT NULL
             """
         ).fetchall()
 
@@ -226,11 +227,16 @@ def get_deco_data():
         clients = []
 
         for r in rows:
-            dev_id, ip, mac, name, display_name, status, attrs_str, last_seen = r
+            dev_id, ip, mac, name, display_name, status, attrs_str, last_seen, src_attrs_str, icon = r
             attrs = {}
             if attrs_str:
                 try:
                     attrs = json.loads(attrs_str)
+                except:
+                    pass
+            if src_attrs_str:
+                try:
+                    attrs.update(json.loads(src_attrs_str))
                 except:
                     pass
 
@@ -239,7 +245,9 @@ def get_deco_data():
                 "ip": ip,
                 "mac": mac,
                 "name": display_name or name or mac or "Unknown",
+                "display_name": display_name,
                 "status": status,
+                "icon": icon,
                 "last_seen": last_seen.isoformat() if last_seen else None,
                 "attributes": attrs
             }

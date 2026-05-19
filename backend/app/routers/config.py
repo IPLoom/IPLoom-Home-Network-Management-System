@@ -18,41 +18,6 @@ async def discover_network():
     """Attempt to auto-detect local network configuration and services (cached)."""
     return await DiscoveryService.get_cached_discovery()
 
-@public_router.get("/deco-api-nodes-temp")
-def deco_api_nodes_temp():
-    from app.services.integrations.deco import DecoClient
-    import json
-    conn = get_connection()
-    try:
-        row = conn.execute("SELECT config FROM integrations WHERE name = 'deco'").fetchone()
-        if not row:
-            return {"error": "deco not configured"}
-        conf = json.loads(row[0])
-        client = DecoClient(conf["host"], conf["password"])
-        client.login()
-        nodes = client.get_deco_nodes()
-        clients = client.get_client_list()
-        return {"nodes": nodes, "clients_count": len(clients)}
-    finally:
-        conn.close()
-
-@public_router.get("/deco-check-temp")
-def deco_check_temp():
-    import json
-    conn = get_connection()
-    try:
-        rows = conn.execute(
-            """
-            SELECT mac, name, status, attributes
-            FROM devices
-            WHERE json_extract_string(attributes, '$.last_sync') = 'deco'
-               OR json_extract_string(attributes, '$.deco_role') IS NOT NULL
-            """
-        ).fetchall()
-        return [{"mac": r[0], "name": r[1], "status": r[2], "attributes": json.loads(r[3])} for r in rows]
-    finally:
-        conn.close()
-
 @router.get("/", response_model=list[ConfigItem])
 async def list_config():
     def query():

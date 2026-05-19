@@ -236,19 +236,25 @@ def get_openwrt_data():
         # Fetch devices synced by OpenWrt
         rows = conn.execute(
             """
-            SELECT id, ip, mac, name, display_name, status, attributes, last_seen
-            FROM devices
-            WHERE json_extract_string(attributes, '$.last_sync') = 'openwrt'
+            SELECT d.id, d.ip, d.mac, d.name, d.display_name, d.status, d.attributes, d.last_seen, s.attributes, d.icon
+            FROM devices d
+            JOIN device_discovery_sources s ON d.id = s.device_id
+            WHERE s.source = 'openwrt'
             """
         ).fetchall()
 
         devices = []
         for r in rows:
-            dev_id, ip, mac, name, display_name, status, attrs_str, last_seen = r
+            dev_id, ip, mac, name, display_name, status, attrs_str, last_seen, src_attrs_str, icon = r
             attrs = {}
             if attrs_str:
                 try:
                     attrs = json.loads(attrs_str)
+                except:
+                    pass
+            if src_attrs_str:
+                try:
+                    attrs.update(json.loads(src_attrs_str))
                 except:
                     pass
 
@@ -258,6 +264,7 @@ def get_openwrt_data():
                 "mac": mac,
                 "name": display_name or name or mac or "Unknown",
                 "status": status,
+                "icon": icon,
                 "last_seen": last_seen.isoformat() if last_seen else None,
                 "attributes": attrs
             })
