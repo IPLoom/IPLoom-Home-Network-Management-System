@@ -149,6 +149,16 @@ CREATE TABLE IF NOT EXISTS device_block_schedules (
     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- device_discovery_sources
+CREATE TABLE IF NOT EXISTS device_discovery_sources (
+    device_id    TEXT NOT NULL,
+    source       TEXT NOT NULL, -- 'openwrt', 'adguard', 'deco', 'ping_scan', 'arp'
+    last_seen    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status       TEXT NOT NULL DEFAULT 'online', -- 'online' / 'offline'
+    attributes   TEXT, -- Source-specific properties stored as JSON (e.g., RSSI, band, leases, query counts)
+    PRIMARY KEY (device_id, source)
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_history_device_id ON device_status_history(device_id);
 CREATE INDEX IF NOT EXISTS idx_history_changed_at ON device_status_history(changed_at);

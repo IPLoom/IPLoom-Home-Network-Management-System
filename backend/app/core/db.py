@@ -225,6 +225,18 @@ def migrate_db(conn: duckdb.DuckDBPyConnection) -> None:
             timestamp   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+
+    # Ensure device_discovery_sources table exists
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS device_discovery_sources (
+            device_id    TEXT NOT NULL,
+            source       TEXT NOT NULL,
+            last_seen    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            status       TEXT NOT NULL DEFAULT 'online',
+            attributes   TEXT,
+            PRIMARY KEY (device_id, source)
+        )
+    """)
     try:
         conn.execute("CREATE INDEX IF NOT EXISTS idx_wifi_signal_device_id ON wifi_signal_history(device_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_wifi_signal_timestamp ON wifi_signal_history(timestamp)")
@@ -384,6 +396,41 @@ def migrate_db(conn: duckdb.DuckDBPyConnection) -> None:
         commit()
     except Exception as e:
         print(f"Migration error (MAC cleanup): {e}")
+
+    # Decode any base64-encoded device names in the database
+    try:
+        import base64
+        def decode_b64_str(val):
+            if not val:
+                return val
+            try:
+                missing_padding = len(val) % 4
+                padded = val
+                if missing_padding:
+                    padded += "=" * (4 - missing_padding)
+                decoded = base64.b64decode(padded, validate=True)
+                decoded_str = decoded.decode("utf-8")
+                if decoded_str.isprintable() and len(decoded_str) > 0:
+                    # Avoid false decoding of short strings like "Home" or "Test"
+                    # Usually, base64 strings from TP-Link Deco look like RGV2...
+                    return decoded_str
+            except:
+                pass
+            return val
+
+        rows = conn.execute("SELECT id, name, display_name FROM devices").fetchall()
+        for r_id, r_name, r_disp in rows:
+            new_name = decode_b64_str(r_name)
+            new_disp = decode_b64_str(r_disp)
+            if new_name != r_name or new_disp != r_disp:
+                print(f"Migration: Decoding base64 name for {r_id}: {r_name} -> {new_name}")
+                conn.execute(
+                    "UPDATE devices SET name = ?, display_name = ? WHERE id = ?",
+                    [new_name, new_disp, r_id]
+                )
+        commit()
+    except Exception as e:
+        print(f"Migration error (base64 decode): {e}")
 
     seed_custom_assets(conn)
     commit()
