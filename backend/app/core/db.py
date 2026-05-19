@@ -213,6 +213,24 @@ def migrate_db(conn: duckdb.DuckDBPyConnection) -> None:
         )
     """)
 
+    # Ensure wifi_signal_history table exists (vendor-agnostic — Deco, OpenWRT, etc.)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS wifi_signal_history (
+            id          TEXT PRIMARY KEY,
+            device_id   TEXT NOT NULL,
+            rssi        INTEGER,
+            band        TEXT,
+            mesh_node   TEXT,
+            source      TEXT DEFAULT 'deco',
+            timestamp   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    try:
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_wifi_signal_device_id ON wifi_signal_history(device_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_wifi_signal_timestamp ON wifi_signal_history(timestamp)")
+    except Exception:
+        pass
+
     # Migration for device_ports UNIQUE constraint
     # DuckDB doesn't allow adding UNIQUE to existing tables.
     # We check if it exists by looking at indexes or trying a dummy insert (or just check table_info if supported)
