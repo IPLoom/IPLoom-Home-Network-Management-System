@@ -28,6 +28,29 @@ logger = logging.getLogger(__name__)
 CGI_PATH = "/cgi-bin/luci/;stok="
 
 
+def decode_deco_name(name_str: str) -> str:
+    if not name_str:
+        return name_str
+    # TP-Link Deco API names are base64-encoded if they contain special characters or spaces.
+    # Attempt to decode if it is a valid base64 string and check if the decoded bytes
+    # form a valid UTF-8 string consisting of printable characters.
+    try:
+        missing_padding = len(name_str) % 4
+        padded_str = name_str
+        if missing_padding:
+            padded_str += "=" * (4 - missing_padding)
+        
+        decoded_bytes = base64.b64decode(padded_str, validate=True)
+        decoded_str = decoded_bytes.decode("utf-8", errors="strict")
+        
+        # Ensure the decoded string is printable and has no control/garbage characters
+        if decoded_str.isprintable() and len(decoded_str) > 0:
+            return decoded_str
+    except Exception:
+        pass
+    return name_str
+
+
 def rsa_encrypt(n: int, e: int, plaintext: bytes) -> str:
     """RSA encrypt using cryptography library with PKCS#1 v1.5 padding."""
     pubkey = crypto_rsa.RSAPublicNumbers(e, n).public_key()
@@ -431,7 +454,7 @@ class DecoClient:
                 clients.append({
                     "mac": (item.get("mac", "") or "").upper(),
                     "ip": item.get("ip", ""),
-                    "name": item.get("name", ""),
+                    "name": decode_deco_name(item.get("name", "")),
                     "online": item.get("online", False),
                     "wire_type": item.get("wire_type", ""),  # "wireless" or "wired"
                     "band": item.get("interface", "") or item.get("band", ""),  # "2.4GHz" / "5GHz"
@@ -472,9 +495,11 @@ class DecoClient:
             for item in node_data:
                 if not isinstance(item, dict):
                     continue
+                raw_node_name = item.get("custom_nickname", "") or item.get("nickname", "")
+                node_name = decode_deco_name(raw_node_name) or item.get("device_model", "") or "Deco Unit"
                 nodes.append({
                     "mac": (item.get("mac", "") or "").upper(),
-                    "name": item.get("custom_nickname", "") or item.get("device_model", "") or item.get("nickname", ""),
+                    "name": node_name,
                     "ip": item.get("device_ip", "") or item.get("ip", ""),
                     "role": item.get("role", ""),  # "master" / "slave"
                     "hardware_ver": item.get("hardware_ver", ""),
@@ -530,9 +555,12 @@ class DecoClient:
                         continue
 
                     row = conn.execute(
-                        "SELECT id, attributes, name FROM devices WHERE LOWER(mac) = ?",
+                        "SELECT id, attributes, name, ip FROM devices WHERE LOWER(mac) = ?",
                         [mac],
                     ).fetchone()
+
+                    if not row:
+                        continue
 
                     # Prepare attributes
                     existing_attrs = {
@@ -548,43 +576,29 @@ class DecoClient:
                     if node.get("mem_usage") is not None:
                         existing_attrs["deco_mem_usage"] = node["mem_usage"]
 
-                    if row:
-                        device_id = row[0]
-                        db_attrs = {}
-                        if row[1]:
-                            try:
-                                db_attrs = json.loads(row[1])
-                            except:
-                                pass
-                        db_attrs.update(existing_attrs)
+                    device_id = row[0]
+                    current_ip = row[3]
+                    new_ip = node.get("ip", "")
 
+                    db_attrs = {}
+                    if row[1]:
+                        try:
+                            db_attrs = json.loads(row[1])
+                        except:
+                            pass
+                    db_attrs.update(existing_attrs)
+
+                    if new_ip and new_ip != current_ip:
+                        conn.execute(
+                            "UPDATE devices SET attributes = ?, last_seen = ?, status = 'online', ip = ? WHERE id = ?",
+                            [json.dumps(db_attrs), utc_now(), new_ip, device_id],
+                        )
+                    else:
                         conn.execute(
                             "UPDATE devices SET attributes = ?, last_seen = ?, status = 'online' WHERE id = ?",
                             [json.dumps(db_attrs), utc_now(), device_id],
                         )
-                        updated_count += 1
-                    else:
-                        device_id = str(uuid.uuid4())
-                        node_name = node.get("name", "") or f"Deco Node {mac}"
-                        conn.execute(
-                            """
-                            INSERT INTO devices (id, ip, mac, name, display_name, device_type, icon, first_seen, last_seen, attributes, status, missing_count)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'online', 0)
-                            """,
-                            [
-                                device_id,
-                                node.get("ip", ""),
-                                mac,
-                                node_name,
-                                node_name,
-                                "router",
-                                "router",
-                                utc_now(),
-                                utc_now(),
-                                json.dumps(existing_attrs),
-                            ]
-                        )
-                        updated_count += 1
+                    updated_count += 1
 
                 # 2. Process Connected Clients
                 for client in clients:
@@ -593,9 +607,12 @@ class DecoClient:
                         continue
 
                     row = conn.execute(
-                        "SELECT id, attributes, name FROM devices WHERE LOWER(mac) = ?",
+                        "SELECT id, attributes, name, ip FROM devices WHERE LOWER(mac) = ?",
                         [mac],
                     ).fetchone()
+
+                    if not row:
+                        continue
 
                     # Determine connection parameters
                     existing_attrs = {}
@@ -631,43 +648,25 @@ class DecoClient:
 
                     existing_attrs["last_sync"] = "deco"
 
-                    if row:
-                        device_id = row[0]
-                        db_attrs = {}
-                        if row[1]:
-                            try:
-                                db_attrs = json.loads(row[1])
-                            except:
-                                pass
-                        db_attrs.update(existing_attrs)
-
+                    device_id = row[0]
+                    current_ip = row[3]
+                    new_ip = client.get("ip", "")
+                    if new_ip and new_ip != current_ip:
                         conn.execute(
-                            "UPDATE devices SET attributes = ?, last_seen = ?, status = 'online' WHERE id = ?",
-                            [json.dumps(db_attrs), utc_now(), device_id],
+                            "UPDATE devices SET ip = ? WHERE id = ?",
+                            [new_ip, device_id]
                         )
-                        updated_count += 1
-                    else:
-                        device_id = str(uuid.uuid4())
-                        client_name = client.get("name", "") or f"Deco Client {mac}"
-                        conn.execute(
-                            """
-                            INSERT INTO devices (id, ip, mac, name, display_name, device_type, icon, first_seen, last_seen, attributes, status, missing_count)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'online', 0)
-                            """,
-                            [
-                                device_id,
-                                client.get("ip", ""),
-                                mac,
-                                client_name,
-                                client_name,
-                                "generic",
-                                "help-circle",
-                                utc_now(),
-                                utc_now(),
-                                json.dumps(existing_attrs),
-                            ]
-                        )
-                        updated_count += 1
+                    
+                    conn.execute(
+                        """
+                        INSERT OR REPLACE INTO device_discovery_sources (device_id, source, last_seen, status, attributes)
+                        VALUES (?, 'deco', ?, 'online', ?)
+                        """,
+                        [device_id, utc_now(), json.dumps(existing_attrs)]
+                    )
+                    from app.services.devices import recalculate_device_status
+                    recalculate_device_status(conn, device_id)
+                    updated_count += 1
 
                     # 3. Record signal history (wifi_signal_history)
                     if rssi is not None:

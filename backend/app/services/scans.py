@@ -348,16 +348,29 @@ async def run_scan_job(scan_id: str, target: str, scan_type: str = "arp", option
             conn = get_connection()
             try:
                 final_now = utc_now()
-                conn.execute("UPDATE devices SET missing_count = missing_count + 1 WHERE status = 'online' AND last_seen < ?", [job_start])
+                # Update ping_scan source status to offline for devices not seen in this scan
+                conn.execute(
+                    "UPDATE device_discovery_sources SET status = 'offline' WHERE source = 'ping_scan' AND last_seen < ?",
+                    [job_start]
+                )
                 
-                offline_devices = conn.execute(
-                    "SELECT id, ip, mac, display_name, vendor, icon FROM devices WHERE status = 'online' AND missing_count >= 3",
-                ).fetchall()
+                # Fetch all devices that were online before
+                online_devs = conn.execute("SELECT id FROM devices WHERE status = 'online'").fetchall()
                 
-                for d_id, d_ip, d_mac, d_name, d_vendor, d_icon in offline_devices:
-                    conn.execute("UPDATE devices SET status = 'offline' WHERE id = ?", [d_id])
-                    conn.execute("INSERT INTO device_status_history (id, device_id, status, changed_at) VALUES (?, ?, ?, ?)", [str(uuid.uuid4()), d_id, 'offline', final_now])
-
+                # Recalculate status for all of them
+                from app.services.devices import recalculate_device_status
+                for (d_id,) in online_devs:
+                    recalculate_device_status(conn, d_id)
+                
+                # Retrieve devices that transitioned to offline
+                offline_devices = []
+                if online_devs:
+                    placeholders = ','.join(['?'] * len(online_devs))
+                    offline_devices = conn.execute(
+                        f"SELECT id, ip, mac, display_name, vendor, icon FROM devices WHERE id IN ({placeholders}) AND status = 'offline'",
+                        [d[0] for d in online_devs]
+                    ).fetchall()
+                
                 conn.execute("UPDATE scans SET status = 'done', finished_at = ? WHERE id = ?", [final_now, scan_id])
                 conn.commit()
                 return offline_devices

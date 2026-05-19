@@ -3,7 +3,7 @@ import logging
 import httpx
 import re
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from app.core.date_utils import now as utc_now
 from uuid import uuid4
 from typing import Optional, List, Dict, Any
@@ -26,8 +26,22 @@ DEVICE_COLUMNS = """
 def get_base_query():
     return f"SELECT {DEVICE_COLUMNS} FROM devices d LEFT JOIN device_quotas q ON d.id = q.device_id"
 
-def row_to_dict(row):
+def row_to_dict(row, conn=None):
     if not row: return None
+    attributes = json.loads(row[13]) if row[13] and isinstance(row[13], str) else (row[13] if row[13] else {})
+    if conn and row[0]:
+        try:
+            src_rows = conn.execute("SELECT attributes FROM device_discovery_sources WHERE device_id = ? ORDER BY last_seen ASC", [row[0]]).fetchall()
+            for s in src_rows:
+                if s[0]:
+                    try:
+                        s_attrs = json.loads(s[0]) if isinstance(s[0], str) else (s[0] if s[0] else {})
+                        attributes.update(s_attrs)
+                    except Exception as e:
+                        pass
+        except Exception as e:
+            pass
+            
     d = {
         "id": row[0],
         "ip": row[1],
@@ -42,7 +56,7 @@ def row_to_dict(row):
         "status": row[10],
         "ip_type": row[11],
         "open_ports": json.loads(row[12]) if row[12] and isinstance(row[12], str) else (row[12] if row[12] else []),
-        "attributes": json.loads(row[13]) if row[13] and isinstance(row[13], str) else (row[13] if row[13] else {}),
+        "attributes": attributes,
         "is_trusted": bool(row[14])
     }
     if len(row) > 15: d["brand"] = row[15]
@@ -139,7 +153,7 @@ async def batch_upsert_devices(devices_data: List[Dict[str, Any]]) -> List[str]:
 
                 if existing_device:
                     # Map the row using our standard helper
-                    dev = row_to_dict(existing_device)
+                    dev = row_to_dict(existing_device, conn)
                     device_id = dev["id"]
                     is_trusted = dev["is_trusted"]
                     old_status = dev["status"]
@@ -225,6 +239,16 @@ async def batch_upsert_devices(devices_data: List[Dict[str, Any]]) -> List[str]:
                     if local_vendor:
                         conn.execute("UPDATE devices SET vendor = COALESCE(vendor, ?) WHERE id = ?", [local_vendor, device_id])
                 
+                # Update discovery sources and recalculate status
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO device_discovery_sources (device_id, source, last_seen, status, attributes)
+                    VALUES (?, 'ping_scan', ?, 'online', ?)
+                    """,
+                    [device_id, now, json.dumps({"ip": ip, "hostname": hostname or ""})]
+                )
+                recalculate_device_status(conn, device_id)
+                
                 upserted_ids.append(device_id)
                 if mac:
                     new_devices_to_enrich.append((device_id, mac))
@@ -240,7 +264,7 @@ async def batch_upsert_devices(devices_data: List[Dict[str, Any]]) -> List[str]:
                 # Always notify on discovery to ensure MQTT state (HA) stays fresh
                 dev_row = conn.execute(f"{get_base_query()} WHERE d.id = ?", [device_id]).fetchone()
                 if dev_row:
-                    dev_data = row_to_dict(dev_row)
+                    dev_data = row_to_dict(dev_row, conn)
                     online_notifications.append({
                         "ip": dev_data["ip"], 
                         "mac": dev_data["mac"], 
@@ -378,7 +402,7 @@ async def enrich_device(device_id: str, mac: str):
             try:
                     row = conn.execute(f"{get_base_query()} WHERE d.id = ?", [device_id]).fetchone()
                     if row:
-                        dev = row_to_dict(row)
+                        dev = row_to_dict(row, conn)
                         display_name = dev["display_name"]
                         current_type = dev["device_type"]
                         current_icon = dev["icon"]
@@ -453,7 +477,7 @@ async def enrich_device(device_id: str, mac: str):
             try:
                 row = conn.execute(f"{get_base_query()} WHERE d.id = ?", [device_id]).fetchone()
                 if row:
-                    dev = row_to_dict(row)
+                    dev = row_to_dict(row, conn)
                     publish_device_online({
                         "ip": dev["ip"], 
                         "mac": dev["mac"], 
@@ -499,7 +523,7 @@ async def update_device_fields(device_id: str, fields: Dict[str, Any]) -> Option
                 from app.core.db import commit
                 commit()
             updated = conn.execute(f"{get_base_query()} WHERE d.id = ?", [device_id]).fetchone()
-            return row_to_dict(updated)
+            return row_to_dict(updated, conn)
         finally:
             conn.close()
 
@@ -525,3 +549,70 @@ async def update_device_fields(device_id: str, fields: Dict[str, Any]) -> Option
         "brand_icon": dev_info.get("brand_icon")
     })
     return dev_info
+
+
+def recalculate_device_status(conn, device_id: str):
+    """
+    Recalculates a device's overall status and last_seen based on its active discovery sources.
+    Overall last_seen: The maximum last_seen among all sources.
+    Overall status: 'online' if any source has status = 'online' and last_seen is within the TTL window.
+      TTL thresholds:
+      - ping_scan, arp: 15 minutes (since ping scans are rapid but devices can disconnect)
+      - openwrt, deco, adguard: 45 minutes (since DHCP leases / sync intervals might be longer)
+    If all sources are offline or exceed their TTLs, the overall status is set to 'offline'.
+    """
+    sources = conn.execute(
+        "SELECT source, status, last_seen FROM device_discovery_sources WHERE device_id = ?",
+        [device_id]
+    ).fetchall()
+    
+    if not sources:
+        return
+        
+    overall_status = "offline"
+    max_last_seen = None
+    
+    from app.core.date_utils import now as utc_now, parse_iso_utc
+    now = utc_now().replace(tzinfo=None)
+    
+    for src, status, last_seen in sources:
+        if not last_seen:
+            continue
+            
+        if isinstance(last_seen, str):
+            try:
+                dt = parse_iso_utc(last_seen).replace(tzinfo=None)
+            except:
+                dt = now
+        else:
+            dt = last_seen
+            if dt.tzinfo is not None:
+                dt = dt.replace(tzinfo=None)
+            
+        if max_last_seen is None or dt > max_last_seen:
+            max_last_seen = dt
+            
+        ttl_minutes = 45 if src in ('openwrt', 'deco', 'adguard') else 15
+        is_fresh = (now - dt) < timedelta(minutes=ttl_minutes)
+        
+        if status == 'online' and is_fresh:
+            overall_status = "online"
+
+    old_row = conn.execute("SELECT status, last_seen FROM devices WHERE id = ?", [device_id]).fetchone()
+    old_status = old_row[0] if old_row else "unknown"
+    
+    final_last_seen = max_last_seen or now
+    
+    missing_count_update = "missing_count = 0" if overall_status == 'online' else "missing_count = missing_count"
+    
+    conn.execute(
+        f"UPDATE devices SET status = ?, last_seen = ?, {missing_count_update} WHERE id = ?",
+        [overall_status, final_last_seen, device_id]
+    )
+    
+    if old_status != overall_status:
+        conn.execute(
+            "INSERT INTO device_status_history (id, device_id, status, changed_at) VALUES (?, ?, ?, ?)",
+            [str(uuid4()), device_id, overall_status, now]
+        )
+

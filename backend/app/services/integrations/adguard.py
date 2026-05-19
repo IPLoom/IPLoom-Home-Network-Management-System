@@ -238,7 +238,22 @@ class AdguardClient:
 
                 commit_dns()
                 logger.info(f"Adguard Sync: {processed_count} new entries.")
-
+                
+                # Update discovery sources for active devices in this sync batch
+                for dev_id, d_stats in processed_device_stats.items():
+                    if d_stats["queries"] > 0:
+                        try:
+                            conn_main.execute(
+                                """
+                                INSERT OR REPLACE INTO device_discovery_sources (device_id, source, last_seen, status, attributes)
+                                VALUES (?, 'adguard', ?, 'online', ?)
+                                """,
+                                [dev_id, utc_now(), json.dumps({"queries_in_batch": d_stats["queries"], "blocked_in_batch": d_stats["blocked"]})]
+                            )
+                            from app.services.devices import recalculate_device_status
+                            recalculate_device_status(conn_main, dev_id)
+                        except Exception as e:
+                            logger.error(f"Failed to update Adguard source for device {dev_id}: {e}")
             except Exception as e:
                 logger.error(f"Error during DNS DB operations: {e}")
                 pass # Don't crash, try to save what we can?

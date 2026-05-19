@@ -335,30 +335,19 @@ class OpenWRTClient:
                     if not row and lease and lease.get("ip"):
                         row = conn.execute("SELECT id, name, display_name, icon, attributes, ip, ip_type, mac FROM devices WHERE ip = ?", [lease["ip"]]).fetchone()
 
+                    if not row:
+                        continue
                     
-                    if row:
-                        target_id = row[0]
-                        existing_name = row[1]
-                        existing_icon = row[3]
-                        try:
-                            attrs = json.loads(row[4]) if row[4] else {}
-                        except:
-                            attrs = {}
-                        existing_ip = row[5]
-                        existing_ip_type = row[6]
-                        existing_mac = row[7]
-                    else:
-                        # If device not in DB, and has no lease, we skip (scanner hasn't found it yet)
-                        # We only create/update if we have a known ID or if we get a lease giving us an IP
-                        if not lease:
-                            continue
-                            
-                        target_id = mac
-                        existing_name = None
-                        existing_icon = None
+                    target_id = row[0]
+                    existing_name = row[1]
+                    existing_icon = row[3]
+                    try:
+                        attrs = json.loads(row[4]) if row[4] else {}
+                    except:
                         attrs = {}
-                        existing_ip = None
-                        existing_ip_type = 'dynamic'
+                    existing_ip = row[5]
+                    existing_ip_type = row[6]
+                    existing_mac = row[7]
 
                     # Determine IP and IP Type
                     if lease and lease.get("expires", 0) > 0:
@@ -439,22 +428,26 @@ class OpenWRTClient:
 
                     # Update Device Table
                     if row:
-                        # Update existing - update mac if missing, ip_type, and attributes
                         try:
                              conn.execute("""
                                 UPDATE devices SET
                                     mac = COALESCE(mac, ?),
-                                    ip_type = ?,
-                                    attributes = ?
+                                    ip = COALESCE(?, ip),
+                                    ip_type = ?
                                 WHERE id = ?
-                            """, [mac, ip_type, json.dumps(attrs), target_id])
+                            """, [mac, ip, ip_type, target_id])
+                             
+                             conn.execute("""
+                                 INSERT OR REPLACE INTO device_discovery_sources (device_id, source, last_seen, status, attributes)
+                                 VALUES (?, 'openwrt', ?, 'online', ?)
+                             """, [target_id, utc_now(), json.dumps(attrs)])
+                             
+                             from app.services.devices import recalculate_device_status
+                             recalculate_device_status(conn, target_id)
+                             
                              updated_count += 1
                         except Exception as e:
                             logger.error(f"Failed to update device {mac}: {e}")
-                    # else:
-                        # User requested to IGNORE unknown devices. 
-                        # Only the network scanner creates devices.
-                        # pass
                 
                 conn.commit()
                 logger.info(f"OpenWRT Sync complete: {updated_count} devices processed.")
