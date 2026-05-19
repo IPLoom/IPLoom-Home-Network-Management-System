@@ -6,6 +6,7 @@ export const useIntegrationStore = defineStore('integrations', () => {
   const mqttStatus = ref({ status: 'unknown', reachable: false, loading: false })
   const openwrtStatus = ref({ verified: false, loading: false })
   const adguardStatus = ref({ verified: false, loading: false })
+  const decoStatus = ref({ verified: false, loading: false })
 
   const fetchStatuses = async () => {
     // MQTT Status
@@ -40,12 +41,24 @@ export const useIntegrationStore = defineStore('integrations', () => {
       adguardStatus.value.loading = false
       adguardStatus.value.verified = false
     }
+
+    // Deco Status
+    decoStatus.value.loading = true
+    try {
+      const response = await api.get('/integrations/deco/config')
+      decoStatus.value = { verified: response.data?.verified || false, loading: false }
+    } catch (error) {
+      console.error('Failed to fetch Deco status:', error)
+      decoStatus.value.loading = false
+      decoStatus.value.verified = false
+    }
   }
 
   return {
     mqttStatus,
     openwrtStatus,
     adguardStatus,
+    decoStatus,
     fetchStatuses
   }
 })

@@ -155,8 +155,55 @@
           </div>
         </div>
 
-        <!-- Step 4: MQTT -->
+        <!-- Step 4: TP-Link Deco Mesh -->
         <div v-if="currentStep === 4" class="animate-in">
+          <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-4">
+              <div class="w-11 h-11 rounded-2xl bg-teal-50 flex items-center justify-center overflow-hidden p-2">
+                <svg viewBox="0 0 24 24" class="w-full h-full text-teal-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 20a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" />
+                  <path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z" />
+                  <path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-xl font-bold text-slate-900">TP-Link Deco Mesh</h2>
+                <p class="text-slate-500 text-[13px]">Sync signal strength (RSSI), client nodes & bands</p>
+              </div>
+            </div>
+            <button @click="toggleSkip('deco')" :class="skippedSteps['deco'] ? 'bg-teal-50 text-teal-600 border-teal-200' : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600'" class="px-3 py-1 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-all shadow-sm">
+              {{ skippedSteps['deco'] ? 'Skipped' : 'Skip Step' }}
+            </button>
+          </div>
+
+          <div :class="{ 'opacity-40 grayscale pointer-events-none transition-all': skippedSteps['deco'] }" class="space-y-4">
+            <!-- Warning Alert -->
+            <div class="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-2.5">
+              <svg viewBox="0 0 24 24" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              <div class="text-[10px] text-amber-800 leading-normal font-medium">
+                <strong>Admin Session Restriction:</strong> TP-Link Deco only supports a single active administrator session. Running background syncs may temporarily sign you out of the official Deco mobile app.
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Deco Host / IP</label>
+                <input v-model="deco.host" type="text" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-sm" placeholder="192.168.1.1">
+              </div>
+              <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Password</label>
+                <input v-model="deco.pass" type="password" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-sm" placeholder="••••••••">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 5: MQTT -->
+        <div v-if="currentStep === 5" class="animate-in">
           <div class="flex items-center justify-between mb-8">
             <div class="flex items-center gap-4">
               <div class="w-11 h-11 rounded-2xl bg-orange-50 flex items-center justify-center overflow-hidden p-2">
@@ -201,8 +248,8 @@
           </div>
         </div>
 
-        <!-- Step 5: Welcome / Summary -->
-        <div v-if="currentStep === 5" class="animate-in text-center py-4">
+        <!-- Step 6: Welcome / Summary -->
+        <div v-if="currentStep === 6" class="animate-in text-center py-4">
           <div class="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-6 overflow-hidden p-4 shadow-inner">
             <img src="/brand/icon.png" alt="Ready" class="w-full h-full object-contain" />
           </div>
@@ -226,6 +273,11 @@
               <div v-else class="text-[13px] font-bold text-slate-300 italic">Skipped</div>
             </div>
             <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+              <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Deco Mesh</label>
+              <div v-if="!skippedSteps['deco']" class="text-[13px] font-bold text-slate-900 truncate">{{ deco.host }}</div>
+              <div v-else class="text-[13px] font-bold text-slate-300 italic">Skipped</div>
+            </div>
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 col-span-2">
               <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">MQTT</label>
               <div v-if="!skippedSteps['mqtt']" class="text-[13px] font-bold text-slate-900 truncate">{{ mqtt.host }}</div>
               <div v-else class="text-[13px] font-bold text-slate-300 italic">Skipped</div>
@@ -269,13 +321,14 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const currentStep = ref(1)
-const totalSteps = 5
+const totalSteps = 6
 const saving = ref(false)
 const skippedSteps = ref({})
 
 const mqtt = ref({ host: '', port: 1883, user: '', pass: '' })
 const openwrt = ref({ host: '', port: 22, user: 'root', pass: '', is_access_point: true })
 const adguard = ref({ url: '', user: 'admin', pass: '' })
+const deco = ref({ host: '', pass: '' })
 const network = ref({ subnet: '', interval: 5, autoScan: true })
 
 const isAutoDetected = ref({
@@ -289,7 +342,8 @@ const canContinue = computed(() => {
   if (currentStep.value === 1) return network.value.subnet
   if (currentStep.value === 2) return skippedSteps.value['openwrt'] || (openwrt.value.host && openwrt.value.port && openwrt.value.user && openwrt.value.pass)
   if (currentStep.value === 3) return skippedSteps.value['adguard'] || (adguard.value.url && adguard.value.user && adguard.value.pass)
-  if (currentStep.value === 4) return skippedSteps.value['mqtt'] || (mqtt.value.host && mqtt.value.port)
+  if (currentStep.value === 4) return skippedSteps.value['deco'] || (deco.value.host && deco.value.pass)
+  if (currentStep.value === 5) return skippedSteps.value['mqtt'] || (mqtt.value.host && mqtt.value.port)
   return true
 })
 
@@ -324,6 +378,11 @@ const detectSubnet = async () => {
     if (d.adguard_url && !adguard.value.url) {
       adguard.value.url = d.adguard_url
       isAutoDetected.value.adguard = true
+    }
+
+    // Auto-detect Deco from gateway ip if OpenWrt detected it
+    if (d.openwrt_host && !deco.value.host) {
+      deco.value.host = d.openwrt_host
     }
   } catch (err) {
     console.error('Auto-discovery failed', err)
@@ -375,6 +434,16 @@ const finishOnboarding = async () => {
         username: adguard.value.user,
         password: adguard.value.pass,
         interval: 5
+      })
+    }
+
+    // Save Deco Config if not skipped
+    if (!skippedSteps.value['deco']) {
+      await api.post('/integrations/deco/config', {
+        host: deco.value.host,
+        password: deco.value.pass,
+        interval: 15,
+        enabled: true
       })
     }
 

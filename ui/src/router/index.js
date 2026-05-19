@@ -65,6 +65,11 @@ const routes = [
         path: 'topology',
         name: 'Topology',
         component: () => import('@/views/Topology.vue')
+      },
+      {
+        path: 'integrations',
+        name: 'Integrations',
+        component: () => import('@/views/Integrations.vue')
       }
     ]
   }

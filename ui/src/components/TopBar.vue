@@ -78,10 +78,10 @@
                 <div class="flex items-center gap-3">
                     <!-- Integrations Status -->
                     <div class="hidden lg:flex items-center gap-1.5 p-1 bg-slate-50/80 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/30">
-                        <div v-for="integration in ['mqtt', 'openwrt', 'adguard']" :key="integration" 
+                        <div v-for="integration in ['mqtt', 'openwrt', 'adguard', 'deco']" :key="integration" 
                             @click="router.push('/settings')"
                             class="group relative flex items-center h-9 w-9 justify-center cursor-pointer hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all shadow-sm shadow-transparent hover:shadow-slate-200/50">
-                            <component :is="integration === 'mqtt' ? Share2Icon : (integration === 'openwrt' ? RouterIcon : ShieldCheckIcon)" 
+                            <component :is="integration === 'mqtt' ? Share2Icon : (integration === 'openwrt' ? RouterIcon : (integration === 'deco' ? Wifi : ShieldCheckIcon))" 
                                 class="h-4 w-4 transition-colors" 
                                 :class="getIntegrationStatus(integration) ? getIntegrationColor(integration) : 'text-slate-400'" />
                             <div v-if="getIntegrationStatus(integration)" 
@@ -339,6 +339,7 @@ const getIntegrationStatus = (key) => {
     if (key === 'mqtt') return integrationStore.mqttStatus.reachable
     if (key === 'openwrt') return integrationStore.openwrtStatus.verified
     if (key === 'adguard') return integrationStore.adguardStatus.verified
+    if (key === 'deco') return integrationStore.decoStatus.verified
     return false
 }
 
@@ -346,6 +347,7 @@ const getIntegrationColor = (key) => {
     if (key === 'mqtt') return 'text-emerald-500'
     if (key === 'openwrt') return 'text-blue-500'
     if (key === 'adguard') return 'text-indigo-500'
+    if (key === 'deco') return 'text-teal-500'
     return 'text-slate-400'
 }
 
@@ -354,6 +356,7 @@ const getIntegrationPulse = (key) => {
     if (key === 'mqtt') return `${base} bg-emerald-500 animate-pulse`
     if (key === 'openwrt') return `${base} bg-blue-500`
     if (key === 'adguard') return `${base} bg-indigo-500`
+    if (key === 'deco') return `${base} bg-teal-500`
     return base
 }
 

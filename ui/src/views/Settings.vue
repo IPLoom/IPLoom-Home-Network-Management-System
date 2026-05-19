@@ -388,6 +388,99 @@
             </div>
           </div>
         </div>
+
+        <!-- TP-Link Deco Integration -->
+        <div class="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="p-2 bg-teal-100 dark:bg-teal-700 rounded-lg text-teal-600 dark:text-teal-400">
+              <Wifi class="w-5 h-5" />
+            </div>
+            <div>
+              <h2 class="text-base font-semibold text-slate-900 dark:text-white">TP-Link Deco Mesh</h2>
+              <p class="text-xs text-slate-500">Sync signal strength (RSSI), client nodes & bands</p>
+            </div>
+            <!-- Status Badge & Toggle -->
+            <div class="ml-auto flex items-center gap-3">
+              <label class="premium-switch group">
+                <span class="premium-switch-label">Integration Enabled</span>
+                <div class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" v-model="settings.deco_enabled" class="sr-only peer">
+                  <div class="premium-switch-slider peer-checked:bg-teal-600"></div>
+                </div>
+              </label>
+
+              <div v-if="settings.deco_host"
+                class="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                <div class="w-2 h-2 rounded-full" :class="{
+                  'bg-emerald-500 animate-pulse': decoStatus === 'online',
+                  'bg-red-500': decoStatus === 'error',
+                  'bg-slate-400': !decoStatus
+                }"></div>
+                <span class="text-xs font-medium" :class="{
+                  'text-emerald-600': decoStatus === 'online',
+                  'text-red-500': decoStatus === 'error',
+                  'text-slate-500': !decoStatus
+                }">
+                  {{ decoStatus === 'online' ? 'Connected' : (decoStatus === 'error' ? 'Error' : 'Not Verified') }}
+                </span>
+              </div>
+
+              <button @click="syncDeco" :disabled="syncDecoLoading"
+                class="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-slate-500 dark:text-slate-400"
+                v-tooltip="'Sync Now'">
+                <Loader2 v-if="syncDecoLoading" class="w-4 h-4 animate-spin" />
+                <svg v-else viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2">
+                  <path
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+
+              <button @click="testDeco" :disabled="testDecoLoading"
+                class="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-slate-500 dark:text-slate-400"
+                v-tooltip="'Test Connection'">
+                <Loader2 v-if="testDecoLoading" class="w-4 h-4 animate-spin" />
+                <svg v-else viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Session Warning Notice -->
+          <div class="mb-4 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-lg flex items-start gap-2.5">
+            <AlertTriangle class="w-4 h-4 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
+            <div class="text-xs text-amber-800 dark:text-amber-300 leading-normal">
+              <strong>Admin Session Restriction:</strong> TP-Link Deco only supports a single active administrator session. Running background syncs may temporarily sign you out of the official Deco mobile app.
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label
+                  class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Deco Host / IP</label>
+                <input v-model="settings.deco_host" type="text" placeholder="192.168.1.1"
+                  class="box-input" />
+                <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1 leading-normal">
+                  Must be the IP of your <strong>Main/Master Deco Router</strong>. Satellite nodes only expose local state.
+                </p>
+              </div>
+              <div>
+                <label
+                  class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Interval
+                  (Minutes)</label>
+                <input v-model="settings.deco_interval" type="number" placeholder="15" class="box-input" />
+              </div>
+            </div>
+            <div class="grid grid-cols-1">
+              <div>
+                <label
+                  class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Password</label>
+                <input v-model="settings.deco_password" type="password" placeholder="••••••••" class="box-input" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Sidebar (Right Column) -->
@@ -505,7 +598,7 @@
             <div v-if="assetsLoading" class="flex justify-center py-4">
               <Loader2 class="w-5 h-5 animate-spin text-slate-400" />
             </div>
-            <div v-else-if="assets.length > 0" class="grid grid-cols-5 gap-3 max-h-48 overflow-y-auto overflow-x-hidden custom-scrollbar p-1">
+            <div v-else-if="assets.length > 0" class="grid grid-cols-5 gap-3 max-h-48 overflow-y-auto overflow-x-hidden custom-scrollbar p-2">
               <div v-for="asset in assets" :key="asset.id" 
                 class="group relative aspect-square bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-2.5 flex items-center justify-center shadow-sm hover:shadow-md hover:border-indigo-500/50 transition-all duration-300"
               >
@@ -846,7 +939,7 @@
 import { ref, reactive, onMounted, watch, onUnmounted } from 'vue'
 import api from '@/utils/api'
 import * as LucideIcons from 'lucide-vue-next'
-import { Save, RotateCcw, Trash2, AlertTriangle, Loader2, Plus, Fingerprint, Pencil, Trash, X, Check, Search, ShieldCheck, Tag, Settings2, Layout, ChevronDown, Download, Upload, Database } from 'lucide-vue-next'
+import { Save, RotateCcw, Trash2, AlertTriangle, Loader2, Plus, Fingerprint, Pencil, Trash, X, Check, Search, ShieldCheck, Tag, Settings2, Layout, ChevronDown, Download, Upload, Database, Wifi } from 'lucide-vue-next'
 
 import { useNotifications } from '@/composables/useNotifications'
 import { formatDate } from '@/utils/date'
@@ -873,10 +966,17 @@ const settings = reactive({
   adguard_username: '',
   adguard_password: '',
   adguard_interval: 5,
-  adguard_enabled: true
+  adguard_enabled: true,
+  deco_host: '',
+  deco_password: '',
+  deco_interval: 15,
+  deco_enabled: true
 })
 
 const openWrtStatus = ref(null)
+const decoStatus = ref(null)
+const testDecoLoading = ref(false)
+const syncDecoLoading = ref(false)
 // ... (rest)
 
 // ... inside fetchSettings ...
@@ -934,6 +1034,20 @@ const fetchSettings = async () => {
       }
     } catch (e) {
       console.error("AdGuard config error", e)
+    }
+
+    // Fetch Deco config
+    try {
+      const decoRes = await api.get('/integrations/deco/config')
+      if (decoRes.data) {
+        settings.deco_host = decoRes.data.host
+        settings.deco_password = decoRes.data.password
+        settings.deco_interval = decoRes.data.interval
+        settings.deco_enabled = decoRes.data.enabled !== false
+        decoStatus.value = decoRes.data.verified ? 'online' : null
+      }
+    } catch (e) {
+      console.error("Deco config error", e)
     }
 
   } catch (e) {
@@ -1182,6 +1296,36 @@ const syncAdguard = async () => {
   }
 }
 
+// Deco logic
+const testDeco = async () => {
+  testDecoLoading.value = true
+  try {
+    await api.post('/integrations/deco/verify', {
+      host: settings.deco_host,
+      password: settings.deco_password
+    })
+    notifySuccess("TP-Link Deco Connection Successful!")
+    decoStatus.value = 'online'
+  } catch (e) {
+    notifyError("Connection Failed: " + (e.response?.data?.detail || e.message))
+    decoStatus.value = 'error'
+  } finally {
+    testDecoLoading.value = false
+  }
+}
+
+const syncDeco = async () => {
+  syncDecoLoading.value = true
+  try {
+    await api.post('/integrations/deco/sync')
+    notifySuccess("TP-Link Deco Sync started!")
+  } catch (e) {
+    notifyError("Sync Failed: " + (e.response?.data?.detail || e.message))
+  } finally {
+    syncDecoLoading.value = false
+  }
+}
+
 const saveSettings = async () => {
   saveStatus.value = 'saving'
   try {
@@ -1211,6 +1355,17 @@ const saveSettings = async () => {
         enabled: settings.adguard_enabled
       })
       adguardStatus.value = agRes.data.verified ? 'online' : null
+    }
+
+    // Save Deco config
+    if (settings.deco_host) {
+      const decoRes = await api.post('/integrations/deco/config', {
+        host: settings.deco_host,
+        password: settings.deco_password,
+        interval: parseInt(settings.deco_interval) || 15,
+        enabled: settings.deco_enabled
+      })
+      decoStatus.value = decoRes.data.verified ? 'online' : null
     }
 
     saveStatus.value = 'saved'

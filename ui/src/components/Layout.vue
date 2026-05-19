@@ -123,7 +123,8 @@ import {
   BellIcon,
   ChartBarIcon,
   CommandLineIcon,
-  ShareIcon
+  ShareIcon,
+  SquaresPlusIcon
 } from '@heroicons/vue/24/outline'
 
 const sidebarCollapsed = ref(true)
@@ -137,6 +138,7 @@ const navItems = computed(() => [
   { name: 'Dashboard', path: '/', icon: HomeIcon },
   { name: 'Devices', path: '/devices', icon: ComputerDesktopIcon, badge: deviceStore.stats.new_24h > 0 ? deviceStore.stats.new_24h : null },
   { name: 'Topology', path: '/topology', icon: ShareIcon },
+  { name: 'Integrations', path: '/integrations', icon: SquaresPlusIcon },
   { name: 'Events', path: '/events', icon: BellIcon },
   { name: 'Analytics', path: '/analytics', icon: ChartBarIcon },
   { name: 'IP Occupancy', path: '/occupancy', icon: TableCellsIcon },
