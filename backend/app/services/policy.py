@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from app.core.db import get_connection, commit
-from app.services.openwrt import OpenWRTClient
+from app.services.integrations.openwrt import OpenWRTClient
 import json
 
 logger = logging.getLogger(__name__)

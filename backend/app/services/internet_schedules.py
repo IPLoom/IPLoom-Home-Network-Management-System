@@ -103,7 +103,7 @@ async def delete_schedule(schedule_id: str) -> bool:
 # --- Scheduler Logic ---
 import asyncio
 import json
-from app.services.openwrt import OpenWRTClient
+from app.services.integrations.openwrt import OpenWRTClient
 from app.core.task_logger import log_task_event
 
 # Keep track of previous window state in memory
