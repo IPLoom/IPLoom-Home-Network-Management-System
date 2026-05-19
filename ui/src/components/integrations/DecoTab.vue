@@ -85,13 +85,15 @@
           >
             <div class="flex items-start justify-between">
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
-                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform overflow-hidden">
+                  <img v-if="node.icon && node.icon.startsWith('/static/')" :src="node.icon" class="h-6 w-6 object-contain" />
+                  <component v-else-if="node.icon" :is="getIcon(node.icon)" class="h-6 w-6" />
+                  <svg v-else class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071a9 9 0 0114.14 0M2.006 8.502a13 13 0 0119.988 0" />
                   </svg>
                 </div>
                 <div>
-                  <h4 class="font-bold text-slate-800 dark:text-slate-100">{{ node.attributes.deco_node_name || node.name }}</h4>
+                  <h4 class="font-bold text-slate-800 dark:text-slate-100">{{ node.display_name || node.attributes.deco_node_name || node.name }}</h4>
                   <p class="text-xs text-slate-400 dark:text-slate-500 uppercase font-semibold tracking-wider mt-0.5">{{ node.attributes.deco_role || 'Node' }}</p>
                 </div>
               </div>
@@ -171,8 +173,10 @@
                   <!-- Client Details -->
                   <td class="px-6 py-4">
                     <div class="flex items-center gap-3">
-                      <div class="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs">
-                        {{ getClientInitials(client.name) }}
+                      <div class="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0">
+                        <img v-if="client.icon && client.icon.startsWith('/static/')" :src="client.icon" class="h-5 w-5 object-contain" />
+                        <component v-else-if="client.icon" :is="getIcon(client.icon)" class="h-5 w-5" />
+                        <span v-else class="font-bold text-xs">{{ getClientInitials(client.name) }}</span>
                       </div>
                       <div>
                         <div class="font-semibold text-slate-800 dark:text-slate-200">{{ client.name }}</div>
@@ -276,6 +280,7 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '@/utils/api'
 import { useNotifications } from '@/composables/useNotifications'
+import { getIcon } from '@/utils/icons'
 
 const { notifySuccess, notifyError } = useNotifications()
 

@@ -138,6 +138,14 @@
                   {{ mqttStatus === 'online' ? 'Online' : 'Offline' }}
                 </span>
               </div>
+              <button @click="openMqttDetails" type="button"
+                class="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1.5 mr-2"
+                v-tooltip="'View MQTT Broker Live Status'">
+                <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 text-purple-500" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M8.25 3v1.5M4.5 8.25H3m12.375-3.75a8.25 8.25 0 018.25 8.25H21M6.75 3a12 12 0 0112 12H16.5M3 13.5a8.25 8.25 0 018.25-8.25V6a7.5 7.5 0 00-7.5 7.5v.75m17.625 0V15a6 6 0 01-6 6H12m0 0V21" />
+                </svg>
+                <span>Details</span>
+              </button>
               <button @click="testMqtt" :disabled="testLoading"
                 class="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-slate-500 dark:text-slate-400"
                 v-tooltip="'Test Connection'">
@@ -933,6 +941,112 @@
     @close="isUploadModalOpen = false" 
     @uploaded="fetchAssets" 
   />
+
+  <!-- MQTT Details Modal -->
+  <div v-if="isMqttDetailsOpen" class="fixed inset-0 z-50 overflow-y-auto" @click.self="isMqttDetailsOpen = false">
+    <div class="flex min-h-screen items-center justify-center p-4">
+      <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"></div>
+      
+      <div class="modal-container-sm !max-w-lg bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-2xl p-6 relative z-10">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700/50 mb-6">
+          <div class="flex items-center gap-3">
+            <div class="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-xl text-purple-600 dark:text-purple-400">
+              <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8.25 3v1.5M4.5 8.25H3m12.375-3.75a8.25 8.25 0 018.25 8.25H21M6.75 3a12 12 0 0112 12H16.5M3 13.5a8.25 8.25 0 018.25-8.25V6a7.5 7.5 0 00-7.5 7.5v.75m17.625 0V15a6 6 0 01-6 6H12m0 0V21" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-slate-900 dark:text-white">MQTT Broker Live Status</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Current connection status and details</p>
+            </div>
+          </div>
+          
+          <button @click="isMqttDetailsOpen = false" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 dark:text-slate-500 transition-colors">
+            <X class="h-5 w-5" />
+          </button>
+        </div>
+
+        <!-- Loading state -->
+        <div v-if="mqttDetailsLoading" class="flex flex-col items-center justify-center py-12 space-y-3">
+          <Loader2 class="h-8 w-8 animate-spin text-purple-500" />
+          <p class="text-sm text-slate-500 dark:text-slate-400">Fetching live MQTT status...</p>
+        </div>
+
+        <div v-else-if="mqttDetails" class="space-y-6">
+          <!-- Connection Status -->
+          <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <div>
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Broker Connection</span>
+              <p class="text-sm font-mono text-slate-700 dark:text-slate-300 mt-0.5">
+                {{ mqttDetails.broker || 'localhost' }}:{{ mqttDetails.port || 1883 }}
+              </p>
+            </div>
+            <span :class="[
+              'px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wider',
+              mqttDetails.reachable
+                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400'
+                : 'bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-400'
+            ]">
+              {{ mqttDetails.reachable ? 'Connected' : 'Disconnected' }}
+            </span>
+          </div>
+
+          <!-- Error State -->
+          <div v-if="mqttDetails.error" class="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-2xl p-4 text-rose-700 dark:text-rose-400 text-sm flex items-start gap-3">
+            <svg class="h-5 w-5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <h4 class="font-semibold">Connection Error</h4>
+              <p class="mt-0.5 font-mono text-xs">{{ mqttDetails.error }}</p>
+            </div>
+          </div>
+
+          <!-- Detailed Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Technical Specs -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 p-4 space-y-3">
+              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Specifications</h4>
+              <div class="space-y-2.5 text-xs">
+                <div class="flex justify-between py-1 border-b border-slate-50 dark:border-slate-700/40 font-semibold text-slate-700 dark:text-slate-300">
+                  <span class="text-slate-400 font-medium">Client ID</span>
+                  <span class="font-mono truncate max-w-[130px]" :title="mqttDetails.client_id">{{ mqttDetails.client_id || 'hnms-backend' }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-slate-50 dark:border-slate-700/40 font-semibold text-slate-700 dark:text-slate-300">
+                  <span class="text-slate-400 font-medium">Clean Session</span>
+                  <span>True</span>
+                </div>
+                <div class="flex justify-between py-1 font-semibold text-slate-700 dark:text-slate-300">
+                  <span class="text-slate-400 font-medium">Subscriptions</span>
+                  <span :class="mqttDetails.reachable ? 'text-emerald-600' : 'text-slate-400'">
+                    {{ mqttDetails.reachable ? 'Active' : 'Inactive' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Topics -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 p-4 space-y-3">
+              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Subscribed Topics</h4>
+              <div class="space-y-1.5">
+                <div v-for="topic in ['device/status', 'device/telemetry', 'network/events']" :key="topic" class="flex items-center justify-between text-[11px] py-1 px-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800">
+                  <span class="font-mono text-slate-600 dark:text-slate-400">{{ topic }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Close Action -->
+        <div class="mt-6 flex justify-end">
+          <button @click="isMqttDetailsOpen = false" class="px-5 py-2 text-sm font-semibold bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl hover:opacity-90 transition-all shadow-md active:scale-95">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -1065,6 +1179,9 @@ const saveStatus = ref('idle')
 const loading = ref(false)
 const testLoading = ref(false)
 const mqttStatus = ref(null)
+const isMqttDetailsOpen = ref(false)
+const mqttDetails = ref(null)
+const mqttDetailsLoading = ref(false)
 const subnetError = ref('')
 let mqttPollTimer = null
 const restoreFileInput = ref(null)
@@ -1385,6 +1502,25 @@ const fetchMqttStatus = async () => {
     mqttStatus.value = res.data.status
   } catch (e) {
     console.error("Failed to fetch MQTT status")
+  }
+}
+
+const openMqttDetails = async () => {
+  isMqttDetailsOpen.value = true
+  mqttDetailsLoading.value = true
+  try {
+    const res = await api.get('/mqtt/status')
+    mqttDetails.value = res.data
+  } catch (err) {
+    console.error('Failed to get MQTT status:', err)
+    mqttDetails.value = {
+      reachable: false,
+      broker: settings.mqtt_broker || 'localhost',
+      port: parseInt(settings.mqtt_port) || 1883,
+      error: err.response?.data?.detail || 'MQTT broker is offline.'
+    }
+  } finally {
+    mqttDetailsLoading.value = false
   }
 }
 

@@ -93,8 +93,14 @@
                   class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors"
                 >
                   <td class="px-6 py-4">
-                    <div class="font-semibold text-slate-800 dark:text-slate-200">
-                      {{ device.name }}
+                    <div class="flex items-center gap-3">
+                      <div class="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center flex-shrink-0">
+                        <img v-if="device.icon && device.icon.startsWith('/static/')" :src="device.icon" class="h-5 w-5 object-contain" />
+                        <component v-else :is="getIcon(device.icon || 'help-circle')" class="h-5 w-5" />
+                      </div>
+                      <div class="font-semibold text-slate-800 dark:text-slate-200">
+                        {{ device.name }}
+                      </div>
                     </div>
                   </td>
                   <td class="px-6 py-4 font-mono text-slate-600 dark:text-slate-400">
@@ -160,6 +166,7 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '@/utils/api'
 import { useNotifications } from '@/composables/useNotifications'
+import { getIcon } from '@/utils/icons'
 
 const { notifySuccess, notifyError } = useNotifications()
 
