@@ -236,7 +236,8 @@ def get_openwrt_data():
         # Fetch devices synced by OpenWrt
         rows = conn.execute(
             """
-            SELECT d.id, d.ip, d.mac, d.name, d.display_name, d.status, d.attributes, d.last_seen, s.attributes, d.icon
+            SELECT d.id, d.ip, d.mac, d.name, d.display_name, d.status, d.attributes, d.last_seen, s.attributes, d.icon,
+                   d.is_trusted, d.ip_type, d.is_blocked, d.brand_icon, d.device_type, d.vendor
             FROM devices d
             JOIN device_discovery_sources s ON d.id = s.device_id
             WHERE s.source = 'openwrt'
@@ -245,7 +246,7 @@ def get_openwrt_data():
 
         devices = []
         for r in rows:
-            dev_id, ip, mac, name, display_name, status, attrs_str, last_seen, src_attrs_str, icon = r
+            dev_id, ip, mac, name, display_name, status, attrs_str, last_seen, src_attrs_str, icon, is_trusted, ip_type, is_blocked, brand_icon, device_type, vendor = r
             attrs = {}
             if attrs_str:
                 try:
@@ -266,7 +267,13 @@ def get_openwrt_data():
                 "status": status,
                 "icon": icon,
                 "last_seen": last_seen.isoformat() if last_seen else None,
-                "attributes": attrs
+                "attributes": attrs,
+                "is_trusted": bool(is_trusted),
+                "ip_type": ip_type,
+                "is_blocked": bool(is_blocked),
+                "brand_icon": brand_icon,
+                "device_type": device_type,
+                "vendor": vendor
             })
 
         return {
