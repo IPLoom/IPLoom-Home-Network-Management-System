@@ -74,65 +74,72 @@
           </div>
         </div>
 
-        <div class="bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl overflow-hidden shadow-sm">
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-              <thead>
-                <tr class="bg-slate-50/75 dark:bg-slate-900/50 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-700/50">
-                  <th class="px-6 py-4">Hostname / Device</th>
-                  <th class="px-6 py-4">IP Address</th>
-                  <th class="px-6 py-4">MAC Address</th>
-                  <th class="px-6 py-4">Interface / Network</th>
-                  <th class="px-6 py-4 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100 dark:divide-slate-700/40 text-sm">
-                <tr 
-                  v-for="device in filteredDevices" 
-                  :key="device.id"
-                  class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors"
-                >
-                  <td class="px-6 py-4">
-                    <div class="flex items-center gap-3">
-                      <div class="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center flex-shrink-0">
-                        <img v-if="device.icon && device.icon.startsWith('/static/')" :src="device.icon" class="h-5 w-5 object-contain" />
-                        <component v-else :is="getIcon(device.icon || 'help-circle')" class="h-5 w-5" />
-                      </div>
-                      <div class="font-semibold text-slate-800 dark:text-slate-200">
-                        {{ device.name }}
-                      </div>
-                    </div>
-                  </td>
-                  <td class="px-6 py-4 font-mono text-slate-600 dark:text-slate-400">
-                    {{ device.ip || 'N/A' }}
-                  </td>
-                  <td class="px-6 py-4 font-mono text-slate-500">
-                    {{ device.mac }}
-                  </td>
-                  <td class="px-6 py-4">
-                    <span class="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 px-2.5 py-1 rounded-md border border-slate-200/40 dark:border-slate-800/40">
-                      {{ device.attributes.interface || 'lan' }}
-                    </span>
-                  </td>
-                  <td class="px-6 py-4 text-center">
-                    <span :class="[
-                      'px-2.5 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider',
-                      device.status === 'online' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-400'
-                    ]">
-                      {{ device.status }}
-                    </span>
-                  </td>
-                </tr>
+        <div class="content-panel">
+          <DeviceTable
+            :devices="filteredDevices"
+            :columns="['device', 'network', 'interface', 'last_seen', 'actions']"
+            :approvingId="approvingId"
+            :blockingId="blockingId"
+            @approve="approveDevice"
+            @block-toggle="toggleBlockList"
+            @edit="openEditDialog"
+            @delete="confirmDelete"
+          >
+            <!-- Interface / Network slot headers -->
+            <template #extra-headers>
+              <th class="hidden md:table-cell table-header-cell w-1/5 font-bold">Interface / Network</th>
+            </template>
+            
+            <!-- Interface / Network slot cells -->
+            <template #extra-cells="{ device }">
+              <td class="hidden md:table-cell table-data-cell">
+                <span class="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 px-2.5 py-1 rounded-md border border-slate-200/40 dark:border-slate-800/40 font-semibold">
+                  {{ device.attributes?.interface || 'lan' }}
+                </span>
+              </td>
+            </template>
 
-                <tr v-if="filteredDevices.length === 0">
-                  <td colspan="5" class="px-6 py-8 text-center text-slate-400 dark:text-slate-500">
-                    No devices synced by OpenWrt found.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+            <!-- Mobile details slot -->
+            <template #extra-mobile-details="{ device }">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Interface / Network</p>
+                  <span class="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 px-2.5 py-1 rounded-md border border-slate-200/40 dark:border-slate-800/40 font-semibold">
+                    {{ device.attributes?.interface || 'lan' }}
+                  </span>
+                </div>
+              </div>
+            </template>
+          </DeviceTable>
         </div>
+
+        <!-- Modals -->
+        <EditDeviceModal 
+          :isOpen="isEditModalOpen" 
+          :device="deviceToEdit" 
+          @close="isEditModalOpen = false"
+          @save="handleDeviceSaved" 
+        />
+
+        <ConfirmationModal
+          :isOpen="!!deviceToDelete"
+          title="Delete Device?"
+          :message="deviceToDelete ? `Are you sure you want to delete ${deviceToDelete.display_name || deviceToDelete.ip}? This action cannot be undone.` : ''"
+          confirmText="Delete"
+          type="danger"
+          @close="cancelDelete"
+          @confirm="deleteDevice"
+        />
+
+        <ConfirmationModal
+          :isOpen="!!deviceToApprove"
+          title="Trust this Device?"
+          :message="deviceToApprove ? `You are about to mark ${deviceToApprove.display_name || deviceToApprove.ip} as a trusted member of your network.` : ''"
+          confirmText="Trust Device"
+          :loading="!!approvingId"
+          @close="deviceToApprove = null"
+          @confirm="confirmApprove"
+        />
       </div>
     </template>
 
@@ -167,6 +174,9 @@ import { ref, computed, onMounted } from 'vue'
 import api from '@/utils/api'
 import { useNotifications } from '@/composables/useNotifications'
 import { getIcon } from '@/utils/icons'
+import DeviceTable from '@/components/DeviceTable.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import EditDeviceModal from '@/components/EditDeviceModal.vue'
 
 const { notifySuccess, notifyError } = useNotifications()
 
@@ -179,6 +189,14 @@ const isVerified = ref(false)
 const url = ref('')
 const devices = ref([])
 const searchQuery = ref('')
+
+// Action states
+const deviceToEdit = ref(null)
+const isEditModalOpen = ref(false)
+const deviceToDelete = ref(null)
+const deviceToApprove = ref(null)
+const approvingId = ref(null)
+const blockingId = ref(null)
 
 const fetchOpenWrtData = async () => {
   loading.value = true
@@ -195,6 +213,76 @@ const fetchOpenWrtData = async () => {
   } finally {
     loading.value = false
   }
+}
+
+// Action handlers implementation
+const approveDevice = (device) => {
+  deviceToApprove.value = device
+}
+
+const confirmApprove = async () => {
+  if (!deviceToApprove.value) return
+  const device = deviceToApprove.value
+  approvingId.value = device.id
+  try {
+    await api.patch(`/devices/${device.id}`, { is_trusted: true })
+    await fetchOpenWrtData()
+    notifySuccess(`"${device.display_name || device.ip}" is now trusted`)
+    deviceToApprove.value = null
+  } catch (e) {
+    notifyError('Failed to approve device')
+  } finally {
+    approvingId.value = null
+  }
+}
+
+const toggleBlockList = async (device) => {
+  if (!device.mac || device.mac === 'unknown' || device.mac === 'N/A') {
+    notifyError('Cannot block device without a valid MAC address')
+    return
+  }
+  blockingId.value = device.id
+  const action = device.is_blocked ? 'unblock' : 'block'
+  try {
+    const res = await api.post(`/integrations/openwrt/devices/${device.mac}/${action}`)
+    if (res.data.status === 'success') {
+      device.is_blocked = !device.is_blocked
+      notifySuccess(`Device ${device.is_blocked ? 'blocked' : 'unblocked'} successfully`)
+    }
+  } catch (err) {
+    notifyError(err.response?.data?.detail || `Failed to ${action} device`)
+  } finally {
+    blockingId.value = null
+  }
+}
+
+const confirmDelete = (device) => {
+  deviceToDelete.value = device
+}
+
+const cancelDelete = () => {
+  deviceToDelete.value = null
+}
+
+const deleteDevice = async () => {
+  if (!deviceToDelete.value) return
+  try {
+    await api.delete(`/devices/${deviceToDelete.value.id}`)
+    await fetchOpenWrtData()
+    notifySuccess('Device deleted successfully')
+    deviceToDelete.value = null
+  } catch (e) {
+    notifyError('Failed to delete device')
+  }
+}
+
+const openEditDialog = (device) => {
+  deviceToEdit.value = { ...device }
+  isEditModalOpen.value = true
+}
+
+const handleDeviceSaved = async () => {
+  await fetchOpenWrtData()
 }
 
 const syncOpenWrt = async () => {

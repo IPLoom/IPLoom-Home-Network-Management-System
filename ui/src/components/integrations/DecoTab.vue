@@ -128,7 +128,6 @@
           </div>
         </div>
       </div>
-
       <!-- Connected Clients List -->
       <div class="space-y-4 pt-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -152,102 +151,108 @@
           </div>
         </div>
 
-        <div class="bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl overflow-hidden shadow-sm">
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-              <thead>
-                <tr class="bg-slate-50/75 dark:bg-slate-900/50 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-700/50">
-                  <th class="px-6 py-4">Client</th>
-                  <th class="px-6 py-4">IP / MAC</th>
-                  <th class="px-6 py-4">Connected Node</th>
-                  <th class="px-6 py-4 text-center">Type / Band</th>
-                  <th class="px-6 py-4 text-center">Signal Strength</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100 dark:divide-slate-700/40 text-sm">
-                <tr 
-                  v-for="client in filteredClients" 
-                  :key="client.id"
-                  class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors"
-                >
-                  <!-- Client Details -->
-                  <td class="px-6 py-4">
-                    <div class="flex items-center gap-3">
-                      <div class="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0">
-                        <img v-if="client.icon && client.icon.startsWith('/static/')" :src="client.icon" class="h-5 w-5 object-contain" />
-                        <component v-else-if="client.icon" :is="getIcon(client.icon)" class="h-5 w-5" />
-                        <span v-else class="font-bold text-xs">{{ getClientInitials(client.name) }}</span>
-                      </div>
-                      <div>
-                        <div class="font-semibold text-slate-800 dark:text-slate-200">{{ client.name }}</div>
-                        <div class="text-[10px] text-slate-400 font-mono">{{ client.attributes.deco_mac || client.mac }}</div>
-                      </div>
-                    </div>
-                  </td>
+        <div class="content-panel">
+          <DeviceTable
+            :devices="filteredClients"
+            :columns="['device', 'network', 'deco_node', 'last_seen', 'actions']"
+            :approvingId="approvingId"
+            :blockingId="blockingId"
+            @approve="approveDevice"
+            @block-toggle="toggleBlockList"
+            @edit="openEditDialog"
+            @delete="confirmDelete"
+          >
+            <!-- Deco Node / RSSI Header slot -->
+            <template #extra-headers>
+              <th class="hidden md:table-cell table-header-cell w-1/5">Connected Node</th>
+              <th class="hidden md:table-cell table-header-cell w-1/5 text-center">Signal Strength</th>
+            </template>
+            
+            <!-- Deco Node / RSSI Row slot -->
+            <template #extra-cells="{ device: client }">
+              <!-- Connected Node -->
+              <td class="hidden md:table-cell table-data-cell">
+                <div class="flex items-center gap-2">
+                  <div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                  <span class="text-slate-700 dark:text-slate-300 font-medium">
+                    {{ client.attributes.deco_node_name || 'Deco Node' }}
+                  </span>
+                </div>
+              </td>
+              
+              <!-- RSSI Signal Indicator -->
+              <td class="hidden md:table-cell table-data-cell">
+                <div class="flex items-center justify-center gap-2">
+                  <div class="flex items-end gap-0.5 h-4 w-6">
+                    <div 
+                      v-for="bar in 4" 
+                      :key="bar"
+                      :class="[
+                        'w-1 rounded-sm transition-all',
+                        getSignalBars(client.attributes.rssi) >= bar 
+                          ? getSignalColorClass(client.attributes.rssi) 
+                          : 'bg-slate-200 dark:bg-slate-700'
+                      ]"
+                      :style="{ height: `${bar * 25}%` }"
+                    ></div>
+                  </div>
+                  <span class="text-xs font-mono font-bold" :class="getSignalTextClass(client.attributes.rssi)">
+                    {{ client.attributes.rssi ? `${client.attributes.rssi} dBm` : 'N/A' }}
+                  </span>
+                </div>
+              </td>
+            </template>
 
-                  <!-- IP Address -->
-                  <td class="px-6 py-4">
-                    <span class="font-mono text-slate-600 dark:text-slate-400">{{ client.ip || 'N/A' }}</span>
-                  </td>
-
-                  <!-- Connected Node -->
-                  <td class="px-6 py-4">
-                    <div class="flex items-center gap-2">
-                      <div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                      <span class="text-slate-700 dark:text-slate-300 font-medium">{{ client.attributes.deco_node_name || 'Deco Node' }}</span>
-                    </div>
-                  </td>
-
-                  <!-- Connection Type & Band -->
-                  <td class="px-6 py-4 text-center">
-                    <div class="flex flex-col items-center gap-1">
-                      <span :class="[
-                        'px-2 py-0.5 text-[10px] font-bold rounded-md uppercase tracking-wider',
-                        client.attributes.connection_type === 'wired' 
-                          ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' 
-                          : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400'
-                      ]">
-                        {{ client.attributes.connection_type || 'wireless' }}
-                      </span>
-                      <span v-if="client.attributes.band" class="text-[10px] font-semibold text-slate-400 dark:text-slate-500">
-                        {{ client.attributes.band }}
-                      </span>
-                    </div>
-                  </td>
-
-                  <!-- RSSI Signal Indicator -->
-                  <td class="px-6 py-4">
-                    <div class="flex items-center justify-center gap-2">
-                      <div class="flex items-end gap-0.5 h-4 w-6">
-                        <div 
-                          v-for="bar in 4" 
-                          :key="bar"
-                          :class="[
-                            'w-1 rounded-sm transition-all',
-                            getSignalBars(client.attributes.rssi) >= bar 
-                              ? getSignalColorClass(client.attributes.rssi) 
-                              : 'bg-slate-200 dark:bg-slate-700'
-                          ]"
-                          :style="{ height: `${bar * 25}%` }"
-                        ></div>
-                      </div>
-                      <span class="text-xs font-mono font-bold" :class="getSignalTextClass(client.attributes.rssi)">
-                        {{ client.attributes.rssi ? `${client.attributes.rssi} dBm` : 'N/A' }}
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-
-                <tr v-if="filteredClients.length === 0">
-                  <td colspan="5" class="px-6 py-8 text-center text-slate-400 dark:text-slate-500">
-                    No clients found matching search query
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+            <!-- Mobile details slot -->
+            <template #extra-mobile-details="{ device: client }">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Connected Node</p>
+                  <p class="text-sm text-slate-700 dark:text-slate-300">
+                    {{ client.attributes.deco_node_name || 'Deco Node' }}
+                  </p>
+                </div>
+                <div>
+                  <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Signal Strength</p>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-mono font-bold" :class="getSignalTextClass(client.attributes.rssi)">
+                      {{ client.attributes.rssi ? `${client.attributes.rssi} dBm` : 'N/A' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </DeviceTable>
         </div>
       </div>
+
+      <!-- Modals -->
+      <EditDeviceModal 
+        :isOpen="isEditModalOpen" 
+        :device="deviceToEdit" 
+        @close="isEditModalOpen = false"
+        @save="handleDeviceSaved" 
+      />
+
+      <ConfirmationModal
+        :isOpen="!!deviceToDelete"
+        title="Delete Device?"
+        :message="deviceToDelete ? `Are you sure you want to delete ${deviceToDelete.display_name || deviceToDelete.ip}? This action cannot be undone.` : ''"
+        confirmText="Delete"
+        type="danger"
+        @close="cancelDelete"
+        @confirm="deleteDevice"
+      />
+
+      <ConfirmationModal
+        :isOpen="!!deviceToApprove"
+        title="Trust this Device?"
+        :message="deviceToApprove ? `You are about to mark ${deviceToApprove.display_name || deviceToApprove.ip} as a trusted member of your network.` : ''"
+        confirmText="Trust Device"
+        :loading="!!approvingId"
+        @close="deviceToApprove = null"
+        @confirm="confirmApprove"
+      />
     </template>
 
     <div v-else class="bg-white dark:bg-slate-800 rounded-2xl p-8 border border-slate-200/60 dark:border-slate-700/60 text-center shadow-sm">
@@ -281,6 +286,9 @@ import { ref, computed, onMounted } from 'vue'
 import api from '@/utils/api'
 import { useNotifications } from '@/composables/useNotifications'
 import { getIcon } from '@/utils/icons'
+import DeviceTable from '@/components/DeviceTable.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import EditDeviceModal from '@/components/EditDeviceModal.vue'
 
 const { notifySuccess, notifyError } = useNotifications()
 
@@ -294,6 +302,14 @@ const lastSyncTime = ref('')
 const nodes = ref([])
 const clients = ref([])
 const searchQuery = ref('')
+
+// Action states
+const deviceToEdit = ref(null)
+const isEditModalOpen = ref(false)
+const deviceToDelete = ref(null)
+const deviceToApprove = ref(null)
+const approvingId = ref(null)
+const blockingId = ref(null)
 
 const fetchDecoData = async () => {
   loading.value = true
@@ -311,6 +327,76 @@ const fetchDecoData = async () => {
   } finally {
     loading.value = false
   }
+}
+
+// Actions implementation
+const approveDevice = (device) => {
+  deviceToApprove.value = device
+}
+
+const confirmApprove = async () => {
+  if (!deviceToApprove.value) return
+  const device = deviceToApprove.value
+  approvingId.value = device.id
+  try {
+    await api.patch(`/devices/${device.id}`, { is_trusted: true })
+    await fetchDecoData()
+    notifySuccess(`"${device.display_name || device.ip}" is now trusted`)
+    deviceToApprove.value = null
+  } catch (e) {
+    notifyError('Failed to approve device')
+  } finally {
+    approvingId.value = null
+  }
+}
+
+const toggleBlockList = async (device) => {
+  if (!device.mac || device.mac === 'unknown' || device.mac === 'N/A') {
+    notifyError('Cannot block device without a valid MAC address')
+    return
+  }
+  blockingId.value = device.id
+  const action = device.is_blocked ? 'unblock' : 'block'
+  try {
+    const res = await api.post(`/integrations/openwrt/devices/${device.mac}/${action}`)
+    if (res.data.status === 'success') {
+      device.is_blocked = !device.is_blocked
+      notifySuccess(`Device ${device.is_blocked ? 'blocked' : 'unblocked'} successfully`)
+    }
+  } catch (err) {
+    notifyError(err.response?.data?.detail || `Failed to ${action} device`)
+  } finally {
+    blockingId.value = null
+  }
+}
+
+const confirmDelete = (device) => {
+  deviceToDelete.value = device
+}
+
+const cancelDelete = () => {
+  deviceToDelete.value = null
+}
+
+const deleteDevice = async () => {
+  if (!deviceToDelete.value) return
+  try {
+    await api.delete(`/devices/${deviceToDelete.value.id}`)
+    await fetchDecoData()
+    notifySuccess('Device deleted successfully')
+    deviceToDelete.value = null
+  } catch (e) {
+    notifyError('Failed to delete device')
+  }
+}
+
+const openEditDialog = (device) => {
+  deviceToEdit.value = { ...device }
+  isEditModalOpen.value = true
+}
+
+const handleDeviceSaved = async () => {
+  await fetchDecoData()
 }
 
 const syncDeco = async () => {

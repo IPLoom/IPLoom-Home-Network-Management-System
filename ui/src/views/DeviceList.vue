@@ -162,274 +162,19 @@
 
     <!-- Devices Table -->
     <div class="content-panel">
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-          <thead class="bg-slate-50 dark:bg-slate-900/50">
-            <tr>
-              <th v-for="header in tableHeaders" :key="header.key" @click="toggleSort(header.key)"
-                :class="[header.class, 'table-header-cell cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors']">
-                <div class="flex items-center gap-1">
-                  {{ header.label }}
-                  <component :is="getSortIcon(header.key)" class="h-3 w-3"
-                    v-if="sortBy === header.key || header.key === 'ip'" />
-                </div>
-              </th>
-              <th class="hidden md:table-cell table-header-cell text-right">
-                Actions</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
-            <template v-for="device in devices" :key="device.id">
-              <tr @click="$router.push({ name: 'DeviceDetails', params: { id: device.id } })" class="hover-row group"
-                :class="{ '!bg-red-50/30 dark:!bg-red-900/20': !device.is_trusted }">
-                <td class="table-data-cell">
-                  <div class="flex items-center gap-3">
-                    <button @click.stop="toggleRow(device.id)"
-                      class="md:hidden p-1 -ml-2 text-slate-400 hover:text-blue-500">
-                      <ChevronDown v-if="expandedRows.has(device.id)" class="h-4 w-4" />
-                      <ChevronRight v-else class="h-4 w-4" />
-                    </button>
-                    <div class="relative">
-                      <div
-                        class="p-2 bg-slate-100 dark:bg-slate-700 rounded-lg group-hover:bg-white dark:group-hover:bg-slate-600 transition-colors">
-                        <img v-if="device.icon && device.icon.startsWith('/static/')" :src="device.icon" class="h-5 w-5 object-contain" />
-                        <component v-else :is="getIcon(device.icon || 'help-circle')"
-                          class="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                      </div>
-                      <span
-                        class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white dark:border-slate-800"
-                        :class="getDeviceStatusColor(device)"></span>
-                    </div>
-                    <div class="min-w-0">
-                        <div class="flex items-center gap-1.5 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                          <img v-if="device.brand_icon" :src="device.brand_icon" class="w-4 h-4 object-contain rounded-sm" />
-                          <span class="text-sm font-medium text-slate-900 dark:text-white truncate">
-                            {{ device.display_name || 'Unnamed Device' }}
-                          </span>
-                          <!-- NEW Badge -->
-                          <span v-if="isNewDevice(device.first_seen)"
-                            class="px-1 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-emerald-500 text-white shadow-sm shadow-emerald-500/20 animate-pulse-slow">
-                            New
-                          </span>
-                        </div>
-                      <div class="flex flex-wrap items-center gap-2">
-                        <div class="text-xs text-slate-500 font-mono">{{ device.ip }}</div>
-                        <span v-if="device.ip_type"
-                          class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border"
-                          :class="device.ip_type === 'static'
-                            ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400 border-indigo-100 dark:border-indigo-800'
-                            : 'bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400 border-amber-100 dark:border-amber-800'">
-                          {{ device.ip_type }}
-                        </span>
-                        <span v-if="!device.is_trusted"
-                          class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 flex items-center gap-1">
-                          <ShieldAlert class="h-3 w-3" /> Untrusted
-                        </span>
-                        <span v-else
-                          class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
-                          <ShieldCheck class="h-3 w-3" /> Trusted
-                        </span>
-                        <!-- DNS Indicator -->
-                        <span v-if="device.dns_stats && device.dns_stats.blocked > 0"
-                          class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 flex items-center gap-1"
-                          v-tooltip="`${device.dns_stats.blocked} blocked queries`">
-                          <ShieldAlert class="h-3 w-3" /> DNS
-                        </span>
-                        <span v-if="device.attributes?.connection_type === 'wireless'"
-                          class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 border border-blue-100 dark:border-blue-800 flex items-center gap-1"
-                          v-tooltip="device.attributes.wlan_ssid ? `Connected to ${device.attributes.wlan_ssid}` : 'Connected via Wi-Fi Wireless'">
-                          <Wifi class="h-3 w-3" /> {{ device.attributes.wlan_band || 'Wi-Fi' }} 
-                          <span v-if="device.attributes.wlan_rssi" class="opacity-80 ml-0.5">({{ device.attributes.wlan_rssi }} dBm)</span>
-                        </span>
-                        <!-- Wired Indicator -->
-                        <span v-if="device.attributes?.connection_type === 'wired'"
-                          class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800 flex items-center gap-1"
-                          v-tooltip="'Connected via Ethernet LAN'">
-                          <Network class="h-3 w-3" /> LAN
-                        </span>
-                        <!-- Firewall Blocked Indicator -->
-                        <span v-if="device.is_blocked"
-                          class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 flex items-center gap-1"
-                          v-tooltip="'Internet Access Blocked via OpenWrt'">
-                          <Ban class="h-3 w-3" /> Blocked
-                        </span>
-                        <!-- Scheduled Indicator -->
-                        <span v-if="device.has_schedule"
-                          class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 flex items-center gap-1"
-                          :class="{ 'animate-pulse ring-1 ring-rose-500/50': device.is_scheduled_block }"
-                          v-tooltip="device.is_scheduled_block ? 'Currently blocked by schedule' : 'Has recurring schedules defined'">
-                          <Clock class="h-3 w-3" :class="{ 'text-rose-600 dark:text-rose-400': device.is_scheduled_block }" /> 
-                          {{ device.is_scheduled_block ? 'Scheduled (Active)' : 'Scheduled' }}
-                        </span>
-                        
-                        <!-- Quota Indicator -->
-                        <div v-if="device.is_quota_exceeded"
-                          class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 flex items-center gap-1"
-                          v-tooltip="'Internet Data Quota Exceeded'">
-                          <Zap class="h-3 w-3" /> Quota
-                        </div>
-                      </div>
-                      
-                      <!-- Quota Progress Mini Bar -->
-                      <div class="min-h-[14px]">
-                        <div v-if="device.quota" class="mt-1.5 flex items-center gap-2" v-tooltip="`${formatBytes(device.quota.current_usage)} / ${formatBytes(device.quota.limit_bytes)} used`">
-                          <div class="w-16 h-1 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                            <div 
-                              class="h-full transition-all duration-500" 
-                              :class="device.is_quota_exceeded ? 'bg-red-500' : 'bg-blue-500'"
-                              :style="{ width: Math.min((device.quota.current_usage / device.quota.limit_bytes) * 100, 100) + '%' }"
-                            ></div>
-                          </div>
-                          <span class="text-[8px] font-black uppercase tracking-tighter" :class="device.is_quota_exceeded ? 'text-red-500' : 'text-slate-500'">
-                            {{ Math.round((device.quota.current_usage / device.quota.limit_bytes) * 100) }}%
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-2 py-2 hidden md:table-cell">
-                  <div class="text-xs text-slate-600 dark:text-slate-300 font-medium">{{ device.vendor || 'Unknown' }}
-                  </div>
-                  <div class="text-xs text-slate-500 font-mono truncate max-w-[200px]">{{ device.mac || 'N/A' }}</div>
-                </td>
-                <td class="px-2 py-2 hidden md:table-cell">
-                  <div class="h-8 w-24 relative" v-if="device.traffic_history && device.traffic_history.length > 1">
-                    <TrafficSparkline :data="device.traffic_history" :width="100" :height="32" />
-                  </div>
-                  <span v-else class="text-[10px] text-slate-400 italic">No Activity</span>
-                </td>
-                <td class="px-2 py-2 hidden md:table-cell">
-                  <div v-if="device.open_ports && device.open_ports.length > 0" class="flex flex-wrap gap-1">
-                    <span v-for="port in device.open_ports.slice(0, 3)"
-                      :key="typeof port === 'object' ? port.port : port"
-                      class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800 uppercase">
-                      {{ typeof port === 'object' ? (port.service || port.port) : port }}
-                    </span>
-                    <span v-if="device.open_ports.length > 3" class="text-[10px] text-slate-500 self-center">
-                      +{{ device.open_ports.length - 3 }}
-                    </span>
-                  </div>
-                  <span v-else class="text-xs text-slate-400 italic">No ports</span>
-                </td>
-                <td class="px-2 py-2 hidden md:table-cell">
-                  <span
-                    class="inline-flex px-2 py-1 text-xs font-medium rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
-                    {{ device.device_type || 'Unknown' }}
-                  </span>
-                </td>
-                <td class="px-3 py-4 text-sm text-slate-600 dark:text-slate-400 hidden md:table-cell">
-                  {{ formatRelativeTime(device.last_seen) }}
-                </td>
-                <td class="px-2 py-2 text-right hidden md:table-cell" @click.stop>
-                  <div class="flex items-center justify-end gap-1">
-                    <button v-if="!device.is_trusted" 
-                      @click.stop="approveDevice(device)"
-                      :disabled="approvingId === device.id"
-                      class="p-1.5 rounded-lg transition-all"
-                      :class="approvingId === device.id ? 'text-slate-400 bg-slate-100' : 'text-rose-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'"
-                      v-tooltip="approvingId === device.id ? 'Trusting...' : 'Trust this Device'">
-                      <Loader2 v-if="approvingId === device.id" class="h-4 w-4 animate-spin" />
-                      <ShieldCheck v-else class="h-4 w-4" />
-                    </button>
-                    <button @click.stop="toggleBlockList(device)"
-                      class="p-1.5 rounded-lg transition-all"
-                      :class="device.is_blocked ? 'text-red-600 bg-red-50 dark:bg-red-900/20 hover:text-red-700' : 'text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20'"
-                      v-tooltip="device.is_blocked ? 'Unblock Device Access' : 'Block Device Access'">
-                      <Loader2 v-if="blockingId === device.id" class="h-4 w-4 animate-spin text-slate-400" />
-                      <Ban v-else class="h-4 w-4" />
-                    </button>
-                    <router-link :to="{ name: 'DeviceDetails', params: { id: device.id } }" class="btn-action !p-1.5">
-                      <Eye class="h-4 w-4" />
-                    </router-link>
-                    <button @click.stop="openEditDialog(device)"
-                      class="btn-action !p-1.5 hover:!text-blue-600 dark:hover:!text-blue-400 hover:!bg-blue-50 dark:hover:!bg-blue-900/20"
-                      v-tooltip="'Edit Device Name & Type'">
-                      <Pencil class="h-4 w-4" />
-                    </button>
-                    <button @click.stop="confirmDelete(device)"
-                      class="btn-action !p-1.5 hover:!text-red-600 dark:hover:!text-red-400 hover:!bg-red-50 dark:hover:!bg-red-900/20"
-                      v-tooltip="'Delete Device'">
-                      <Trash2 class="h-4 w-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              <!-- Mobile Expanded Details -->
-              <tr v-if="expandedRows.has(device.id)" class="md:hidden bg-slate-50/50 dark:bg-slate-800/30">
-                <td colspan="2" class="px-4 py-3 border-t border-slate-100 dark:border-slate-700">
-                  <div class="space-y-4">
-                    <!-- Actions Row -->
-                    <div class="flex gap-2 mb-4">
-                      <router-link :to="{ name: 'DeviceDetails', params: { id: device.id } }"
-                        class="btn-action flex-1 gap-2 !p-2 !text-xs font-medium">
-                        <Eye class="h-3.5 w-3.5" /> View
-                      </router-link>
-                      <button @click.stop="openEditDialog(device)"
-                        class="btn-action flex-1 gap-2 !p-2 !text-xs font-medium !text-blue-600 dark:!text-blue-400 !bg-blue-50 dark:!bg-blue-900/20 !border-blue-100 dark:!border-blue-800/50">
-                        <Pencil class="h-3.5 w-3.5" /> Edit
-                      </button>
-                      <button @click.stop="confirmDelete(device)"
-                        class="btn-action flex-1 gap-2 !p-2 !text-xs font-medium !text-red-600 dark:!text-red-400 !bg-red-50 dark:!bg-red-900/20 !border-red-100 dark:!border-red-800/50">
-                        <Trash2 class="h-3.5 w-3.5" /> Delete
-                      </button>
-                    </div>
-
-                    <!-- Network Info -->
-                    <div class="grid grid-cols-2 gap-4">
-                      <div>
-                        <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Vendor</p>
-                        <p class="text-sm text-slate-700 dark:text-slate-300">{{ device.vendor || 'Unknown' }}</p>
-                      </div>
-                      <div>
-                        <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">MAC Address</p>
-                        <p class="text-sm font-mono text-slate-600 dark:text-slate-400">{{ device.mac || 'N/A' }}</p>
-                      </div>
-                    </div>
-
-                    <!-- Activity & Last Seen -->
-                    <div class="grid grid-cols-2 gap-4 items-end">
-                      <div>
-                        <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Activity</p>
-                        <div class="h-8 w-32 relative"
-                          v-if="device.traffic_history && device.traffic_history.length > 1">
-                          <TrafficSparkline :data="device.traffic_history" :width="128" :height="32" />
-                        </div>
-                        <span v-else class="text-xs text-slate-400 italic">No Activity</span>
-                      </div>
-                      <div>
-                        <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Last Seen</p>
-                        <p class="text-sm text-slate-600 dark:text-slate-400">{{ formatRelativeTime(device.last_seen) }}
-                        </p>
-                      </div>
-                    </div>
-
-                    <!-- Ports & Type -->
-                    <div class="flex items-center justify-between">
-                      <div>
-                        <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Open Ports</p>
-                        <div v-if="device.open_ports && device.open_ports.length > 0" class="flex flex-wrap gap-1">
-                          <span v-for="port in device.open_ports" :key="typeof port === 'object' ? port.port : port"
-                            class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800 uppercase">
-                            {{ typeof port === 'object' ? (port.service || port.port) : port }}
-                          </span>
-                        </div>
-                        <span v-else class="text-xs text-slate-400 italic">No open ports detected</span>
-                      </div>
-                      <div>
-                        <span
-                          class="inline-flex px-2 py-1 text-xs font-medium rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
-                          {{ device.device_type || 'Unknown' }}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
+      <DeviceTable
+        :devices="devices"
+        :columns="['device', 'network', 'activity', 'ports', 'type', 'last_seen', 'actions']"
+        :approvingId="approvingId"
+        :blockingId="blockingId"
+        :sortBy="sortBy"
+        :sortOrder="sortOrder"
+        @sort="toggleSort"
+        @approve="approveDevice"
+        @block-toggle="toggleBlockList"
+        @edit="openEditDialog"
+        @delete="confirmDelete"
+      />
     </div>
 
     <!-- Pagination -->
@@ -451,63 +196,28 @@
     <!-- Edit Modal -->
     <EditDeviceModal :isOpen="isEditModalOpen" :device="deviceToEdit" @close="isEditModalOpen = false"
       @save="handleDeviceSaved" />
+
     <!-- Delete Confirmation Modal -->
-    <div v-if="deviceToDelete" class="fixed inset-0 z-50 overflow-y-auto" @click.self="cancelDelete">
-      <div class="flex min-h-screen items-center justify-center p-4">
-        <div class="fixed inset-0 bg-black/50 transition-opacity"></div>
-        <div class="modal-container-sm">
-          <div class="flex flex-col items-center text-center">
-            <div class="h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-4">
-              <Trash2 class="h-6 w-6 text-red-600 dark:text-red-400" />
-            </div>
-            <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-2">Delete Device?</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">
-              Are you sure you want to delete <strong>{{ deviceToDelete.display_name || deviceToDelete.ip }}</strong>?
-              This action cannot be undone.
-            </p>
-            <div class="flex gap-3 w-full">
-              <button @click="cancelDelete"
-                class="flex-1 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                Cancel
-              </button>
-              <button @click="deleteDevice"
-                class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors">
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <ConfirmationModal
+      :isOpen="!!deviceToDelete"
+      title="Delete Device?"
+      :message="deviceToDelete ? `Are you sure you want to delete ${deviceToDelete.display_name || deviceToDelete.ip}? This action cannot be undone.` : ''"
+      confirmText="Delete"
+      type="danger"
+      @close="cancelDelete"
+      @confirm="deleteDevice"
+    />
 
     <!-- Approve Confirmation Modal -->
-    <div v-if="deviceToApprove" class="fixed inset-0 z-50 overflow-y-auto" @click.self="deviceToApprove = null">
-      <div class="flex min-h-screen items-center justify-center p-4">
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"></div>
-        <div class="modal-container-sm !max-w-md">
-          <div class="flex flex-col items-center text-center">
-            <div class="h-16 w-16 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-6 shadow-xl shadow-emerald-500/10">
-              <ShieldCheck class="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <h3 class="text-xl font-black text-slate-900 dark:text-white mb-2">Trust this Device?</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mb-8 max-w-[280px]">
-              You are about to mark <span class="font-bold text-slate-900 dark:text-white">{{ deviceToApprove.display_name || deviceToApprove.ip }}</span> as a trusted member of your network.
-            </p>
-            <div class="flex gap-3 w-full">
-              <button @click="deviceToApprove = null"
-                class="flex-1 px-5 py-3 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all">
-                Cancel
-              </button>
-              <button @click="confirmApprove" :disabled="approvingId"
-                class="flex-1 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
-                <Loader2 v-if="approvingId" class="h-4 w-4 animate-spin" />
-                {{ approvingId ? 'Trusting...' : 'Trust Device' }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <ConfirmationModal
+      :isOpen="!!deviceToApprove"
+      title="Trust this Device?"
+      :message="deviceToApprove ? `You are about to mark ${deviceToApprove.display_name || deviceToApprove.ip} as a trusted member of your network.` : ''"
+      confirmText="Trust Device"
+      :loading="!!approvingId"
+      @close="deviceToApprove = null"
+      @confirm="confirmApprove"
+    />
 
     <!-- Discovery Modal -->
     <DiscoveryModal :isOpen="isDiscoveryOpen" @close="isDiscoveryOpen = false" @onboarded="fetchDevices" />
@@ -518,12 +228,13 @@
 import { ref, onMounted, onUnmounted, reactive, computed, watch } from 'vue'
 import api from '@/utils/api'
 import Sparkline from '@/components/Sparkline.vue'
-import TrafficSparkline from '@/components/TrafficSparkline.vue'
 import EditDeviceModal from '@/components/EditDeviceModal.vue'
 import DiscoveryModal from '@/components/DiscoveryModal.vue'
+import DeviceTable from '@/components/DeviceTable.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
 import { getIcon } from '@/utils/icons'
 import * as LucideIcons from 'lucide-vue-next'
-const { Eye, Pencil, Trash2, Download, Upload, RefreshCw, Loader2, Search, ChevronUp, ChevronDown, ChevronRight, ArrowUpDown, Activity, Wifi, Network, Database, ZapOff, Ticket, Filter, Layers, ShieldCheck, ShieldAlert, Radar, Ban, Zap, Clock } = LucideIcons
+const { Download, Upload, RefreshCw, Loader2, Search, ChevronUp, ChevronDown, ChevronRight, ArrowUpDown, Activity, Wifi, Network, Database, ZapOff, Ticket, Filter, Layers, ShieldCheck, ShieldAlert, Radar, Ban, Zap, Clock } = LucideIcons
 import { DateTime } from 'luxon'
 import { formatRelativeTime, parseUTC } from '@/utils/date'
 import { useNotifications } from '@/composables/useNotifications'
