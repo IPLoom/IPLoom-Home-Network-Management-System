@@ -94,13 +94,12 @@ async def bulk_update_config(payload: dict[str, Any]):
     results, mqtt_changed = await asyncio.to_thread(update)
     
     if mqtt_changed:
-        logger.info("MQTT settings changed, validating connection...")
-        # Run validation in background (or await if we want to block)
-        # We await it so the response to UI isn't sent until we know the status,
-        # ensuring the subsequent fetchMqttStatus call gets the new value.
-        def validate():
-            MQTTManager.get_instance().test_connection()
+        logger.info("MQTT settings changed, reconnecting persistent client...")
+        # Reconnect the persistent client with updated config so the live
+        # connection immediately uses the new broker/credentials.
+        def reconnect_mqtt():
+            MQTTManager.get_instance().reconnect()
             
-        await asyncio.to_thread(validate)
+        await asyncio.to_thread(reconnect_mqtt)
         
     return results

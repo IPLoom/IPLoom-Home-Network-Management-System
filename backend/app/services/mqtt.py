@@ -156,6 +156,21 @@ class MQTTManager:
                 self.is_reachable = False
                 self._save_status("offline", str(e))
 
+    def reconnect(self):
+        """Tears down the existing persistent client and creates a new one with updated config.
+        Call this after MQTT settings are changed."""
+        with self._lock:
+            if self._client:
+                logger.info("Reconnecting MQTT: tearing down existing persistent client...")
+                try:
+                    self._client.loop_stop()
+                    self._client.disconnect()
+                except Exception:
+                    pass
+                self._client = None
+        # Now create a fresh connection with the latest config
+        self._connect_persistent()
+
     def get_config(self):
         settings = get_settings()
         conn = get_connection()

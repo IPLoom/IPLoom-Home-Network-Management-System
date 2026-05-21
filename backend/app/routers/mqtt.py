@@ -15,10 +15,14 @@ class MQTTTestRequest(BaseModel):
 @router.get("/status")
 async def get_mqtt_status():
     manager = MQTTManager.get_instance()
+    config = manager.get_config()
     return {
         "status": manager.last_status,
         "error": manager.last_error,
-        "reachable": manager.is_reachable
+        "reachable": manager.is_reachable,
+        "broker": config.get("broker", "localhost"),
+        "port": config.get("port", 1883),
+        "base_topic": config.get("base_topic", "network_scanner")
     }
 
 @router.post("/test")
