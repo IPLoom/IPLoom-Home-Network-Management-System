@@ -154,34 +154,54 @@ def log_task_event(task_type, event_type, message, target=None, details=None, du
         notif_id = str(uuid.uuid4())
         created_at = utc_now()
 
-        # 1. Queue for background persistence
-        _worker.queue.put({
-            "id": notif_id,
-            "type": 'device' if event_type in ['new_device', 'status_changed'] else 'task',
-            "task_type": task_type,
-            "event_type": event_type,
-            "message": message,
-            "level": level.upper(),
-            "target": target,
-            "details": details,
-            "created_at": created_at
-        })
+        # Check if this warrants an important system notification (persisted to DB & WS alert)
+        is_important = level.upper() in ["ERROR", "WARNING"] or event_type in ["security_alert", "failed", "new_device"]
 
-        # 2. WebSocket Broadcasting
-        payload = {
-            "type": "notification",
-            "data": {
+        if is_important:
+            # 1. Queue for background persistence
+            _worker.queue.put({
                 "id": notif_id,
                 "type": 'device' if event_type in ['new_device', 'status_changed'] else 'task',
                 "task_type": task_type,
                 "event_type": event_type,
                 "message": message,
+                "level": level.upper(),
                 "target": target,
                 "details": details,
-                "timestamp": created_at.isoformat(),
-                "level": level
+                "created_at": created_at
+            })
+
+            # 2. WebSocket Broadcasting - Important notifications (type: 'notification')
+            payload = {
+                "type": "notification",
+                "data": {
+                    "id": notif_id,
+                    "type": 'device' if event_type in ['new_device', 'status_changed'] else 'task',
+                    "task_type": task_type,
+                    "event_type": event_type,
+                    "message": message,
+                    "target": target,
+                    "details": details,
+                    "timestamp": created_at.isoformat(),
+                    "level": level.upper()
+                }
             }
-        }
-        
-        # Broadcast using the thread-safe sync method
-        manager.broadcast_sync(payload)
+            # Broadcast using the thread-safe sync method
+            manager.broadcast_sync(payload)
+        else:
+            # 3. WebSocket Broadcasting - Non-critical background updates (type: 'live_update')
+            payload = {
+                "type": "live_update",
+                "data": {
+                    "id": notif_id,
+                    "type": 'device' if event_type in ['new_device', 'status_changed'] else 'task',
+                    "task_type": task_type,
+                    "event_type": event_type,
+                    "message": message,
+                    "target": target,
+                    "details": details,
+                    "timestamp": created_at.isoformat(),
+                    "level": level.upper()
+                }
+            }
+            manager.broadcast_sync(payload)

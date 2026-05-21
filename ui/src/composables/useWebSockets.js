@@ -39,6 +39,8 @@ export function useWebSockets() {
         const payload = JSON.parse(event.data)
         if (payload.type === 'notification') {
           handleNotification(payload.data)
+        } else if (payload.type === 'live_update') {
+          handleLiveUpdate(payload.data)
         } else if (payload.type === 'integration_status') {
           handleIntegrationStatus(payload)
         }
@@ -89,6 +91,10 @@ export function useWebSockets() {
         notifyInfo(message)
       }
     }
+  }
+
+  const handleLiveUpdate = (data) => {
+    lastNotification.value = data
   }
 
   const handleIntegrationStatus = (payload) => {
