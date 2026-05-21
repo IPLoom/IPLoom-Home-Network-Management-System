@@ -113,6 +113,25 @@
                     </transition>
                 </div>
 
+                <!-- Show Ports Toggle -->
+                <div class="flex items-center gap-2 px-3 h-11 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-xl transition-all shrink-0">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-500 select-none">Show Ports</span>
+                    <button 
+                        @click="showPorts = !showPorts"
+                        :class="[
+                            'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
+                            showPorts ? 'bg-blue-500' : 'bg-slate-200 dark:bg-slate-700'
+                        ]"
+                    >
+                        <span 
+                            :class="[
+                                'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                                showPorts ? 'translate-x-4' : 'translate-x-0'
+                            ]"
+                        ></span>
+                    </button>
+                </div>
+
                 <!-- Refresh -->
                 <button @click="fetchTopology" class="h-11 w-11 flex items-center justify-center bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/60 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500 dark:text-slate-400 transition-all shrink-0" v-tooltip="'Refresh View'">
                     <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
@@ -288,7 +307,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, computed, onUnmounted } from "vue"
+import { ref, onMounted, reactive, computed, onUnmounted, watch } from "vue"
 import * as vNG from "v-network-graph"
 import { ForceLayout } from "v-network-graph/lib/force-layout"
 import api from '@/utils/api'
@@ -306,6 +325,7 @@ const loading = ref(true)
 const zoomLevel = ref(1.0)
 const selectedNodeId = ref<string | null>(null)
 const isMobile = ref(window.innerWidth < 640)
+const showPorts = ref(false)
 
 // Dropdown States
 const showPortDropdown = ref(false)
@@ -366,7 +386,18 @@ const selectPort = (port: number | null) => {
     selectedPortFilter.value = port
     portSearchQuery.value = port ? `Port ${port}` : ""
     showPortDropdown.value = false
+    if (port) {
+        showPorts.value = true
+    }
 }
+
+watch(showPorts, (newVal) => {
+    if (!newVal) {
+        selectedPortFilter.value = null
+        portSearchQuery.value = ""
+    }
+    fetchTopology()
+})
 
 const selectDevice = (node: any | null) => {
     if (!node) {
@@ -533,7 +564,7 @@ const fetchTopology = async () => {
             }
             newNodes[id] = node
 
-            if (node.open_ports && node.open_ports.length > 0) {
+            if (showPorts.value && node.open_ports && node.open_ports.length > 0) {
                 node.open_ports.forEach((p: any) => {
                     const portId = `port:${id}:${p.port}`
                     newNodes[portId] = {
