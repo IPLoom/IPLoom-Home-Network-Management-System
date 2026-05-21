@@ -286,7 +286,21 @@
                 <label
                   class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Interval
                   (Minutes)</label>
-                <input v-model="settings.openwrt_interval" type="number" placeholder="15" class="box-input" />
+                <div class="relative">
+                  <select v-model="settings.openwrt_interval" class="box-input appearance-none">
+                    <option :value="1">Every 1 minute</option>
+                    <option :value="5">Every 5 minutes</option>
+                    <option :value="10">Every 10 minutes</option>
+                    <option :value="15">Every 15 minutes</option>
+                    <option :value="30">Every 30 minutes</option>
+                    <option :value="60">Every hour</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -379,7 +393,21 @@
                 <label
                   class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Interval
                   (Minutes)</label>
-                <input v-model="settings.adguard_interval" type="number" placeholder="5" class="box-input" />
+                <div class="relative">
+                  <select v-model="settings.adguard_interval" class="box-input appearance-none">
+                    <option :value="1">Every 1 minute</option>
+                    <option :value="5">Every 5 minutes</option>
+                    <option :value="10">Every 10 minutes</option>
+                    <option :value="15">Every 15 minutes</option>
+                    <option :value="30">Every 30 minutes</option>
+                    <option :value="60">Every hour</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -477,7 +505,21 @@
                 <label
                   class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Interval
                   (Minutes)</label>
-                <input v-model="settings.deco_interval" type="number" placeholder="15" class="box-input" />
+                <div class="relative">
+                  <select v-model="settings.deco_interval" class="box-input appearance-none">
+                    <option :value="1">Every 1 minute</option>
+                    <option :value="5">Every 5 minutes</option>
+                    <option :value="10">Every 10 minutes</option>
+                    <option :value="15">Every 15 minutes</option>
+                    <option :value="30">Every 30 minutes</option>
+                    <option :value="60">Every hour</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="grid grid-cols-1">
