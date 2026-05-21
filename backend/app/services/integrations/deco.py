@@ -421,7 +421,7 @@ class DecoClient:
             logger.error(f"Deco request error ({path}): {e}")
             return {}
 
-    def get_client_list(self) -> list:
+    def get_client_list(self, device_mac: str = "default") -> list:
         """
         Fetch all connected Wi-Fi clients.
         POST /admin/client?form=client_list
@@ -430,7 +430,7 @@ class DecoClient:
         """
         result = self._request(
             "admin/client?form=client_list",
-            {"operation": "read", "params": {"device_mac": "default"}},
+            {"operation": "read", "params": {"device_mac": device_mac}},
         )
 
         clients = []
@@ -534,19 +534,44 @@ class DecoClient:
 
             # Fetch data
             nodes = self.get_deco_nodes()
-            clients = self.get_client_list()
+
+            # Fetch clients connected to each node separately to resolve correct node association
+            clients = []
+            for node in nodes:
+                node_mac = node.get("mac", "")
+                if node_mac:
+                    try:
+                        node_clients = self.get_client_list(node_mac)
+                        for c in node_clients:
+                            # Explicitly tag the client with this specific node's MAC address
+                            c["deco_mac"] = node_mac.upper()
+                            c["deco_device"] = node_mac.upper()
+                        clients.extend(node_clients)
+                    except Exception as e:
+                        logger.warning(f"Deco: failed to fetch client list for node {node.get('name')} ({node_mac}): {e}")
+
+            # Fallback to default list if no clients were fetched from individual nodes
+            if not clients:
+                try:
+                    logger.info("Deco: No clients found via per-node query. Falling back to default list query.")
+                    clients = self.get_client_list("default")
+                except Exception as e:
+                    logger.warning(f"Deco: default client list fallback failed: {e}")
 
             # Build node MAC → name mapping for enrichment
             node_map = {}
-            for node in nodes:
+            node_by_index = {}
+            for idx, node in enumerate(nodes):
                 mac = node.get("mac", "").lower().replace("-", ":")
                 if mac:
                     node_map[mac] = node
+                node_by_index[str(idx)] = node
 
             conn = get_connection()
             try:
                 updated_count = 0
                 signal_records = 0
+                node_mac_to_device_id = {}
 
                 # 1. Process Deco Nodes themselves (enrich as devices)
                 for node in nodes:
@@ -559,8 +584,23 @@ class DecoClient:
                         [mac],
                     ).fetchone()
 
+                    if not row and node.get("ip"):
+                        row = conn.execute(
+                            "SELECT id, attributes, name, ip FROM devices WHERE ip = ? AND (mac IS NULL OR mac = '')",
+                            [node.get("ip")],
+                        ).fetchone()
+                        if row:
+                            device_id = row[0]
+                            conn.execute(
+                                "UPDATE devices SET mac = ? WHERE id = ?",
+                                [mac, device_id]
+                            )
+
                     if not row:
                         continue
+
+                    device_id = row[0]
+                    node_mac_to_device_id[mac] = device_id
 
                     # Prepare attributes
                     existing_attrs = {
@@ -611,6 +651,18 @@ class DecoClient:
                         [mac],
                     ).fetchone()
 
+                    if not row and client.get("ip"):
+                        row = conn.execute(
+                            "SELECT id, attributes, name, ip FROM devices WHERE ip = ? AND (mac IS NULL OR mac = '')",
+                            [client.get("ip")],
+                        ).fetchone()
+                        if row:
+                            device_id = row[0]
+                            conn.execute(
+                                "UPDATE devices SET mac = ? WHERE id = ?",
+                                [mac, device_id]
+                            )
+
                     if not row:
                         continue
 
@@ -640,7 +692,12 @@ class DecoClient:
                             pass
 
                     deco_mac = (client.get("deco_mac", "") or "").lower().replace("-", ":")
-                    deco_node_info = node_map.get(deco_mac, {})
+                    deco_node_info = {}
+                    if deco_mac in node_map:
+                        deco_node_info = node_map[deco_mac]
+                    elif deco_mac.isdigit() and deco_mac in node_by_index:
+                        deco_node_info = node_by_index[deco_mac]
+
                     deco_node_name = deco_node_info.get("name", "")
                     if deco_node_name:
                         existing_attrs["deco_node"] = deco_node_name
@@ -656,6 +713,17 @@ class DecoClient:
                             "UPDATE devices SET ip = ? WHERE id = ?",
                             [new_ip, device_id]
                         )
+                    
+                    # Update parent_id based on connected Deco Node
+                    resolved_node_mac = deco_mac
+                    if deco_mac.isdigit() and deco_mac in node_by_index:
+                        resolved_node_mac = node_by_index[deco_mac].get("mac", "").lower().replace("-", ":")
+                    
+                    parent_device_id = node_mac_to_device_id.get(resolved_node_mac)
+                    conn.execute(
+                        "UPDATE devices SET parent_id = ? WHERE id = ?",
+                        [parent_device_id, device_id]
+                    )
                     
                     conn.execute(
                         """

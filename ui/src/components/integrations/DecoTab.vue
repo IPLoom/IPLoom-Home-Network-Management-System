@@ -175,7 +175,7 @@
                 <div class="flex items-center gap-2">
                   <div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                   <span class="text-slate-700 dark:text-slate-300 font-medium">
-                    {{ client.attributes.deco_node_name || 'Deco Node' }}
+                    {{ client.attributes.deco_node || 'Deco Node' }}
                   </span>
                 </div>
               </td>
@@ -209,7 +209,7 @@
                 <div>
                   <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Connected Node</p>
                   <p class="text-sm text-slate-700 dark:text-slate-300">
-                    {{ client.attributes.deco_node_name || 'Deco Node' }}
+                    {{ client.attributes.deco_node || 'Deco Node' }}
                   </p>
                 </div>
                 <div>
@@ -459,7 +459,7 @@ const filteredClients = computed(() => {
     c.name.toLowerCase().includes(query) || 
     c.mac.toLowerCase().includes(query) || 
     (c.ip && c.ip.toLowerCase().includes(query)) ||
-    (c.attributes?.deco_node_name && c.attributes.deco_node_name.toLowerCase().includes(query))
+    (c.attributes?.deco_node && c.attributes.deco_node.toLowerCase().includes(query))
   )
 })
 
