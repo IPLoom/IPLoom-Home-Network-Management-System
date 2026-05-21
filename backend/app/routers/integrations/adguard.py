@@ -47,6 +47,9 @@ def save_config(config: AdguardConfig):
         
         # Store
         data = config.dict()
+        if config.password is None or config.password == "******":
+            data["password"] = existing.get("password")
+
         # Merge existing state fields (last_sync, last_run, etc.)
         for key in ["last_sync", "last_run", "verified", "last_check", "enabled"]:
             if key in existing and key not in data:

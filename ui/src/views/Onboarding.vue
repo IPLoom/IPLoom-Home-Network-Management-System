@@ -49,11 +49,11 @@
                 <div>
                   <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Scan Interval</label>
                   <select v-model="network.interval" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-sm appearance-none">
-                    <option :value="5">Every 5 Minutes</option>
-                    <option :value="10">Every 10 Minutes</option>
-                    <option :value="15">Every 15 Minutes</option>
-                    <option :value="30">Every 30 Minutes</option>
-                    <option :value="60">Every 1 Hour</option>
+                    <option :value="5">Every 5 minutes</option>
+                    <option :value="10">Every 10 minutes</option>
+                    <option :value="30">Every 30 minutes</option>
+                    <option :value="60">Every hour</option>
+                    <option :value="1440">Once per day</option>
                   </select>
                 </div>
               </div>
