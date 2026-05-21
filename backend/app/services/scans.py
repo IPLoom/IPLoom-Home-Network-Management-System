@@ -129,7 +129,8 @@ async def scan_device(device_id: str, ip: str) -> List[Dict[str, Any]]:
     primary_page = page_info[0] if page_info else {}
     
     # 3. Enhanced Classification
-    from app.services.classification import classify_device, get_vendor_locally
+    from app.services.classification import classify_device, get_vendor_locally, get_custom_assets
+    from app.services.fingerprinting import FingerprintService
     
     # Get current device info for classification
     def get_dev_info():
@@ -144,18 +145,33 @@ async def scan_device(device_id: str, ip: str) -> List[Dict[str, Any]]:
     mac = dev_row[1] if dev_row else None
     vendor = dev_row[2] if dev_row else None
     
-    classification = classify_device(
-        hostname=hostname,
-        vendor=vendor,
-        ports=open_port_ids,
-        page_title=primary_page.get("title")
-    )
+    fingerprint = await FingerprintService.fingerprint_device(ip)
+    if fingerprint:
+        classification = {
+            "type": fingerprint["type"],
+            "icon": fingerprint["icon"],
+            "brand": fingerprint.get("brand"),
+            "brand_icon": None
+        }
+        if fingerprint.get("brand"):
+            assets = get_custom_assets()
+            brand_asset = assets.get(fingerprint["brand"].lower())
+            classification["brand_icon"] = brand_asset["path"] if brand_asset else None
+            classification["brand"] = fingerprint["brand"].capitalize()
+    else:
+        classification = classify_device(
+            hostname=hostname,
+            vendor=vendor,
+            ports=open_port_ids,
+            page_title=primary_page.get("title")
+        )
     
     def update_db():
         conn = get_connection()
         try:
             # Update device with new classification and ports
-            conn.execute("""
+            # Also update display_name if fingerprint provides a better name
+            update_sql = """
                 UPDATE devices 
                 SET open_ports = ?, 
                     last_seen = ?, 
@@ -164,7 +180,8 @@ async def scan_device(device_id: str, ip: str) -> List[Dict[str, Any]]:
                     brand = ?, 
                     brand_icon = ?
                 WHERE id = ?
-            """, [
+            """
+            params = [
                 json.dumps(found), 
                 utc_now(), 
                 classification["type"], 
@@ -172,7 +189,16 @@ async def scan_device(device_id: str, ip: str) -> List[Dict[str, Any]]:
                 classification.get("brand"),
                 classification.get("brand_icon"),
                 device_id
-            ])
+            ]
+            conn.execute(update_sql, params)
+            
+            # Update display_name if fingerprint gives a name and current is just an IP
+            if fingerprint and fingerprint.get("name"):
+                current_name = conn.execute("SELECT display_name FROM devices WHERE id = ?", [device_id]).fetchone()
+                if current_name and current_name[0]:
+                    import re as _re
+                    if _re.match(r"^\d+\.\d+\.\d+\.\d+$", current_name[0]):
+                        conn.execute("UPDATE devices SET display_name = ? WHERE id = ?", [fingerprint["name"], device_id])
             
             # Update port history
             conn.execute("DELETE FROM device_ports WHERE device_id = ?", [device_id])

@@ -355,29 +355,54 @@ def format_mac(mac: str) -> str:
         return "" 
     return ":".join(clean[i:i+2] for i in range(0, 12, 2))
 
+
+
 async def enrich_device(device_id: str, mac: str):
     from app.services.classification import get_vendor_locally, classify_device
+    import re
     
     mac = format_mac(mac)
     if not mac: return
 
-    def get_existing_vendor_by_mac():
+    def get_device_details():
         conn = get_connection()
         try:
-            row = conn.execute("SELECT vendor FROM devices WHERE id = ?", [device_id]).fetchone()
-            if row and row[0] and row[0].lower() != "unknown":
-                return row[0]
-            row = conn.execute("SELECT vendor FROM devices WHERE mac = ? AND vendor IS NOT NULL AND vendor != 'unknown' LIMIT 1", [mac]).fetchone()
-            return row[0] if row else None
+            row = conn.execute("SELECT vendor, is_trusted FROM devices WHERE id = ?", [device_id]).fetchone()
+            if row:
+                return row[0], bool(row[1])
+            return None, False
         finally:
             conn.close()
             
-    existing_vendor = await asyncio.to_thread(get_existing_vendor_by_mac)
-    if existing_vendor:
+    existing_vendor, is_trusted = await asyncio.to_thread(get_device_details)
+    
+    # If device is trusted, stop enrichment from touching it during auto-scans
+    if is_trusted:
+        logger.debug(f"Skipping enrichment for trusted device {device_id}")
+        return
+
+    # Check if we already have a vendor
+    has_vendor = existing_vendor and existing_vendor.lower() != "unknown" and existing_vendor.strip() != ""
+    
+    vendor = None
+    if has_vendor:
         vendor = existing_vendor
     else:
-        vendor = get_vendor_locally(mac)
-    
+        # Check if another device with same MAC already has a vendor
+        def get_vendor_by_mac():
+            conn = get_connection()
+            try:
+                row = conn.execute("SELECT vendor FROM devices WHERE mac = ? AND vendor IS NOT NULL AND vendor != 'unknown' AND vendor != '' LIMIT 1", [mac]).fetchone()
+                return row[0] if row else None
+            finally:
+                conn.close()
+        mac_vendor = await asyncio.to_thread(get_vendor_by_mac)
+        if mac_vendor:
+            vendor = mac_vendor
+        else:
+            vendor = get_vendor_locally(mac)
+            
+    # Fetch from API only if we don't have a vendor
     if not vendor:
         from app.utilities.mac_lookup import get_vendor_from_api
         vendor = await get_vendor_from_api(mac)
@@ -400,74 +425,75 @@ async def enrich_device(device_id: str, mac: str):
         def sync_update():
             conn = get_connection()
             try:
-                    row = conn.execute(f"{get_base_query()} WHERE d.id = ?", [device_id]).fetchone()
-                    if row:
-                        dev = row_to_dict(row, conn)
-                        display_name = dev["display_name"]
-                        current_type = dev["device_type"]
-                        current_icon = dev["icon"]
-                        attrs = dev["attributes"]
-                        current_brand = dev.get("brand")
-                        current_brand_icon = dev.get("brand_icon")
-                        is_trusted = dev["is_trusted"]
-                        
-                        # If device is trusted, stop enrichment from touching metadata
-                        if is_trusted:
-                            # Still update attributes/vendor as they are more 'discovery' oriented but keep UI fields locked
-                            attrs = dev["attributes"]
-                            attrs["vendor"] = vendor
-                            conn.execute("UPDATE devices SET vendor = COALESCE(vendor, ?), attributes = ? WHERE id = ?", [vendor, json.dumps(attrs), device_id])
-                            return
+                row = conn.execute(f"{get_base_query()} WHERE d.id = ?", [device_id]).fetchone()
+                if row:
+                    dev = row_to_dict(row, conn)
+                    display_name = dev["display_name"]
+                    current_type = dev["device_type"]
+                    current_icon = dev["icon"]
+                    attrs = dev["attributes"]
+                    current_brand = dev.get("brand")
+                    current_brand_icon = dev.get("brand_icon")
+                    is_trusted = dev["is_trusted"]
+                    
+                    # Double check trusted
+                    if is_trusted:
+                        return
 
-                        # Never overwrite user-customized details
-                        icon_is_user_set = current_icon and current_icon != 'help-circle'
-                        type_is_user_set = current_type and current_type != 'unknown'
-                        brand_is_user_set = current_brand is not None
-                        name_is_user_set = display_name and not re.match(r"^\d+\.\d+\.\d+\.\d+$", display_name)
+                    # Never overwrite user-customized details
+                    icon_is_user_set = current_icon and current_icon != 'help-circle'
+                    type_is_user_set = current_type and current_type != 'unknown'
+                    brand_is_user_set = current_brand is not None
+                    name_is_user_set = display_name and not re.match(r"^\d+\.\d+\.\d+\.\d+$", display_name)
 
-                        new_type, new_icon = current_type, current_icon
-                        new_brand, new_brand_icon = current_brand, current_brand_icon
-                        new_display = display_name
+                    new_type, new_icon = current_type, current_icon
+                    new_brand, new_brand_icon = current_brand, current_brand_icon
+                    new_display = display_name
+                    
+                    attrs = dev["attributes"]
+                    attrs["vendor"] = vendor
+                    
+                    # Enhanced classification using current info
+                    classification = classify_device(
+                        hostname=display_name, 
+                        vendor=vendor, 
+                        ports=[], 
+                        page_title=attrs.get("web_title")
+                    )
+                    
+                    if fingerprint:
+                        # Fingerprint is a high-confidence match — always override
+                        new_type = fingerprint["type"]
+                        new_icon = fingerprint["icon"]
+                        if not name_is_user_set:
+                            new_display = fingerprint["name"]
+                        attrs["fingerprint_id"] = fingerprint["id"]
+                        attrs["web_interface"] = fingerprint["url"]
+                        if fingerprint.get("detected_title"):
+                            attrs["web_title"] = fingerprint["detected_title"]
+                        if fingerprint.get("brand"):
+                            new_brand = fingerprint["brand"].capitalize()
+                            from app.services.classification import get_custom_assets
+                            assets = get_custom_assets()
+                            brand_asset = assets.get(fingerprint["brand"].lower())
+                            new_brand_icon = brand_asset["path"] if brand_asset else None
+                    else:
+                        if not type_is_user_set:
+                            new_type = classification["type"]
+                        if not icon_is_user_set:
+                            new_icon = classification["icon"]
+                        if not brand_is_user_set:
+                            new_brand = classification.get("brand")
+                            new_brand_icon = classification.get("brand_icon")
                         
-                        attrs = dev["attributes"]
-                        attrs["vendor"] = vendor
-                        
-                        # Enhanced classification using current info
-                        classification = classify_device(
-                            hostname=display_name, 
-                            vendor=vendor, 
-                            ports=[], 
-                            page_title=attrs.get("web_title")
-                        )
-                        
-                        if fingerprint:
-                            if not type_is_user_set:
-                                new_type = fingerprint["type"]
-                            if not icon_is_user_set:
-                                new_icon = fingerprint["icon"]
-                            if not name_is_user_set:
-                                new_display = fingerprint["name"]
-                            attrs["fingerprint_id"] = fingerprint["id"]
-                            attrs["web_interface"] = fingerprint["url"]
-                            if fingerprint.get("detected_title"):
-                                attrs["web_title"] = fingerprint["detected_title"]
-                        else:
-                            if not type_is_user_set:
-                                new_type = classification["type"]
-                            if not icon_is_user_set:
-                                new_icon = classification["icon"]
-                            if not brand_is_user_set:
-                                new_brand = classification.get("brand")
-                                new_brand_icon = classification.get("brand_icon")
-                            
-                            if not name_is_user_set:
-                                 new_display = vendor
-                        conn.execute(
-                            "UPDATE devices SET vendor = COALESCE(vendor, ?), device_type = ?, icon = ?, brand = ?, brand_icon = ?, display_name = ?, attributes = ? WHERE id = ?",
-                            [vendor, new_type, new_icon, new_brand, new_brand_icon, new_display, json.dumps(attrs), device_id]
-                        )
-                    from app.core.db import commit
-                    commit()
+                        if not name_is_user_set:
+                            new_display = vendor
+                    conn.execute(
+                        "UPDATE devices SET vendor = COALESCE(vendor, ?), device_type = ?, icon = ?, brand = ?, brand_icon = ?, display_name = ?, attributes = ? WHERE id = ?",
+                        [vendor, new_type, new_icon, new_brand, new_brand_icon, new_display, json.dumps(attrs), device_id]
+                    )
+                from app.core.db import commit
+                commit()
             finally:
                 conn.close()
         await asyncio.to_thread(sync_update)

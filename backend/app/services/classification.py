@@ -196,8 +196,15 @@ def get_custom_assets() -> Dict[str, str]:
     
     conn = get_connection()
     try:
-        rows = conn.execute("SELECT name, path, type FROM custom_assets").fetchall()
-        _ASSETS_CACHE = {r[0].lower(): {"path": r[1], "type": r[2]} for r in rows}
+        rows = conn.execute("SELECT id, name, path, type FROM custom_assets").fetchall()
+        cache = {}
+        for r_id, r_name, r_path, r_type in rows:
+            asset_data = {"path": r_path, "type": r_type}
+            if r_id:
+                cache[r_id.lower()] = asset_data
+            if r_name:
+                cache[r_name.lower()] = asset_data
+        _ASSETS_CACHE = cache
         _LAST_ASSETS_UPDATE = now
         return _ASSETS_CACHE
     except:
