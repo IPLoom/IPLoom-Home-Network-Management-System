@@ -33,6 +33,20 @@ class HTTPFingerprinter(BaseScanner):
         try:
             response = await client.get(url)
             if response.status_code == 200:
+                import re
+                refresh_match = re.search(
+                    r'<meta\s+http-equiv=["\']refresh["\']\s+content=["\']\d+;\s*url=(.*?)["\']', 
+                    response.text, 
+                    re.IGNORECASE
+                )
+                if refresh_match:
+                    redirect_path = refresh_match.group(1).strip()
+                    if redirect_path.startswith('/'):
+                        redirect_url = f"{'/'.join(url.split('/')[:3])}{redirect_path}"
+                    else:
+                        redirect_url = f"{url.rstrip('/')}/{redirect_path}"
+                    response = await client.get(redirect_url)
+                
                 soup = BeautifulSoup(response.text, "html.parser")
                 title = soup.title.string.strip() if soup.title else "No Title"
                 server = response.headers.get("Server", "Unknown")

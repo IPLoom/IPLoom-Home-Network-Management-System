@@ -12,8 +12,6 @@ class FingerprintService:
     Designed to recognize common smart home and network infrastructure devices.
     """
     
-    # Signature Database
-    # Priority based: First match wins
     SIGNATURES = [
         # --- SMART HOME ---
         {
@@ -21,6 +19,7 @@ class FingerprintService:
             "name": "Shelly Device",
             "type": "Smart Plug/Switch",
             "icon": "plug",
+            "brand": "shelly",
             "rules": [
                 {"type": "title", "pattern": r"Shelly"},
                 {"type": "header", "key": "Server", "pattern": r"Shelly"}
@@ -31,6 +30,7 @@ class FingerprintService:
             "name": "Tasmota Device",
             "type": "Smart Plug/Switch",
             "icon": "plug",
+            "brand": "tasmota",
             "rules": [
                 {"type": "title", "pattern": r"Tasmota"},
                 {"type": "body", "pattern": r"Tasmota Settings"}
@@ -41,6 +41,7 @@ class FingerprintService:
             "name": "ESPHome Device",
             "type": "IoT Device",
             "icon": "cpu",
+            "brand": "esphome",
             "rules": [
                 {"type": "title", "pattern": r"ESPHome"},
                 {"type": "body", "pattern": r"esphome-header"}
@@ -51,6 +52,7 @@ class FingerprintService:
             "name": "Home Assistant",
             "type": "Home Automation",
             "icon": "home",
+            "brand": "homeassistant",
             "rules": [
                 {"type": "title", "pattern": r"Home Assistant"},
                 {"type": "body", "pattern": r"home-assistant-main"}
@@ -70,6 +72,7 @@ class FingerprintService:
             "name": "Zigbee2MQTT",
             "type": "Network Bridge",
             "icon": "network",
+            "brand": "mqtt",
             "rules": [
                 {"type": "title", "pattern": r"Zigbee2MQTT"}
             ]
@@ -91,6 +94,7 @@ class FingerprintService:
             "name": "AdGuard Home",
             "type": "Server Admin",
             "icon": "shield-check",
+            "brand": "adguard",
             "rules": [
                 {"type": "title", "pattern": r"AdGuard Home"},
                 {"type": "body", "pattern": r"ag_home"}
@@ -101,6 +105,7 @@ class FingerprintService:
             "name": "Synology NAS",
             "type": "NAS/Storage",
             "icon": "hard-drive",
+            "brand": "synology",
             "rules": [
                 {"type": "title", "pattern": r"Synology"},
                 {"type": "header", "key": "Server", "pattern": r"Synology"}
@@ -120,6 +125,7 @@ class FingerprintService:
             "name": "OpenWrt Router",
             "type": "Router/Gateway",
             "icon": "router",
+            "brand": "openwrt",
             "rules": [
                 {"type": "title", "pattern": r"LuCI"},
                 {"type": "body", "pattern": r"cgi-bin/luci"}
@@ -130,8 +136,19 @@ class FingerprintService:
             "name": "UniFi Controller",
             "type": "Server Admin",
             "icon": "settings",
+            "brand": "ubiquiti",
             "rules": [
                 {"type": "title", "pattern": r"UniFi"}
+            ]
+        },
+        {
+            "id": "deco",
+            "name": "TP-Link Deco",
+            "type": "Router/Gateway",
+            "icon": "router",
+            "brand": "tplink",
+            "rules": [
+                {"type": "body", "pattern": r"tpEncrypt\.js|themes/default/css/perfect-scrollbar\.css"}
             ]
         }
     ]
@@ -159,6 +176,25 @@ class FingerprintService:
                     
                     content = resp.text
                     headers = resp.headers
+
+                    # Parse meta refresh redirects (e.g. for TP-Link Deco routers)
+                    refresh_match = re.search(
+                        r'<meta\s+http-equiv=["\']refresh["\']\s+content=["\']\d+;\s*url=(.*?)["\']', 
+                        content, 
+                        re.IGNORECASE
+                    )
+                    if refresh_match:
+                        redirect_path = refresh_match.group(1).strip()
+                        if redirect_path.startswith('/'):
+                            redirect_url = f"{'/'.join(url.split('/')[:3])}{redirect_path}"
+                        else:
+                            redirect_url = f"{url.rstrip('/')}/{redirect_path}"
+                        
+                        logger.debug(f"Following meta refresh to {redirect_url}...")
+                        resp = await client.get(redirect_url, follow_redirects=True)
+                        if resp.status_code == 200:
+                            content = resp.text
+                            headers = resp.headers
                     
                     # Try to extract title
                     title_match = re.search(r"<title>(.*?)</title>", content, re.IGNORECASE)
@@ -186,6 +222,7 @@ class FingerprintService:
                                     "name": sig["name"],
                                     "type": sig["type"],
                                     "icon": sig["icon"],
+                                    "brand": sig.get("brand"),
                                     "detected_title": title,
                                     "url": url
                                 }
