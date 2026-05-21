@@ -426,11 +426,16 @@
               <div class="min-w-0 flex-1">
                 <div class="flex items-center justify-between">
                   <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">MAC</span>
-                  <button @click="copyToClipboard(device.mac)" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors">
-                    <Copy class="w-2.5 h-2.5 text-slate-400" />
-                  </button>
+                  <div v-if="device.mac" class="flex items-center gap-1">
+                    <button @click="lookupVendor" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors" v-tooltip="'Refresh Vendor & Brand'">
+                      <RefreshCw class="w-2.5 h-2.5 text-slate-400" :class="{ 'animate-spin': isLookingUpVendor }" />
+                    </button>
+                    <button @click="copyToClipboard(device.mac)" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors">
+                      <Copy class="w-2.5 h-2.5 text-slate-400" />
+                    </button>
+                  </div>
                 </div>
-                <div class="text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300">{{ (device.mac || '00:00:00:00:00:00').toUpperCase() }}</div>
+                <div class="text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300">{{ device.mac ? device.mac.toUpperCase() : 'N/A' }}</div>
               </div>
             </div>
           </div>
@@ -981,6 +986,16 @@
     </div>
 
     <TerminalModal v-if="showTerminal" :device="device" :port="sshPort" @close="showTerminal = false" />
+    
+    <ConfirmationModal
+      :isOpen="showVendorConfirmModal"
+      title="Save Vendor & Update Branding"
+      :message="`Fetched Vendor: &quot;${pendingVendorName}&quot;\n\nWould you like to save this vendor name and update device branding?`"
+      confirmText="Save & Update"
+      :loading="isLookingUpVendor"
+      @close="showVendorConfirmModal = false"
+      @confirm="saveVendorLookup"
+    />
   </div>
 </template>
 
@@ -989,7 +1004,7 @@ import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue'
 import { ref, onMounted, onUnmounted, reactive, computed, watch } from 'vue'
 import {
   ArrowLeft, Loader2, ScanSearch, Save, Search, ChevronDown, Activity, Terminal, ExternalLink, ShieldAlert, ShieldCheck,
-  Wifi, WifiOff, Pencil, Info, X, Fingerprint, Globe, Calendar, Cpu, Copy, Check, Ban, Radio, Network, Clock
+  Wifi, WifiOff, Pencil, Info, X, Fingerprint, Globe, Calendar, Cpu, Copy, Check, Ban, Radio, Network, Clock, RefreshCw
 } from 'lucide-vue-next'
 import { useRoute } from 'vue-router'
 import api from '@/utils/api'
@@ -1001,6 +1016,7 @@ import { formatRelativeTime, formatDate, parseUTC } from '@/utils/date'
 import { useNotifications } from '@/composables/useNotifications'
 import InternetSchedules from '@/components/InternetSchedules.vue'
 import DeviceQuotaManager from '@/components/DeviceQuotaManager.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
 
 const activeTab = ref('overview')
 const tabs = [
@@ -1040,6 +1056,9 @@ const historyTotal = ref(0)
 const fidelityHistory = ref([])
 const { notifySuccess, notifyError } = useNotifications()
 const isSaving = ref(false)
+const isLookingUpVendor = ref(false)
+const showVendorConfirmModal = ref(false)
+const pendingVendorName = ref('')
 const signalHistory = ref([])
 
 const isCategoryOpen = ref(false)
@@ -1212,6 +1231,34 @@ const approveDevice = async () => {
   }
 }
 
+const lookupVendor = async () => {
+  if (isLookingUpVendor.value) return
+  isLookingUpVendor.value = true
+  try {
+    const res = await api.post(`/devices/${device.value.id}/lookup-vendor?save=false`)
+    pendingVendorName.value = res.data.vendor
+    showVendorConfirmModal.value = true
+  } catch (err) {
+    notifyError(err.response?.data?.detail || 'Failed to lookup MAC vendor')
+  } finally {
+    isLookingUpVendor.value = false
+  }
+}
+
+const saveVendorLookup = async () => {
+  showVendorConfirmModal.value = false
+  isLookingUpVendor.value = true
+  try {
+    await api.post(`/devices/${device.value.id}/lookup-vendor?save=true`)
+    await fetchDevice()
+    notifySuccess(`Vendor updated to: ${pendingVendorName.value}`)
+  } catch (err) {
+    notifyError(err.response?.data?.detail || 'Failed to update MAC vendor')
+  } finally {
+    isLookingUpVendor.value = false
+  }
+}
+
 const fetchAllDevices = async () => {
   try {
     const res = await api.get('/devices/?limit=-1')
@@ -1279,12 +1326,7 @@ const changeHistoryPage = (newPage) => {
   fetchHistory()
 }
 
-onMounted(() => {
-  fetchDevice()
-  fetchHistory()
-  fetchAllDevices()
-  fetchDeviceDns()
-})
+
 
 
 
@@ -1679,17 +1721,12 @@ const saveChanges = async () => {
 let pollInterval = null
 
 onMounted(async () => {
-  await fetchDevice()
   systemStore.fetchConstants()
+  await fetchDevice()
+  fetchHistory()
+  fetchDeviceDns()
   await fetchSignalHistory()
-  
-  // Also fetch all devices for parent selection
-  try {
-    const res = await api.get('/devices/?limit=-1')
-    allDevices.value = res.data.items || []
-  } catch (e) {
-    console.error('Failed to fetch all devices:', e)
-  }
+  await fetchAllDevices()
 
   // Start status polling
   pollInterval = setInterval(async () => {

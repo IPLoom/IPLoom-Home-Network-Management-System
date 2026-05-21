@@ -71,7 +71,8 @@ async def _internal_list_devices(
                        d.first_seen, d.last_seen, d.vendor, d.icon, d.open_ports, d.status, d.ip_type, d.attributes, d.is_trusted, d.brand, d.brand_icon, d.is_blocked,
                        (SELECT COUNT(*) FROM device_block_schedules s WHERE s.device_id = d.id AND s.enabled = TRUE) as schedule_count,
                        d.is_manual_block, d.is_scheduled_block, d.is_quota_exceeded, d.is_manual_unblock,
-                       q.limit_bytes, q.current_usage, q.enabled as quota_enabled
+                       q.limit_bytes, q.current_usage, q.enabled as quota_enabled,
+                       d.parent_id
                 FROM devices d
                 LEFT JOIN device_quotas q ON d.id = q.device_id
             """
@@ -148,6 +149,7 @@ async def _internal_list_devices(
                         "current_usage": r[24],
                         "enabled": bool(r[25])
                     } if len(r) > 23 and r[23] is not None else None,
+                    parent_id=r[26] if len(r) > 26 else None,
                     traffic_history=traffic_map.get(r[0], [])
                 )
                 for r in rows
@@ -204,7 +206,8 @@ async def get_device(device_id: str):
                        d.first_seen, d.last_seen, d.vendor, d.icon, d.open_ports, d.status, d.ip_type, d.attributes, d.is_trusted, d.brand, d.brand_icon, d.is_blocked,
                        (SELECT COUNT(*) FROM device_block_schedules s WHERE s.device_id = d.id AND s.enabled = TRUE) as schedule_count,
                        d.is_manual_block, d.is_scheduled_block, d.is_quota_exceeded, d.is_manual_unblock,
-                       q.limit_bytes, q.current_usage, q.enabled as quota_enabled
+                       q.limit_bytes, q.current_usage, q.enabled as quota_enabled,
+                       d.parent_id
                 FROM devices d
                 LEFT JOIN device_quotas q ON d.id = q.device_id
                 WHERE d.id = ?
@@ -247,6 +250,7 @@ async def get_device(device_id: str):
                     "current_usage": row[24],
                     "enabled": bool(row[25])
                 } if len(row) > 23 and row[23] is not None else None,
+                parent_id=row[26] if len(row) > 26 else None,
                 traffic_history=traffic
             )
         finally:
@@ -351,3 +355,89 @@ async def onboard_discovered_device(data: Dict[str, Any], current_user: Any = De
     asyncio.create_task(scan_device(device_id, ip))
     
     return {"status": "success", "device_id": device_id}
+
+@router.post("/{device_id}/lookup-vendor")
+async def lookup_device_vendor(device_id: str, save: bool = Query(False), current_user: Any = Depends(get_current_user)):
+    """
+    On-demand MAC vendor lookup for a device.
+    If save=true, persists the result in the database and updates device classification.
+    """
+    def get_mac():
+        conn = get_connection()
+        try:
+            row = conn.execute("SELECT mac, is_trusted FROM devices WHERE id = ?", [device_id]).fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Device not found")
+            return row[0], row[1]
+        finally:
+            conn.close()
+
+    try:
+        mac, is_trusted = await asyncio.to_thread(get_mac)
+    except HTTPException as e:
+        raise e
+
+    if not mac or mac == "unknown":
+        raise HTTPException(status_code=400, detail="Device has no valid MAC address")
+
+    from app.utilities.mac_lookup import get_vendor_from_api
+    vendor = await get_vendor_from_api(mac)
+    
+    if not vendor:
+        raise HTTPException(status_code=404, detail="Vendor not found for this MAC signature")
+
+    if save:
+        def save_vendor():
+            conn = get_connection()
+            try:
+                # Update vendor
+                conn.execute("UPDATE devices SET vendor = ? WHERE id = ?", [vendor, device_id])
+                
+                # Check if we should update display_name or brand based on classification
+                row = conn.execute("SELECT ip, display_name, device_type, icon, brand, brand_icon, attributes FROM devices WHERE id = ?", [device_id]).fetchone()
+                if row:
+                    ip, display_name, current_type, current_icon, current_brand, current_brand_icon, attrs_json = row
+                    attrs = json.loads(attrs_json) if attrs_json else {}
+                    attrs["vendor"] = vendor
+                    
+                    from app.services.classification import classify_device
+                    # Attempt classification with new vendor
+                    classification = classify_device(
+                        hostname=display_name,
+                        vendor=vendor,
+                        ports=[],
+                        page_title=attrs.get("web_title")
+                    )
+                    
+                    updates = []
+                    params = []
+                    
+                    # Update brand/brand_icon if not user customized
+                    if not current_brand:
+                        new_brand = classification.get("brand")
+                        new_brand_icon = classification.get("brand_icon")
+                        if new_brand:
+                            updates.append("brand = ?, brand_icon = ?")
+                            params.extend([new_brand, new_brand_icon])
+                            
+                    # Update type/icon if generic/unknown
+                    if not current_type or current_type == "unknown" or current_type == "Generic" or current_icon == "help-circle":
+                        updates.append("device_type = ?, icon = ?")
+                        params.extend([classification["type"], classification["icon"]])
+                        
+                    updates.append("attributes = ?")
+                    params.append(json.dumps(attrs))
+                    
+                    if updates:
+                        params.append(device_id)
+                        conn.execute(f"UPDATE devices SET {', '.join(updates)} WHERE id = ?", params)
+                
+                from app.core.db import commit
+                commit()
+            finally:
+                conn.close()
+                
+        await asyncio.to_thread(save_vendor)
+
+    return {"status": "success", "vendor": vendor}
+
