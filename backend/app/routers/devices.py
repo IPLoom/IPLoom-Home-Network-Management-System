@@ -271,14 +271,21 @@ async def update_device_by_patch(device_id: str, update_data: DeviceUpdate):
         elif not isinstance(fields["attributes"], str):
             fields["attributes"] = json.dumps(fields["attributes"])
         
-    updated_device = await update_device_fields(device_id, fields)
-    if not updated_device: raise HTTPException(status_code=404, detail="Device not found")
-    return await get_device(device_id)
+    try:
+        updated_device = await update_device_fields(device_id, fields)
+        if not updated_device: raise HTTPException(status_code=404, detail="Device not found")
+        return await get_device(device_id)
+    except RuntimeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.put("/{device_id}", response_model=DeviceRead)
 async def update_device_by_put(device_id: str, update_data: DeviceUpdate):
     """Identical to PATCH to support frontend axios.put calls."""
-    return await update_device_by_patch(device_id, update_data)
+    try:
+        return await update_device_by_patch(device_id, update_data)
+    except HTTPException as e:
+        raise e
+
 
 @router.get("/export/json")
 async def export_devices():

@@ -39,7 +39,7 @@ class PingScanner(BaseScanner):
     def name(self) -> str:
         return "ping"
 
-    async def scan(self, target: str, **kwargs) -> List[Dict[str, Any]]:
+    async def scan(self, target: str, arp_cache: Optional[Dict[str, str]] = None, **kwargs) -> List[Dict[str, Any]]:
         try:
             # Handle possible multiple targets
             subnets = target.split()
@@ -65,7 +65,11 @@ class PingScanner(BaseScanner):
                             cmd = ["ping", "-n", "1", "-w", "500", ip_str] if sys.platform == "win32" else ["ping", "-c", "1", "-W", "1", ip_str]
                             result = subprocess.run(cmd, capture_output=True, timeout=2)
                             if result.returncode == 0:
-                                mac = get_mac_from_cache(ip_str)
+                                mac = None
+                                if arp_cache and ip_str in arp_cache:
+                                    mac = arp_cache[ip_str]
+                                if not mac:
+                                    mac = get_mac_from_cache(ip_str)
                                 return mac if mac else "unknown"
                             return None
                         except:

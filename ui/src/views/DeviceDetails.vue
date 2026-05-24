@@ -1710,10 +1710,10 @@ const saveChanges = async () => {
   try {
     await api.patch(`/devices/${route.params.id}`, form)
     notifySuccess('Device configuration updated')
-    await fetchDevice()
   } catch (e) {
-    notifyError('Failed to save changes')
+    notifyError(e.response?.data?.detail || 'Failed to save changes')
   } finally {
+    await fetchDevice()
     isSaving.value = false
   }
 }

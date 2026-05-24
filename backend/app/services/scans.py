@@ -249,6 +249,69 @@ async def run_scan_job(scan_id: str, target: str, scan_type: str = "arp", option
         
         previously_online = await asyncio.to_thread(start_scan_and_get_online)
 
+        # Get active integration ARP/Client mappings to resolve MACs during scan
+        arp_cache = {}
+        
+        # 1. OpenWrt ARP table
+        openwrt_config = None
+        try:
+            conn = get_connection()
+            row = conn.execute("SELECT config FROM integrations WHERE name = 'openwrt'").fetchone()
+            if row:
+                d_c = json.loads(row[0])
+                if d_c.get("enabled") is True:
+                    openwrt_config = d_c
+        except Exception as e:
+            logger.error(f"Error reading OpenWrt config for scan ARP cache: {e}")
+        finally:
+            try:
+                conn.close()
+            except:
+                pass
+
+        if openwrt_config:
+            try:
+                from app.services.integrations.openwrt import OpenWRTClient
+                client = OpenWRTClient(openwrt_config["url"], openwrt_config["username"], openwrt_config.get("password"))
+                ow_arp = await asyncio.to_thread(client.get_arp_table)
+                for ip, mac in ow_arp.items():
+                    if mac and mac != "00:00:00:00:00:00":
+                        arp_cache[ip] = mac.lower()
+                logger.info(f"Populated {len(ow_arp)} ARP entries from OpenWrt integration.")
+            except Exception as e:
+                logger.error(f"Failed to fetch OpenWRT ARP table for scan: {e}")
+
+        # 2. Deco Client list
+        deco_config = None
+        try:
+            conn = get_connection()
+            row = conn.execute("SELECT config FROM integrations WHERE name = 'deco'").fetchone()
+            if row:
+                d_c = json.loads(row[0])
+                if d_c.get("enabled") is True:
+                    deco_config = d_c
+        except Exception as e:
+            logger.error(f"Error reading Deco config for scan ARP cache: {e}")
+        finally:
+            try:
+                conn.close()
+            except:
+                pass
+
+        if deco_config:
+            try:
+                from app.services.integrations.deco import DecoClient
+                client = DecoClient(deco_config["host"], deco_config["password"])
+                deco_clients = await asyncio.to_thread(client.get_client_list)
+                for c in deco_clients:
+                    ip = c.get("ip")
+                    mac = c.get("mac")
+                    if ip and mac and mac != "00:00:00:00:00:00":
+                        arp_cache[ip] = mac.lower().replace("-", ":")
+                logger.info(f"Populated {len(deco_clients)} client entries from Deco integration.")
+            except Exception as e:
+                logger.error(f"Failed to fetch Deco client list for scan: {e}")
+
         # 2. Network Discovery Suite
         arp_scanner = ARPScanner()
         ping_scanner = PingScanner()
@@ -256,7 +319,7 @@ async def run_scan_job(scan_id: str, target: str, scan_type: str = "arp", option
 
         # Run discovery in parallel
         arp_task = arp_scanner.scan(target)
-        ping_task = ping_scanner.scan(target)
+        ping_task = ping_scanner.scan(target, arp_cache=arp_cache)
         mdns_task = mdns_scanner.scan() # MDNS scans the whole local segment
 
         arp_results, ping_results, mdns_results = await asyncio.gather(arp_task, ping_task, mdns_task)

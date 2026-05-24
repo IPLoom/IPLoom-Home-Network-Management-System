@@ -215,6 +215,81 @@ async def unblock_device_endpoint(mac: str):
         conn.close()
 
 
+class ReserveIPRequest(BaseModel):
+    ip: str
+    hostname: Optional[str] = None
+
+
+@router.post("/devices/{mac}/reserve")
+async def reserve_device_ip(mac: str, req: ReserveIPRequest):
+    if not mac or mac.lower() in ['unknown', 'n/a']:
+        raise HTTPException(status_code=400, detail="Invalid MAC address")
+    conn = get_connection()
+    try:
+        # Fetch device
+        row = conn.execute("SELECT id, display_name, name FROM devices WHERE mac = ?", [mac.lower()]).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Device not found")
+        device_id, display_name, name = row
+        device_hostname = display_name or name or f"Device-{mac[-5:]}"
+        
+        # Instantiate OpenWRT client
+        client = _get_openwrt_client(conn)
+        
+        # Reserve IP on OpenWRT router
+        client.reserve_ip(mac, req.ip, req.hostname or device_hostname)
+        
+        # Update local database
+        conn.execute(
+            "UPDATE devices SET ip = ?, ip_type = 'static' WHERE id = ?",
+            [req.ip, device_id]
+        )
+        conn.commit()
+        
+        return {"status": "success", "message": f"IP {req.ip} reserved for {mac} successfully."}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to reserve IP: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@router.post("/devices/{mac}/unreserve")
+async def unreserve_device_ip(mac: str):
+    if not mac or mac.lower() in ['unknown', 'n/a']:
+        raise HTTPException(status_code=400, detail="Invalid MAC address")
+    conn = get_connection()
+    try:
+        # Fetch device
+        row = conn.execute("SELECT id FROM devices WHERE mac = ?", [mac.lower()]).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Device not found")
+        device_id = row[0]
+        
+        # Instantiate OpenWRT client
+        client = _get_openwrt_client(conn)
+        
+        # Unreserve IP on OpenWRT router
+        client.unreserve_ip(mac)
+        
+        # Update local database
+        conn.execute(
+            "UPDATE devices SET ip_type = 'dynamic' WHERE id = ?",
+            [device_id]
+        )
+        conn.commit()
+        
+        return {"status": "success", "message": f"IP reservation removed for {mac} successfully."}
+    except Exception as e:
+        logger.error(f"Failed to remove IP reservation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+
 @router.get("/data")
 def get_openwrt_data():
     conn = get_connection()

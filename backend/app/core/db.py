@@ -389,13 +389,22 @@ def migrate_db(conn: duckdb.DuckDBPyConnection) -> None:
     (assets_dir / "device_icons").mkdir(parents=True, exist_ok=True)
 
     # Clean up "unknown" or empty MAC addresses to be NULL so COALESCE works correctly
+    # Also delete stale devices that have NULL MAC address and are offline
     try:
         print("Migration: Cleaning up 'unknown' and empty MAC addresses to NULL...")
         conn.execute("UPDATE devices SET mac = NULL WHERE mac IS NULL OR LOWER(mac) = 'unknown' OR TRIM(mac) = ''")
         conn.execute("UPDATE scan_results SET mac = NULL WHERE mac IS NULL OR LOWER(mac) = 'unknown' OR TRIM(mac) = ''")
+        
+        print("Migration: Deleting offline stale devices with NULL MAC address...")
+        conn.execute("DELETE FROM devices WHERE mac IS NULL AND status = 'offline'")
+        
+        conn.execute("DELETE FROM device_discovery_sources WHERE device_id NOT IN (SELECT id FROM devices)")
+        conn.execute("DELETE FROM device_ports WHERE device_id NOT IN (SELECT id FROM devices)")
+        conn.execute("DELETE FROM device_status_history WHERE device_id NOT IN (SELECT id FROM devices)")
+        
         commit()
     except Exception as e:
-        print(f"Migration error (MAC cleanup): {e}")
+        print(f"Migration error (MAC cleanup and stale deletion): {e}")
 
     # Decode any base64-encoded device names in the database
     try:

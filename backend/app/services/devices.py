@@ -521,6 +521,62 @@ async def enrich_device(device_id: str, mac: str):
         await asyncio.to_thread(sync_notify)
 
 async def update_device_fields(device_id: str, fields: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    # Get current device info to check for ip_type changes
+    def get_current_info():
+        conn = get_connection()
+        try:
+            row = conn.execute(f"{get_base_query()} WHERE d.id = ?", [device_id]).fetchone()
+            return row_to_dict(row, conn) if row else None
+        finally:
+            conn.close()
+            
+    old_dev = await asyncio.to_thread(get_current_info)
+
+    # Check if we need to call OpenWrt for IP reservation BEFORE updating the database
+    wrt_action = None
+    mac = old_dev.get("mac") if old_dev else None
+    ip = old_dev.get("ip") if old_dev else None
+    
+    # Use the requested hostname if available, otherwise fallback to existing
+    req_display = fields.get("display_name")
+    req_name = fields.get("name")
+    hostname = req_display or req_name or (old_dev.get("display_name") or old_dev.get("name")) if old_dev else None
+
+    if old_dev and mac and ip and "ip_type" in fields:
+        old_ip_type = old_dev.get("ip_type") or "dynamic"
+        new_ip_type = fields["ip_type"]
+        if old_ip_type != new_ip_type:
+            if new_ip_type == "static":
+                wrt_action = "reserve"
+            elif new_ip_type == "dynamic":
+                wrt_action = "unreserve"
+
+    if wrt_action:
+        # Check if OpenWrt is verified and enabled
+        def check_openwrt_config():
+            conn = get_connection()
+            try:
+                row = conn.execute("SELECT config FROM integrations WHERE name = 'openwrt'").fetchone()
+                v_row = conn.execute("SELECT value FROM config WHERE key = 'openwrt_verified'").fetchone()
+                is_verified = (v_row[0] == "true") if v_row else False
+                return json.loads(row[0]) if row else None, is_verified
+            finally:
+                conn.close()
+        
+        openwrt_config, is_verified = await asyncio.to_thread(check_openwrt_config)
+        if openwrt_config and openwrt_config.get("enabled", True) and is_verified:
+            try:
+                from app.services.integrations.openwrt import OpenWRTClient
+                client = OpenWRTClient(openwrt_config["url"], openwrt_config["username"], openwrt_config.get("password"))
+                if wrt_action == "reserve":
+                    await asyncio.to_thread(client.reserve_ip, mac, ip, hostname)
+                elif wrt_action == "unreserve":
+                    await asyncio.to_thread(client.unreserve_ip, mac)
+            except Exception as e:
+                logger.error(f"Failed to {wrt_action} IP on OpenWrt: {e}")
+                # Raise immediately so the local database is not updated
+                raise RuntimeError(str(e))
+
     def sync_update():
         conn = get_connection()
         try:
@@ -555,7 +611,7 @@ async def update_device_fields(device_id: str, fields: Dict[str, Any]) -> Option
 
     dev_info = await asyncio.to_thread(sync_update)
     if not dev_info: return None
-    
+
     # Trigger policy re-evaluation if manual override flags were changed
     if any(k in fields for k in ('is_manual_block', 'is_manual_unblock')):
         from app.services.policy import apply_device_policy

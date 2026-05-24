@@ -593,3 +593,123 @@ class OpenWRTClient:
         
         return res
 
+    def get_static_leases(self):
+        """Get configured static leases from UCI dhcp config"""
+        res = self._call("file", "exec", {
+            "command": "/sbin/uci",
+            "params": ["show", "dhcp"]
+        }, optional=True)
+        
+        leases = {}
+        if isinstance(res, dict) and "stdout" in res:
+            import re
+            lines = res["stdout"].splitlines()
+            sections = {}
+            for line in lines:
+                m = re.match(r"dhcp\.([^.]+)\.([^=]+)='?([^']+)'?", line)
+                if m:
+                    sec_name, option, value = m.groups()
+                    if sec_name not in sections:
+                        sections[sec_name] = {}
+                    sections[sec_name][option] = value
+                else:
+                    m2 = re.match(r"dhcp\.([^=]+)=host", line)
+                    if m2:
+                        sec_name = m2.group(1)
+                        if sec_name not in sections:
+                            sections[sec_name] = {}
+                            
+            for sec_name, opts in sections.items():
+                mac = opts.get("mac")
+                ip = opts.get("ip")
+                if mac and ip:
+                    leases[mac.lower()] = {
+                        "ip": ip,
+                        "name": opts.get("name"),
+                        "section": sec_name
+                    }
+        return leases
+
+    def reserve_ip(self, mac: str, ip: str, hostname: str = None):
+        """Add or update a static DHCP lease for a MAC address on OpenWrt."""
+        logger.info(f"OpenWRT: Reserving IP {ip} for MAC {mac}")
+        mac = mac.lower()
+        
+        # 1. Fetch existing static leases and validate
+        existing_leases = self.get_static_leases()
+        
+        # Validation 1: IP address conflict with another device
+        for existing_mac, lease in existing_leases.items():
+            if existing_mac != mac and lease["ip"] == ip:
+                raise ValueError(f"IP address {ip} is already reserved for another device ({existing_mac}).")
+                
+        # Validation 2: MAC address already has a reservation
+        if mac in existing_leases:
+            existing_lease = existing_leases[mac]
+            if existing_lease["ip"] == ip:
+                raise ValueError(f"A static IP reservation of {ip} already exists for this device on the router.")
+            else:
+                raise ValueError(f"This device already has a static IP reservation for {existing_lease['ip']}. Please release/unreserve it first.")
+
+        sanitized_mac = mac.replace(':', '')
+        section_name = f"lease_{sanitized_mac}"
+        
+        # 2. Clean up any lingering leases matching the MAC (just in case)
+        self._call("file", "exec", {
+            "command": "/bin/sh",
+            "params": ["-c", f"for sec in $(uci show dhcp | grep -i '{mac}' | cut -d. -f2 | cut -d= -f1); do uci delete dhcp.$sec; done"]
+        }, optional=True)
+        
+        # 3. Create the named host section
+        self._call("uci", "add", {
+            "config": "dhcp",
+            "type": "host",
+            "name": section_name
+        }, optional=True)
+        
+        # 4. Update the named host section values
+        self._call("uci", "set", {
+            "config": "dhcp",
+            "type": "host",
+            "section": section_name,
+            "values": {
+                "name": hostname or f"Device-{mac[-5:]}",
+                "mac": mac,
+                "ip": ip
+            }
+        }, optional=False)
+        
+        # 5. Commit the changes
+        self._call("uci", "commit", {"config": "dhcp"}, optional=False)
+        
+        # 6. Reload dnsmasq for immediate effect
+        self._call("file", "exec", {
+            "command": "/etc/init.d/dnsmasq",
+            "params": ["reload"]
+        }, optional=True)
+        
+        return True
+
+    def unreserve_ip(self, mac: str):
+        """Remove any static DHCP leases for a MAC address on OpenWrt."""
+        logger.info(f"OpenWRT: Removing IP reservation for MAC {mac}")
+        mac = mac.lower()
+        
+        # 1. Clean up any leases matching the MAC
+        self._call("file", "exec", {
+            "command": "/bin/sh",
+            "params": ["-c", f"for sec in $(uci show dhcp | grep -i '{mac}' | cut -d. -f2 | cut -d= -f1); do uci delete dhcp.$sec; done"]
+        }, optional=True)
+        
+        # 2. Commit the changes
+        self._call("uci", "commit", {"config": "dhcp"}, optional=True)
+        
+        # 3. Reload dnsmasq
+        self._call("file", "exec", {
+            "command": "/etc/init.d/dnsmasq",
+            "params": ["reload"]
+        }, optional=True)
+        
+        return True
+
+
