@@ -697,6 +697,14 @@ class DecoClient:
                         deco_node_info = node_map[deco_mac]
                     elif deco_mac.isdigit() and deco_mac in node_by_index:
                         deco_node_info = node_by_index[deco_mac]
+                    
+                    # Fuzzy match BSSID to Base MAC (usually differ by last octet)
+                    if not deco_node_info and deco_mac and ":" in deco_mac:
+                        prefix = ":".join(deco_mac.split(":")[:-1])
+                        for n_mac, n_info in node_map.items():
+                            if n_mac.startswith(prefix):
+                                deco_node_info = n_info
+                                break
 
                     deco_node_name = deco_node_info.get("name", "")
                     if deco_node_name:
@@ -718,6 +726,8 @@ class DecoClient:
                     resolved_node_mac = deco_mac
                     if deco_mac.isdigit() and deco_mac in node_by_index:
                         resolved_node_mac = node_by_index[deco_mac].get("mac", "").lower().replace("-", ":")
+                    elif deco_node_info:
+                        resolved_node_mac = deco_node_info.get("mac", "").lower().replace("-", ":")
                     
                     parent_device_id = node_mac_to_device_id.get(resolved_node_mac)
                     conn.execute(

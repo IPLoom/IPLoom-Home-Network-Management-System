@@ -100,12 +100,13 @@
                   <div class="flex flex-wrap items-center gap-2 mt-0.5">
                     <div class="text-xs text-slate-500 font-mono">{{ device.ip }}</div>
                     
-                    <span v-if="device.ip_type"
-                          class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border"
+                    <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border"
                           :class="device.ip_type === 'static'
                             ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400 border-indigo-100 dark:border-indigo-800'
-                            : 'bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400 border-amber-100 dark:border-amber-800'">
-                      {{ device.ip_type }}
+                            : device.ip_type === 'dynamic'
+                            ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400 border-amber-100 dark:border-amber-800'
+                            : 'bg-slate-50 text-slate-500 dark:bg-slate-800/40 dark:text-slate-400 border-slate-200 dark:border-slate-700'">
+                      {{ device.ip_type || 'UNKNOWN' }}
                     </span>
                     
                     <span v-if="!device.is_trusted"
