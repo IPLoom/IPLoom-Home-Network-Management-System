@@ -89,9 +89,13 @@ async def _internal_list_devices(
             order = "DESC" if sort_order.lower() == "desc" else "ASC"
             
             if safe_sort == "ip":
-                # Use numerical IP sorting via INET cast
-                # Use TRY_CAST to be safe against invalid IP strings (though we try to keep them valid)
-                base_sql += f" ORDER BY TRY_CAST(ip AS INET) {order}"
+                # Use numerical IP sorting via str_split to avoid needing the inet extension
+                base_sql += f""" ORDER BY 
+                    TRY_CAST(list_extract(str_split(ip, '.'), 1) AS INTEGER) {order},
+                    TRY_CAST(list_extract(str_split(ip, '.'), 2) AS INTEGER) {order},
+                    TRY_CAST(list_extract(str_split(ip, '.'), 3) AS INTEGER) {order},
+                    TRY_CAST(list_extract(str_split(ip, '.'), 4) AS INTEGER) {order},
+                    ip {order}"""
             else:
                 base_sql += f" ORDER BY {safe_sort} {order}"
             
