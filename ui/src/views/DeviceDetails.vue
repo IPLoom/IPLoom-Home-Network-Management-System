@@ -273,7 +273,7 @@
         </div>
 
         <!-- Device Info Card -->
-        <div class="premium-card group">
+        <div class="premium-card group !overflow-visible z-30">
           <div
             class="absolute top-0 right-0 p-8 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity pointer-events-none select-none">
             <img v-if="(form.icon || device.icon) && (form.icon || device.icon).startsWith('/static/')" :src="form.icon || device.icon" class="w-32 h-32 object-contain" />
