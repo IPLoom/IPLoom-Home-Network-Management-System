@@ -243,6 +243,57 @@ def migrate_db(conn: duckdb.DuckDBPyConnection) -> None:
     except Exception:
         pass
 
+    # Ensure vpn_nodes table exists
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS vpn_nodes (
+            id               TEXT PRIMARY KEY,
+            provider         TEXT NOT NULL,
+            node_id          TEXT NOT NULL,
+            ip               TEXT NOT NULL,
+            hostname         TEXT,
+            os               TEXT,
+            client_version   TEXT,
+            last_seen        TIMESTAMP,
+            status           TEXT DEFAULT 'offline',
+            is_trusted       BOOLEAN DEFAULT FALSE
+        )
+    """)
+
+    # Migrate VPN devices from devices table to vpn_nodes table
+    try:
+        import json
+        vpn_devices = conn.execute("SELECT id, ip, name, last_seen, attributes FROM devices").fetchall()
+        for dev in vpn_devices:
+            dev_id, ip, name, last_seen, attrs_str = dev
+            if attrs_str:
+                try:
+                    attrs = json.loads(attrs_str)
+                    if attrs.get("connection_type") == "vpn" or "ts_node_id" in attrs:
+                        # Found a VPN node! Migrate it.
+                        node_id = attrs.get("ts_node_id", "")
+                        os_val = attrs.get("ts_os", "")
+                        client_version = attrs.get("ts_version", "")
+                        provider = "tailscale"
+                        
+                        conn.execute(
+                            """
+                            INSERT OR IGNORE INTO vpn_nodes (id, provider, node_id, ip, hostname, os, client_version, last_seen, status, is_trusted)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'offline', FALSE)
+                            """,
+                            [dev_id, provider, node_id, ip, name, os_val, client_version, last_seen]
+                        )
+                        
+                        # Cleanup main tables
+                        conn.execute("DELETE FROM device_discovery_sources WHERE device_id = ?", [dev_id])
+                        conn.execute("DELETE FROM device_ports WHERE device_id = ?", [dev_id])
+                        conn.execute("DELETE FROM device_status_history WHERE device_id = ?", [dev_id])
+                        conn.execute("DELETE FROM devices WHERE id = ?", [dev_id])
+                        print(f"Migrated Tailscale VPN node {name} ({ip}) to vpn_nodes table.")
+                except Exception as e:
+                    print(f"Migration error for device {dev_id}: {e}")
+    except Exception as e:
+        print(f"VPN Migration error: {e}")
+
     # Migration for device_ports UNIQUE constraint
     # DuckDB doesn't allow adding UNIQUE to existing tables.
     # We check if it exists by looking at indexes or trying a dummy insert (or just check table_info if supported)

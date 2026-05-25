@@ -8,6 +8,7 @@ from app.services.workers.scan_runner import enqueue_scan
 from app.services.workers.integrations.openwrt_worker import check_openwrt_schedule, trigger_openwrt
 from app.services.workers.integrations.adguard_worker import check_adguard_schedule, trigger_adguard
 from app.services.workers.integrations.deco_worker import check_deco_schedule, trigger_deco
+from app.services.workers.integrations.tailscale_worker import check_tailscale_schedule, trigger_tailscale
 import time
 
 logger = logging.getLogger(__name__)
@@ -119,14 +120,15 @@ async def handle_schedules():
             do_openwrt, openwrt_conf = check_openwrt_schedule(conn, now, active_tasks)
             do_adguard, adguard_conf = check_adguard_schedule(conn, now, active_tasks)
             do_deco, deco_conf = check_deco_schedule(conn, now, active_tasks)
+            do_tailscale, tailscale_conf = check_tailscale_schedule(conn, now, active_tasks)
 
-            return trigger_global, target_for_global, rows, now, do_openwrt, openwrt_conf, do_adguard, adguard_conf, do_deco, deco_conf
+            return trigger_global, target_for_global, rows, now, do_openwrt, openwrt_conf, do_adguard, adguard_conf, do_deco, deco_conf, do_tailscale, tailscale_conf
         finally:
             conn.close()
 
     (trigger_global, target_for_global, schedule_rows, now,
      do_openwrt, openwrt_conf, do_adguard, adguard_conf,
-     do_deco, deco_conf) = await asyncio.to_thread(sync_check)
+     do_deco, deco_conf, do_tailscale, tailscale_conf) = await asyncio.to_thread(sync_check)
 
     if trigger_global and target_for_global:
         # Update the timestamp regardless of enqueue success to prevent retry loop.
@@ -164,3 +166,6 @@ async def handle_schedules():
 
     if do_deco:
         await trigger_deco(deco_conf, active_tasks)
+
+    if do_tailscale:
+        await trigger_tailscale(tailscale_conf, active_tasks)

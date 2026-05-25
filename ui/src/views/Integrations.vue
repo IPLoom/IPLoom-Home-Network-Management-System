@@ -52,11 +52,13 @@ import { ref, computed } from 'vue'
 import DecoTab from '@/components/integrations/DecoTab.vue'
 import AdguardTab from '@/components/integrations/AdguardTab.vue'
 import OpenWrtTab from '@/components/integrations/OpenWrtTab.vue'
+import TailscaleTab from '@/components/integrations/TailscaleTab.vue'
 
 import {
   WifiIcon,
   ShieldCheckIcon,
-  CpuChipIcon
+  CpuChipIcon,
+  CloudIcon
 } from '@heroicons/vue/24/outline'
 
 const activeTab = ref('deco')
@@ -64,7 +66,8 @@ const activeTab = ref('deco')
 const tabs = [
   { id: 'deco', name: 'TP-Link Deco', icon: WifiIcon },
   { id: 'adguard', name: 'AdGuard Home', icon: ShieldCheckIcon },
-  { id: 'openwrt', name: 'OpenWrt Router', icon: CpuChipIcon }
+  { id: 'openwrt', name: 'OpenWrt Router', icon: CpuChipIcon },
+  { id: 'tailscale', name: 'Tailscale VPN', icon: CloudIcon }
 ]
 
 const activeTabComponent = computed(() => {
@@ -75,6 +78,8 @@ const activeTabComponent = computed(() => {
       return AdguardTab
     case 'openwrt':
       return OpenWrtTab
+    case 'tailscale':
+      return TailscaleTab
     default:
       return DecoTab
   }

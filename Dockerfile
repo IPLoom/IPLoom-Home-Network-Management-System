@@ -13,6 +13,9 @@ WORKDIR /app
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Pre-install DuckDB extensions so they are baked into the image
+RUN python -c "import duckdb; duckdb.execute(\"INSTALL inet; INSTALL icu; INSTALL json;\")"
+
 # Copy backend source
 COPY backend/app ./app
 COPY backend/.env .env

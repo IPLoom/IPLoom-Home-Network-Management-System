@@ -170,3 +170,17 @@ CREATE INDEX IF NOT EXISTS idx_scan_results_ip ON scan_results(ip);
 CREATE INDEX IF NOT EXISTS idx_devices_last_seen ON devices(last_seen);
 CREATE INDEX IF NOT EXISTS idx_scans_finished_at ON scans(finished_at);
 CREATE INDEX IF NOT EXISTS idx_block_schedules_device_id ON device_block_schedules(device_id);
+
+-- vpn_nodes
+CREATE TABLE IF NOT EXISTS vpn_nodes (
+    id               TEXT PRIMARY KEY,
+    provider         TEXT NOT NULL,
+    node_id          TEXT NOT NULL,
+    ip               TEXT NOT NULL,
+    hostname         TEXT,
+    os               TEXT,
+    client_version   TEXT,
+    last_seen        TIMESTAMP,
+    status           TEXT DEFAULT 'offline',
+    is_trusted       BOOLEAN DEFAULT FALSE
+);

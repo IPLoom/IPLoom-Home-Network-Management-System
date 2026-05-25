@@ -531,6 +531,97 @@
             </div>
           </div>
         </div>
+
+        <!-- Tailscale VPN Integration -->
+        <div class="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="p-2 bg-blue-100 dark:bg-blue-900/40 rounded-lg text-blue-600 dark:text-blue-400">
+              <Cloud class="w-5 h-5" />
+            </div>
+            <div>
+              <h2 class="text-base font-semibold text-slate-900 dark:text-white">Tailscale VPN</h2>
+              <p class="text-xs text-slate-500">Sync VPN nodes & Tailnet topology</p>
+            </div>
+            <!-- Status Badge & Toggle -->
+            <div class="ml-auto flex items-center gap-3">
+              <label class="premium-switch group">
+                <span class="premium-switch-label">Integration Enabled</span>
+                <div class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" v-model="settings.tailscale_enabled" class="sr-only peer">
+                  <div class="premium-switch-slider peer-checked:bg-blue-600"></div>
+                </div>
+              </label>
+
+              <div v-if="settings.tailscale_api_key"
+                class="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                <div class="w-2 h-2 rounded-full" :class="{
+                  'bg-emerald-500 animate-pulse': tailscaleStatus === 'online',
+                  'bg-red-500': tailscaleStatus === 'error',
+                  'bg-slate-400': !tailscaleStatus
+                }"></div>
+                <span class="text-xs font-medium" :class="{
+                  'text-emerald-600': tailscaleStatus === 'online',
+                  'text-red-500': tailscaleStatus === 'error',
+                  'text-slate-500': !tailscaleStatus
+                }">
+                  {{ tailscaleStatus === 'online' ? 'Connected' : (tailscaleStatus === 'error' ? 'Error' : 'Not Verified') }}
+                </span>
+              </div>
+
+              <button @click="syncTailscale" :disabled="syncTailscaleLoading"
+                class="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-slate-500 dark:text-slate-400"
+                v-tooltip="'Sync Now'">
+                <Loader2 v-if="syncTailscaleLoading" class="w-4 h-4 animate-spin" />
+                <svg v-else viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+
+              <button @click="testTailscale" :disabled="testTailscaleLoading"
+                class="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-slate-500 dark:text-slate-400"
+                v-tooltip="'Test Connection'">
+                <Loader2 v-if="testTailscaleLoading" class="w-4 h-4 animate-spin" />
+                <svg v-else viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Tailscale API Key</label>
+                <input v-model="settings.tailscale_api_key" type="password" placeholder="tskey-api-..." class="box-input" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Interval (Minutes)</label>
+                <div class="relative">
+                  <select v-model="settings.tailscale_interval" class="box-input appearance-none">
+                    <option :value="1">Every 1 minute</option>
+                    <option :value="5">Every 5 minutes</option>
+                    <option :value="10">Every 10 minutes</option>
+                    <option :value="15">Every 15 minutes</option>
+                    <option :value="30">Every 30 minutes</option>
+                    <option :value="60">Every hour</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="grid grid-cols-1">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Tailnet Name (Optional)</label>
+                <input v-model="settings.tailscale_tailnet" type="text" placeholder="example.ts.net (Leave empty for default)" class="box-input" />
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <!-- Sidebar (Right Column) -->
@@ -1095,7 +1186,7 @@
 import { ref, reactive, onMounted, watch, onUnmounted } from 'vue'
 import api from '@/utils/api'
 import * as LucideIcons from 'lucide-vue-next'
-import { Save, RotateCcw, Trash2, AlertTriangle, Loader2, Plus, Fingerprint, Pencil, Trash, X, Check, Search, ShieldCheck, Tag, Settings2, Layout, ChevronDown, Download, Upload, Database, Wifi } from 'lucide-vue-next'
+import { Save, RotateCcw, Trash2, AlertTriangle, Loader2, Plus, Fingerprint, Pencil, Trash, X, Check, Search, ShieldCheck, Tag, Settings2, Layout, ChevronDown, Download, Upload, Database, Wifi, Cloud } from 'lucide-vue-next'
 
 import { useNotifications } from '@/composables/useNotifications'
 import { formatDate } from '@/utils/date'
@@ -1126,13 +1217,20 @@ const settings = reactive({
   deco_host: '',
   deco_password: '',
   deco_interval: 15,
-  deco_enabled: true
+  deco_enabled: true,
+  tailscale_api_key: '',
+  tailscale_tailnet: '',
+  tailscale_interval: 15,
+  tailscale_enabled: true
 })
 
 const openWrtStatus = ref(null)
 const decoStatus = ref(null)
+const tailscaleStatus = ref(null)
 const testDecoLoading = ref(false)
 const syncDecoLoading = ref(false)
+const testTailscaleLoading = ref(false)
+const syncTailscaleLoading = ref(false)
 // ... (rest)
 
 // ... inside fetchSettings ...
@@ -1204,6 +1302,20 @@ const fetchSettings = async () => {
       }
     } catch (e) {
       console.error("Deco config error", e)
+    }
+
+    // Fetch Tailscale config
+    try {
+      const tsRes = await api.get('/integrations/tailscale/config')
+      if (tsRes.data) {
+        settings.tailscale_api_key = tsRes.data.api_key
+        settings.tailscale_tailnet = tsRes.data.tailnet
+        settings.tailscale_interval = tsRes.data.interval
+        settings.tailscale_enabled = tsRes.data.enabled !== false
+        tailscaleStatus.value = tsRes.data.verified ? 'online' : null
+      }
+    } catch (e) {
+      console.error("Tailscale config error", e)
     }
 
   } catch (e) {
@@ -1485,6 +1597,50 @@ const syncDeco = async () => {
   }
 }
 
+// Tailscale logic
+const testTailscale = async () => {
+  if (!settings.tailscale_api_key) {
+    notifyError("Please enter a Tailscale API Key first")
+    return
+  }
+  
+  testTailscaleLoading.value = true
+  try {
+    await api.post('/integrations/tailscale/verify', {
+      api_key: settings.tailscale_api_key,
+      tailnet: settings.tailscale_tailnet || "-"
+    })
+    notifySuccess("Tailscale Connection Successful!")
+    tailscaleStatus.value = 'online'
+  } catch (e) {
+    const detail = e.response?.data?.detail
+    const msg = Array.isArray(detail) ? detail[0]?.msg : detail
+    notifyError("Connection Failed: " + (msg || e.message))
+    tailscaleStatus.value = 'error'
+  } finally {
+    testTailscaleLoading.value = false
+  }
+}
+
+const syncTailscale = async () => {
+  if (!settings.tailscale_api_key) {
+    notifyError("Please enter a Tailscale API Key first")
+    return
+  }
+  
+  syncTailscaleLoading.value = true
+  try {
+    await api.post('/integrations/tailscale/sync')
+    notifySuccess("Tailscale Sync started!")
+  } catch (e) {
+    const detail = e.response?.data?.detail
+    const msg = Array.isArray(detail) ? detail[0]?.msg : detail
+    notifyError("Sync Failed: " + (msg || e.message))
+  } finally {
+    syncTailscaleLoading.value = false
+  }
+}
+
 const saveSettings = async () => {
   saveStatus.value = 'saving'
   try {
@@ -1525,6 +1681,17 @@ const saveSettings = async () => {
         enabled: settings.deco_enabled
       })
       decoStatus.value = decoRes.data.verified ? 'online' : null
+    }
+
+    // Save Tailscale config
+    if (settings.tailscale_api_key) {
+      const tsRes = await api.post('/integrations/tailscale/config', {
+        api_key: settings.tailscale_api_key,
+        tailnet: settings.tailscale_tailnet,
+        interval: parseInt(settings.tailscale_interval) || 15,
+        enabled: settings.tailscale_enabled
+      })
+      tailscaleStatus.value = tsRes.data.verified ? 'online' : null
     }
 
     saveStatus.value = 'saved'
