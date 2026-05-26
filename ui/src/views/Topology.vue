@@ -214,6 +214,33 @@
                         {{ text }}
                     </text>
                 </template>
+
+                <!-- Custom Edge Label Rendering -->
+                <template #edge-label="{ edge, ...slotProps }">
+                    <v-edge-label
+                        v-if="edge.label"
+                        :text="edge.label"
+                        align="center"
+                        vertical-align="above"
+                        v-bind="slotProps"
+                        fill="#64748b"
+                        font-size="9"
+                        font-weight="bold"
+                        class="pointer-events-none select-none transition-all dark:fill-slate-400"
+                    />
+                </template>
+
+                <!-- Custom Edge Overlay for Flow Animation -->
+                <template #edge-overlay="{ edgeId, edge, length, pointAtLength }">
+                    <circle
+                        v-if="isEdgeActive(edge)"
+                        :cx="getDotPosition(edgeId, edge, length, pointAtLength).x"
+                        :cy="getDotPosition(edgeId, edge, length, pointAtLength).y"
+                        r="3.5"
+                        :fill="edge.connection_type === 'wireless' ? '#22d3ee' : '#3b82f6'"
+                        class="pointer-events-none select-none"
+                    />
+                </template>
             </v-network-graph>
 
             <!-- Mini Profile Card -->
@@ -505,12 +532,22 @@ const configs = reactive(
         },
         edge: {
             normal: {
-                width: 2,
-                color: "rgba(148, 163, 184, 0.2)",
+                width: (edge: any) => edge.isPortEdge ? 1 : 2,
+                color: (edge: any) => {
+                    if (edge.isPortEdge) return "rgba(148, 163, 184, 0.15)"
+                    if (edge.connection_type === "wireless") return "#0ea5e9"
+                    return "rgba(148, 163, 184, 0.4)"
+                },
+                dasharray: (edge: any) => {
+                    if (edge.isPortEdge) return "2 2"
+                    if (edge.connection_type === "wireless") return "4 4"
+                    return "0"
+                },
+                animate: false,
             },
             hover: {
-                width: 3,
-                color: "#3b82f6",
+                width: (edge: any) => edge.isPortEdge ? 2 : 3,
+                color: (edge: any) => edge.connection_type === "wireless" ? "#0284c7" : "#3b82f6",
             },
         },
         path: {
@@ -664,17 +701,61 @@ const zoomOut = () => {
     zoomLevel.value = Math.max(zoomLevel.value / 1.2, 0.1)
 }
 
+const animationTime = ref(0)
+let animFrameId: any = null
+
+const runAnimation = () => {
+    animationTime.value += 0.003
+    if (animationTime.value >= 1000) {
+        animationTime.value = 0
+    }
+    animFrameId = requestAnimationFrame(runAnimation)
+}
+
+const isEdgeActive = (edge: any) => {
+    if (!edge || edge.isPortEdge) return false
+    const totalRate = (edge.down_rate || 0) + (edge.up_rate || 0)
+    return totalRate > 1024
+}
+
+const getDotPosition = (edgeId: string, edge: any, length: number, pointAtLength: any) => {
+    let hash = 0
+    for (let i = 0; i < edgeId.length; i++) {
+        hash = edgeId.charCodeAt(i) + ((hash << 5) - hash)
+    }
+    const offset = Math.abs(hash % 100) / 100.0
+
+    const down = edge?.down_rate || 0
+    const up = edge?.up_rate || 0
+    const totalRate = down + up
+
+    let speed = 1.0
+    if (totalRate > 1024) {
+        // Logarithmic scale to map throughput from 1 KB/s up to 100+ MB/s
+        const logFactor = Math.log10(totalRate / 1024)
+        speed = 1.0 + Math.max(0, logFactor) * 1.5
+    }
+
+    const percent = (animationTime.value * speed + offset) % 1.0
+    
+    // Reverse travel direction if uplink is dominant
+    const distance = up > down ? (1.0 - percent) * length : percent * length
+    return pointAtLength(distance)
+}
+
 let pollInterval: any = null
 
 onMounted(() => {
     fetchTopology()
     pollInterval = setInterval(fetchTopology, 10000)
     window.addEventListener('resize', handleResize)
+    animFrameId = requestAnimationFrame(runAnimation)
 })
 
 onUnmounted(() => {
     if (pollInterval) clearInterval(pollInterval)
     window.removeEventListener('resize', handleResize)
+    if (animFrameId) cancelAnimationFrame(animFrameId)
 })
 </script>
 

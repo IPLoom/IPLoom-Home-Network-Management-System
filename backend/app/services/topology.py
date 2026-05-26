@@ -1,4 +1,5 @@
 import logging
+import json
 from typing import Dict, Any, List
 from app.core.db import get_connection
 from app.core.dns_db import get_dns_connection
@@ -20,7 +21,8 @@ class TopologyService:
                     d.id, d.ip, d.mac, d.display_name, d.device_type, d.vendor, d.status, d.icon, d.parent_id,
                     COALESCE(t.down_rate, 0) as down_rate,
                     COALESCE(t.up_rate, 0) as up_rate,
-                    d.last_seen
+                    d.last_seen,
+                    d.attributes
                 FROM devices d
                 LEFT JOIN (
                     SELECT device_id, down_rate, up_rate, timestamp
@@ -87,11 +89,18 @@ class TopologyService:
 
             # 2. Build Nodes
             for row in rows:
-                dev_id, ip, mac, name, dev_type, vendor, status, icon, parent_id, down_rate, up_rate, last_seen = row
+                dev_id, ip, mac, name, dev_type, vendor, status, icon, parent_id, down_rate, up_rate, last_seen, attrs_str = row
                 
                 # Infer icon from type if not set
                 if not icon:
                     icon = self._get_icon_for_type(dev_type)
+
+                attrs = {}
+                if attrs_str:
+                    try:
+                        attrs = json.loads(attrs_str)
+                    except:
+                        pass
 
                 # Add Node
                 nodes[dev_id] = {
@@ -107,7 +116,11 @@ class TopologyService:
                     "up_rate": up_rate,
                     "last_seen": last_seen.isoformat() if last_seen else None,
                     "block_count": block_counts.get(dev_id, 0),
-                    "open_ports": ports_by_device.get(dev_id, [])
+                    "open_ports": ports_by_device.get(dev_id, []),
+                    "connection_type": attrs.get("connection_type", "wired"),
+                    "wlan_rssi": attrs.get("wlan_rssi"),
+                    "wlan_band": attrs.get("wlan_band"),
+                    "wlan_ssid": attrs.get("wlan_ssid")
                 }
 
             # 3. Build Edges
@@ -122,11 +135,25 @@ class TopologyService:
                 else:
                     source_id = gateway_id
                 
+                conn_type = node.get("connection_type", "wired")
+                rssi = node.get("wlan_rssi")
+                
+                # Determine edge label (frequency band)
+                label = ""
+                if conn_type == "wireless":
+                    band = node.get("wlan_band", "")
+                    if band:
+                        label = band
+                
                 edge_id = f"edge_{source_id}_{dev_id}"
                 edges[edge_id] = {
                     "source": source_id,
                     "target": dev_id,
-                    "label": "" 
+                    "connection_type": conn_type,
+                    "rssi": rssi,
+                    "down_rate": node.get("down_rate", 0),
+                    "up_rate": node.get("up_rate", 0),
+                    "label": label
                 }
 
             return {"nodes": nodes, "edges": edges}
