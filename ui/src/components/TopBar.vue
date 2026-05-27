@@ -145,6 +145,18 @@
                 </v-menu>
             </div>
 
+            <!-- Theme Toggle -->
+            <div class="flex items-center p-1 bg-slate-50/60 dark:bg-slate-800/40 rounded-lg border border-slate-200/50 dark:border-slate-700/30">
+                <button @click="toggleTheme"
+                    class="group relative flex items-center h-8 w-8 justify-center cursor-pointer hover:bg-white dark:hover:bg-slate-700 rounded-md transition-all text-slate-500 dark:text-slate-400">
+                    <SunIcon v-if="theme.global.current.value.dark" class="h-4 w-4" />
+                    <MoonIcon v-else class="h-4 w-4" />
+                    <v-tooltip activator="parent" location="bottom" content-class="!px-2 !py-1 !text-[10px] !min-h-0">
+                        <span>{{ theme.global.current.value.dark ? 'Light Mode' : 'Dark Mode' }}</span>
+                    </v-tooltip>
+                </button>
+            </div>
+
             <!-- User Profile -->
             <div class="flex items-center p-1 bg-slate-50/60 dark:bg-slate-800/40 rounded-lg border border-slate-200/50 dark:border-slate-700/30">
                 <v-menu location="bottom end" transition="scale-transition" offset="8" :close-on-content-click="false" v-model="showUserMenu">
@@ -213,10 +225,13 @@ import {
     Router as RouterIcon,
     ShieldCheck as ShieldCheckIcon,
     ChevronRight as ChevronRightIcon,
-    Radar
+    Radar,
+    Sun as SunIcon,
+    Moon as MoonIcon
 } from 'lucide-vue-next'
 import { useNotifications } from '@/composables/useNotifications'
 import { ref, onMounted, watch, computed } from 'vue'
+import { useTheme } from 'vuetify'
 import AppLogo from './AppLogo.vue'
 import TopBarSearch from './TopBarSearch.vue'
 import { useNotificationStore } from '@/stores/notifications'
@@ -275,7 +290,30 @@ watch(ws.lastNotification, (notif) => {
     }
 })
 
+const theme = useTheme()
+
+const toggleTheme = () => {
+    const nextTheme = theme.global.current.value.dark ? 'light' : 'dark'
+    theme.global.name.value = nextTheme
+    localStorage.setItem('theme', nextTheme)
+    
+    // Sync with Tailwind dark mode
+    if (nextTheme === 'dark') {
+        document.documentElement.classList.add('dark')
+    } else {
+        document.documentElement.classList.remove('dark')
+    }
+}
+
 onMounted(() => {
+    const savedTheme = localStorage.getItem('theme') || 'light'
+    theme.global.name.value = savedTheme
+    if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark')
+    } else {
+        document.documentElement.classList.remove('dark')
+    }
+
     notificationStore.fetchNotifications(true)
     notificationStore.fetchUnreadCount()
     integrationStore.fetchStatuses()
