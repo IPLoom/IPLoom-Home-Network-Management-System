@@ -1,195 +1,196 @@
 <template>
-    <v-app-bar :elevation="0" class="bg-white/80 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-all px-4" height="64">
-        <!-- Left: Branding & Mobile Trigger -->
-        <div class="flex items-center gap-2">
-            <div class="flex items-center gap-2 md:hidden">
-                <v-btn icon variant="text" size="small" @click="$emit('toggle-mobile-menu')" class="text-slate-700 dark:text-slate-300">
-                    <MenuIcon class="h-6 w-6" />
-                </v-btn>
+    <v-app-bar :elevation="0" class="border-b" height="64" style="background-color: rgb(var(--color-surface-elevated) / 80%) !important; backdrop-filter: blur(12px);">
+        <div class="top-bar-container">
+            <!-- Left: Branding & Mobile Trigger -->
+            <div class="brand-section">
+                <div class="mobile-trigger">
+                    <v-btn icon variant="text" size="small" @click="$emit('toggle-mobile-menu')" style="color: rgb(var(--color-text-primary));">
+                        <MenuIcon style="height: 24px; width: 24px;" />
+                    </v-btn>
+                </div>
+                <AppLogo style="transform: scale(1); transform-origin: left;" />
+                <div class="divider"></div>
             </div>
-            <AppLogo class="scale-100 origin-left" />
-            <div class="hidden lg:block h-6 w-px bg-slate-200 dark:bg-slate-700 mx-4"></div>
-        </div>
 
-        <v-spacer class="hidden md:block"></v-spacer>
+            <v-spacer class="hidden-sm-and-down"></v-spacer>
 
-        <!-- Center: Search Bar -->
-        <div class="flex-grow-1 max-w-lg w-full md:w-96 px-2">
-            <TopBarSearch />
-        </div>
+            <!-- Center: Search Bar -->
+            <div class="search-section">
+                <TopBarSearch />
+            </div>
 
-        <v-spacer></v-spacer>
+            <v-spacer></v-spacer>
 
-        <!-- Right: Actions -->
-        <div class="flex items-center gap-3">
-            <!-- Integrations Status -->
-            <div class="hidden lg:flex items-center gap-1 p-1 bg-slate-50/60 dark:bg-slate-800/40 rounded-lg border border-slate-200/50 dark:border-slate-700/30">
-                <div v-for="integration in ['mqtt', 'openwrt', 'adguard', 'deco']" :key="integration" 
-                    @click="router.push('/settings')"
-                    class="group relative flex items-center h-8 w-8 justify-center cursor-pointer hover:bg-white dark:hover:bg-slate-700 rounded-md transition-all shadow-sm shadow-transparent hover:shadow-slate-200/50">
-                    <component :is="integration === 'mqtt' ? Share2Icon : (integration === 'openwrt' ? RouterIcon : (integration === 'deco' ? Wifi : ShieldCheckIcon))" 
-                        class="h-4 w-4 transition-colors" 
-                        :class="getIntegrationStatus(integration) ? getIntegrationColor(integration) : 'text-slate-400'" />
-                    <div v-if="getIntegrationStatus(integration)" 
-                        class="absolute top-1 right-1 h-2 w-2 rounded-full border-2 border-white dark:border-slate-800"
-                        :class="getIntegrationPulse(integration)"></div>
-                    
-                    <v-tooltip activator="parent" location="bottom" content-class="!px-2 !py-1 !text-[10px] !min-h-0">
-                        <div class="flex flex-col gap-0.5">
-                            <div class="flex items-center gap-1.5 font-bold">
-                                <span class="w-1.5 h-1.5 rounded-full" :class="getIntegrationStatus(integration) ? 'bg-emerald-500' : 'bg-red-500'"></span>
-                                <span>{{ integration.toUpperCase() }}: {{ getIntegrationStatus(integration) ? 'Active' : 'Offline' }}</span>
+            <!-- Right: Actions -->
+            <div class="actions-section">
+                <!-- Integrations Status -->
+                <div class="status-panel integrations">
+                    <div v-for="integration in ['mqtt', 'openwrt', 'adguard', 'deco']" :key="integration" 
+                        @click="router.push('/settings')"
+                        class="status-btn">
+                        <component :is="integration === 'mqtt' ? Share2Icon : (integration === 'openwrt' ? RouterIcon : (integration === 'deco' ? Wifi : ShieldCheckIcon))" 
+                            style="height: 16px; width: 16px; transition: color 0.2s;" 
+                            :style="{ color: getIntegrationStatus(integration) ? getIntegrationColorValue(integration) : 'rgb(var(--color-text-tertiary))' }" />
+                        <div v-if="getIntegrationStatus(integration)" 
+                            class="status-indicator-dot"
+                            :style="{ backgroundColor: getIntegrationColorValue(integration) }"
+                            :class="{ 'pulse-animation': getIntegrationPulse(integration) }"></div>
+                        
+                        <v-tooltip activator="parent" location="bottom" content-class="!px-2 !py-1 !text-[10px] !min-h-0">
+                            <div style="display: flex; flex-direction: column; gap: 2px;">
+                                <div style="display: flex; align-items: center; gap: 6px; font-weight: bold;">
+                                    <span style="width: 6px; height: 6px; border-radius: 50%;" :style="{ backgroundColor: getIntegrationStatus(integration) ? '#10b981' : '#ef4444' }"></span>
+                                    <span>{{ integration.toUpperCase() }}: {{ getIntegrationStatus(integration) ? 'Active' : 'Offline' }}</span>
+                                </div>
+                                <span style="color: #94a3b8; font-style: italic; font-size: 9px;">Manage in Settings</span>
                             </div>
-                            <span class="text-slate-400 italic text-[9px]">Manage in Settings</span>
-                        </div>
-                    </v-tooltip>
+                        </v-tooltip>
+                    </div>
                 </div>
-            </div>
 
-            <!-- System Hub: Live & Notifications -->
-            <div class="flex items-center gap-1 p-1 bg-slate-50/60 dark:bg-slate-800/40 rounded-lg border border-slate-200/50 dark:border-slate-700/30">
-                <!-- New Devices Alert -->
-                <v-menu location="bottom end" transition="scale-transition" offset="8" :close-on-content-click="false" v-model="showNewDevices">
-                    <template v-slot:activator="{ props }">
-                        <button v-bind="props" @click="deviceStore.fetchNewDevices"
-                            class="group relative flex items-center h-8 w-8 justify-center cursor-pointer hover:bg-white dark:hover:bg-slate-700 rounded-md transition-all shadow-sm shadow-transparent hover:shadow-slate-200/50">
-                            <Radar class="w-4 h-4 transition-colors" :class="hasNewDevices ? 'text-emerald-500 animate-pulse' : 'text-slate-400 dark:text-slate-500'" />
-                            <span v-if="hasNewDevices" class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[8px] font-black text-white border border-white dark:border-slate-800">
-                                {{ deviceStore.stats.new_24h }}
-                            </span>
-                            <v-tooltip activator="parent" location="bottom" content-class="!px-2 !py-1 !text-[10px] !min-h-0">
-                                <span>Discovered Devices</span>
-                            </v-tooltip>
-                        </button>
-                    </template>
-
-                    <!-- New Devices Popover -->
-                    <v-card class="w-72 rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl">
-                        <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
-                            <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Newly Discovered</h3>
-                            <button @click="dismissNewDevices" class="text-[9px] font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">Dismiss</button>
-                        </div>
-                        <div class="max-h-80 overflow-y-auto custom-scrollbar">
-                            <div v-if="deviceStore.newDevices.length === 0" class="p-8 text-center text-slate-500 text-[10px] font-medium">Loading devices...</div>
-                            <button v-for="device in deviceStore.newDevices" :key="device.id" @click="goToDevice(device)" 
-                                class="w-full flex items-center gap-3 px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors text-left border-b border-slate-50 dark:border-slate-700/30 last:border-0 group/new">
-                                <div class="p-2 bg-slate-100 dark:bg-slate-700 rounded-lg group-hover/new:bg-blue-100 dark:group-hover/new:bg-blue-900/30 transition-colors">
-                                    <component :is="getIcon(device.icon || 'help-circle')" class="h-4 w-4 text-slate-600 dark:text-slate-400 group-hover/new:text-blue-500" />
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="text-xs font-bold text-slate-900 dark:text-white truncate">{{ device.display_name || device.name }}</div>
-                                    <div class="text-[10px] text-slate-500 font-mono">{{ device.ip }}</div>
-                                </div>
-                                <ChevronRightIcon class="h-3 w-3 text-slate-300 group-hover/new:text-blue-500 transition-colors" />
+                <!-- System Hub: Live & Notifications -->
+                <div class="status-panel">
+                    <!-- New Devices Alert -->
+                    <v-menu location="bottom end" transition="scale-transition" offset="8" :close-on-content-click="false" v-model="showNewDevices">
+                        <template v-slot:activator="{ props }">
+                            <button v-bind="props" @click="deviceStore.fetchNewDevices" class="status-btn">
+                                <Radar style="width: 16px; height: 16px; transition: color 0.2s;" :style="{ color: hasNewDevices ? '#10b981' : 'rgb(var(--color-text-secondary))' }" :class="{ 'pulse-animation': hasNewDevices }" />
+                                <span v-if="hasNewDevices" class="badge-count">
+                                    {{ deviceStore.stats.new_24h }}
+                                </span>
+                                <v-tooltip activator="parent" location="bottom" content-class="!px-2 !py-1 !text-[10px] !min-h-0">
+                                    <span>Discovered Devices</span>
+                                </v-tooltip>
                             </button>
-                        </div>
-                        <div class="p-2 border-t border-slate-100 dark:border-slate-700/50">
-                            <router-link to="/devices" @click="showNewDevices = false" class="w-full py-2 px-4 text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all flex items-center justify-between">
-                                <span>Manage all devices</span>
-                                <ArrowRightIcon class="h-3 w-3" />
-                            </router-link>
-                        </div>
-                    </v-card>
-                </v-menu>
+                        </template>
 
-                <!-- Connection Status -->
-                <div class="flex items-center h-8 w-8 justify-center rounded-md transition-all relative">
-                    <Zap class="w-4 h-4" :class="ws.connected.value ? 'text-emerald-500 animate-pulse' : 'text-rose-500'" />
-                    <v-tooltip activator="parent" location="bottom" content-class="!px-2 !py-1 !text-[10px] !min-h-0">
-                        <span>System Status: {{ ws.connected.value ? 'Live' : 'Offline' }}</span>
-                    </v-tooltip>
-                </div>
-
-                <div class="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5 hidden sm:block"></div>
-
-                <v-menu location="bottom end" transition="scale-transition" offset="8" :close-on-content-click="false" v-model="showNotifications" @update:modelValue="onNotificationsToggle">
-                    <template v-slot:activator="{ props }">
-                        <button v-bind="props"
-                            class="group relative flex items-center h-8 w-8 justify-center cursor-pointer hover:bg-white dark:hover:bg-slate-700 rounded-md transition-all shadow-sm shadow-transparent hover:shadow-slate-200/50">
-                            <BellIcon class="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                            <span v-if="notificationStore.unreadCount > 0" class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[8px] font-black text-white border border-white dark:border-slate-800">
-                                {{ notificationStore.unreadCount }}
-                            </span>
-                            <v-tooltip activator="parent" location="bottom" content-class="!px-2 !py-1 !text-[10px] !min-h-0">
-                                <span>System Activity</span>
-                            </v-tooltip>
-                        </button>
-                    </template>
-
-                    <v-card class="w-80 rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl">
-                        <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
-                            <h3 class="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">Recent Activity</h3>
-                            <button @click="markAllAsRead" class="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline">Clear all</button>
-                        </div>
-                        <div class="max-h-96 overflow-y-auto custom-scrollbar">
-                            <div v-if="notificationStore.events.length === 0" class="p-10 text-center text-slate-500 text-[10px] font-medium">All caught up!</div>
-                            <button v-for="event in notificationStore.events" :key="event.id" @click="goToEvent(event)" class="notif-item group/notif">
-                                <div v-if="!event.read_at" class="notif-indicator"></div>
-                                <div class="p-2 rounded-xl" :class="getEventColor(event.level)"><component :is="getEventIcon(event)" class="h-4 w-4" /></div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center justify-between gap-2">
-                                        <span class="text-[10px] font-black uppercase tracking-tighter text-slate-400">{{ event.task_type?.replace('_', ' ') || 'System' }}</span>
-                                        <span class="text-[9px] text-slate-400">{{ formatRelativeTime(parseUTC(event.created_at)) }}</span>
+                        <!-- New Devices Popover -->
+                        <div class="popover-card">
+                            <div class="popover-header">
+                                <h3>Newly Discovered</h3>
+                                <button @click="dismissNewDevices">Dismiss</button>
+                            </div>
+                            <div style="max-h: 320px; overflow-y: auto;">
+                                <div v-if="deviceStore.newDevices.length === 0" style="padding: 32px; text-align: center; color: rgb(var(--color-text-secondary)); font-size: 10px; font-weight: 500;">Loading devices...</div>
+                                <button v-for="device in deviceStore.newDevices" :key="device.id" @click="goToDevice(device)" class="new-device-item">
+                                    <div class="new-device-icon">
+                                        <component :is="getIcon(device.icon || 'help-circle')" style="height: 16px; width: 16px;" />
                                     </div>
-                                    <p class="text-xs font-medium text-slate-900 dark:text-slate-100 line-clamp-2 mt-0.5 leading-snug">{{ event.message }}</p>
-                                </div>
-                            </button>
-                        </div>
-                        <div class="p-2 border-t border-slate-100 dark:border-slate-700/50">
-                            <router-link to="/logs" @click="showNotifications = false" class="w-full py-2 px-4 text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all flex items-center justify-between">
-                                <span>View all events</span>
-                                <ArrowRightIcon class="h-3 w-3" />
-                            </router-link>
-                        </div>
-                    </v-card>
-                </v-menu>
-            </div>
-
-            <!-- Theme Toggle -->
-            <div class="flex items-center p-1 bg-slate-50/60 dark:bg-slate-800/40 rounded-lg border border-slate-200/50 dark:border-slate-700/30">
-                <button @click="toggleTheme"
-                    class="group relative flex items-center h-8 w-8 justify-center cursor-pointer hover:bg-white dark:hover:bg-slate-700 rounded-md transition-all text-slate-500 dark:text-slate-400">
-                    <SunIcon v-if="theme.global.current.value.dark" class="h-4 w-4" />
-                    <MoonIcon v-else class="h-4 w-4" />
-                    <v-tooltip activator="parent" location="bottom" content-class="!px-2 !py-1 !text-[10px] !min-h-0">
-                        <span>{{ theme.global.current.value.dark ? 'Light Mode' : 'Dark Mode' }}</span>
-                    </v-tooltip>
-                </button>
-            </div>
-
-            <!-- User Profile -->
-            <div class="flex items-center p-1 bg-slate-50/60 dark:bg-slate-800/40 rounded-lg border border-slate-200/50 dark:border-slate-700/30">
-                <v-menu location="bottom end" transition="scale-transition" offset="8" :close-on-content-click="false" v-model="showUserMenu">
-                    <template v-slot:activator="{ props }">
-                        <button v-bind="props"
-                            class="flex items-center gap-2 h-8 pl-1 pr-2.5 hover:bg-white dark:hover:bg-slate-700 rounded-md transition-all relative group shadow-sm shadow-transparent hover:shadow-slate-200/50">
-                            <div class="w-6 h-6 rounded-md bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-[10px] font-bold transition-transform">
-                                {{ authStore.user?.username?.charAt(0).toUpperCase() || 'U' }}
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div style="font-size: 12px; font-weight: bold; color: rgb(var(--color-text-primary)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ device.display_name || device.name }}</div>
+                                        <div style="font-size: 10px; color: rgb(var(--color-text-secondary)); font-family: monospace;">{{ device.ip }}</div>
+                                    </div>
+                                    <ChevronRightIcon style="height: 12px; width: 12px; color: rgb(var(--color-text-tertiary));" />
+                                </button>
                             </div>
-                            <span class="hidden sm:block text-[11px] font-bold text-slate-700 dark:text-slate-300">{{ authStore.user?.username || 'User' }}</span>
-                            <ChevronDownIcon class="h-3 w-3 text-slate-400 transition-transform duration-200" :class="showUserMenu ? 'rotate-180' : ''" />
-                            <v-tooltip activator="parent" location="bottom" content-class="!px-2 !py-1 !text-[10px] !min-h-0">
-                                <span>User Account</span>
-                            </v-tooltip>
-                        </button>
-                    </template>
-                    <v-card class="w-56 rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-                        <div class="px-4 py-4 bg-slate-50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-700/50">
-                            <p class="text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white">{{ authStore.user?.full_name || authStore.user?.username }}</p>
-                            <p class="text-[10px] text-slate-500 truncate mt-0.5">System Administrator</p>
+                            <div style="padding: 8px; border-top: 1px solid rgba(var(--color-border), 0.5);">
+                                <router-link to="/devices" @click="showNewDevices = false" class="popover-footer-link">
+                                    <span>Manage all devices</span>
+                                    <ArrowRightIcon style="height: 12px; width: 12px;" />
+                                </router-link>
+                            </div>
                         </div>
-                        <div class="p-1.5">
-                            <router-link to="/settings" @click="showUserMenu = false" class="user-menu-item rounded-lg">
-                                <UserIcon class="h-4 w-4" />
-                                <span>Profile Settings</span>
-                            </router-link>
-                            <button @click="handleLogout" class="user-menu-item rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 w-full text-left mt-1">
-                                <LogOutIcon class="h-4 w-4" />
-                                <span>Sign Out</span>
+                    </v-menu>
+
+                    <!-- Connection Status -->
+                    <div class="status-btn">
+                        <Zap style="width: 16px; height: 16px;" :style="{ color: ws.connected.value ? '#10b981' : '#rose-500' }" :class="{ 'pulse-animation': ws.connected.value }" />
+                        <v-tooltip activator="parent" location="bottom" content-class="!px-2 !py-1 !text-[10px] !min-h-0">
+                            <span>System Status: {{ ws.connected.value ? 'Live' : 'Offline' }}</span>
+                        </v-tooltip>
+                    </div>
+
+                    <div class="separator"></div>
+
+                    <!-- Notifications Dropdown -->
+                    <v-menu location="bottom end" transition="scale-transition" offset="8" :close-on-content-click="false" v-model="showNotifications" @update:modelValue="onNotificationsToggle">
+                        <template v-slot:activator="{ props }">
+                            <button v-bind="props" class="status-btn">
+                                <BellIcon style="height: 16px; width: 16px; color: rgb(var(--color-text-secondary));" />
+                                <span v-if="notificationStore.unreadCount > 0" class="badge-count notifications">
+                                    {{ notificationStore.unreadCount }}
+                                </span>
+                                <v-tooltip activator="parent" location="bottom" content-class="!px-2 !py-1 !text-[10px] !min-h-0">
+                                    <span>System Activity</span>
+                                </v-tooltip>
                             </button>
+                        </template>
+
+                        <div class="popover-card" style="width: 320px;">
+                            <div class="popover-header">
+                                <h3>Recent Activity</h3>
+                                <button @click="markAllAsRead" style="color: #2563eb;">Clear all</button>
+                            </div>
+                            <div style="max-h: 384px; overflow-y: auto;">
+                                <div v-if="notificationStore.events.length === 0" style="padding: 40px; text-align: center; color: rgb(var(--color-text-secondary)); font-size: 10px; font-weight: 500;">All caught up!</div>
+                                <button v-for="event in notificationStore.events" :key="event.id" @click="goToEvent(event)" class="notif-item">
+                                    <div v-if="!event.read_at" class="notif-indicator"></div>
+                                    <div style="padding: 8px; border-radius: 12px; display: flex; align-items: center; justify-content: center;" :style="getEventColorStyles(event.level)">
+                                        <component :is="getEventIcon(event)" style="height: 16px; width: 16px;" />
+                                    </div>
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                            <span style="font-size: 10px; font-weight: 900; text-transform: uppercase; color: rgb(var(--color-text-tertiary));">{{ event.task_type?.replace('_', ' ') || 'System' }}</span>
+                                            <span style="font-size: 9px; color: rgb(var(--color-text-tertiary));">{{ formatRelativeTime(parseUTC(event.created_at)) }}</span>
+                                        </div>
+                                        <p style="font-size: 12px; font-weight: 500; color: rgb(var(--color-text-primary)); margin: 2px 0 0 0; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">{{ event.message }}</p>
+                                    </div>
+                                </button>
+                            </div>
+                            <div style="padding: 8px; border-top: 1px solid rgba(var(--color-border), 0.5);">
+                                <router-link to="/logs" @click="showNotifications = false" class="popover-footer-link">
+                                    <span>View all events</span>
+                                    <ArrowRightIcon style="height: 12px; width: 12px;" />
+                                </router-link>
+                            </div>
                         </div>
-                    </v-card>
-                </v-menu>
+                    </v-menu>
+                </div>
+
+                <!-- Theme Toggle -->
+                <div class="status-panel">
+                    <button @click="toggleTheme" class="status-btn">
+                        <SunIcon v-if="theme.global.current.value.dark" style="height: 16px; width: 16px;" />
+                        <MoonIcon v-else style="height: 16px; width: 16px;" />
+                        <v-tooltip activator="parent" location="bottom" content-class="!px-2 !py-1 !text-[10px] !min-h-0">
+                            <span>{{ theme.global.current.value.dark ? 'Light Mode' : 'Dark Mode' }}</span>
+                        </v-tooltip>
+                    </button>
+                </div>
+
+                <!-- User Profile -->
+                <div class="status-panel">
+                    <v-menu location="bottom end" transition="scale-transition" offset="8" :close-on-content-click="false" v-model="showUserMenu">
+                        <template v-slot:activator="{ props }">
+                            <button v-bind="props" class="profile-btn">
+                                <div class="profile-avatar">
+                                    {{ authStore.user?.username?.charAt(0).toUpperCase() || 'U' }}
+                                </div>
+                                <span class="profile-name">{{ authStore.user?.username || 'User' }}</span>
+                                <ChevronDownIcon style="height: 12px; width: 12px; color: rgb(var(--color-text-secondary)); transition: transform 0.2s;" :style="{ transform: showUserMenu ? 'rotate(180deg)' : 'rotate(0)' }" />
+                                <v-tooltip activator="parent" location="bottom" content-class="!px-2 !py-1 !text-[10px] !min-h-0">
+                                    <span>User Account</span>
+                                </v-tooltip>
+                            </button>
+                        </template>
+                        <v-card style="width: 224px; border-radius: 12px; border: 1px solid rgb(var(--color-border)); background-color: rgb(var(--color-surface-elevated)); overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+                            <div style="padding: 16px; background-color: rgba(var(--color-surface), 0.3); border-bottom: 1px solid rgba(var(--color-border), 0.5);">
+                                <p style="font-size: 12px; font-weight: 900; text-transform: uppercase; color: rgb(var(--color-text-primary)); margin: 0;">{{ authStore.user?.full_name || authStore.user?.username }}</p>
+                                <p style="font-size: 10px; color: rgb(var(--color-text-secondary)); margin: 2px 0 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">System Administrator</p>
+                            </div>
+                            <div style="padding: 6px;">
+                                <router-link to="/settings" @click="showUserMenu = false" class="user-menu-item" style="border-radius: 8px;">
+                                    <UserIcon style="height: 16px; width: 16px;" />
+                                    <span>Profile Settings</span>
+                                </router-link>
+                                <button @click="handleLogout" class="user-menu-item" style="border-radius: 8px; color: #ef4444; width: 100%; text-align: left; background: transparent; border: none; margin-top: 4px;">
+                                    <LogOutIcon style="height: 16px; width: 16px;" />
+                                    <span>Sign Out</span>
+                                </button>
+                            </div>
+                        </v-card>
+                    </v-menu>
+                </div>
             </div>
         </div>
     </v-app-bar>
@@ -260,9 +261,6 @@ const lastDismissed = ref(localStorage.getItem('new_devices_last_dismissed') || 
 
 const hasNewDevices = computed(() => {
     if (deviceStore.stats.new_24h <= 0) return false
-    // If we have new devices in 24h, we check if they were already dismissed
-    // For simplicity, if new_24h > 0 and user hasn't dismissed in last hour, show it
-    // Or more precisely: if we have new ones, show it. Dismissing just hides it until next one.
     return lastDismissed.value !== 'all_seen'
 })
 
@@ -284,7 +282,6 @@ const dismissNewDevices = () => {
 watch(ws.lastNotification, (notif) => {
     if (notif && notif.event_type === 'new_device') {
         deviceStore.fetchStats()
-        // Reset dismissal if a literal new device event arrives
         lastDismissed.value = 'new_event'
         localStorage.removeItem('new_devices_last_dismissed')
     }
@@ -297,7 +294,7 @@ const toggleTheme = () => {
     theme.global.name.value = nextTheme
     localStorage.setItem('theme', nextTheme)
     
-    // Sync with Tailwind dark mode
+    // Sync with Tailwind dark mode if class exists, otherwise document
     if (nextTheme === 'dark') {
         document.documentElement.classList.add('dark')
     } else {
@@ -320,7 +317,6 @@ onMounted(() => {
     deviceStore.fetchStats()
 })
 
-
 const getIntegrationStatus = (key) => {
     if (key === 'mqtt') return integrationStore.mqttStatus.reachable
     if (key === 'openwrt') return integrationStore.openwrtStatus.verified
@@ -329,21 +325,16 @@ const getIntegrationStatus = (key) => {
     return false
 }
 
-const getIntegrationColor = (key) => {
-    if (key === 'mqtt') return 'text-emerald-500'
-    if (key === 'openwrt') return 'text-blue-500'
-    if (key === 'adguard') return 'text-indigo-500'
-    if (key === 'deco') return 'text-teal-500'
-    return 'text-slate-400'
+const getIntegrationColorValue = (key) => {
+    if (key === 'mqtt') return '#10b981' // emerald-500
+    if (key === 'openwrt') return '#3b82f6' // blue-500
+    if (key === 'adguard') return '#6366f1' // indigo-500
+    if (key === 'deco') return '#14b8a6' // teal-500
+    return '#94a3b8'
 }
 
 const getIntegrationPulse = (key) => {
-    const base = 'absolute top-1.5 right-1.5 h-2 w-2 rounded-full border-2 border-white dark:border-slate-800 shadow-sm'
-    if (key === 'mqtt') return `${base} bg-emerald-500 animate-pulse`
-    if (key === 'openwrt') return `${base} bg-blue-500`
-    if (key === 'adguard') return `${base} bg-indigo-500`
-    if (key === 'deco') return `${base} bg-teal-500`
-    return base
+    return key === 'mqtt'
 }
 
 const getEventIcon = (event) => {
@@ -356,10 +347,10 @@ const getEventIcon = (event) => {
     return Activity
 }
 
-const getEventColor = (level) => {
-    if (level === 'ERROR') return 'bg-red-500/10 text-red-500'
-    if (level === 'WARNING') return 'bg-amber-500/10 text-amber-500'
-    return 'bg-blue-500/10 text-blue-500'
+const getEventColorStyles = (level) => {
+    if (level === 'ERROR') return { backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }
+    if (level === 'WARNING') return { backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }
+    return { backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }
 }
 
 const onNotificationsToggle = (isOpen) => {
@@ -422,3 +413,279 @@ const getIcon = (name) => {
     return iconMap[key] || HelpCircle
 }
 </script>
+
+<style scoped>
+.top-bar-container {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0 16px;
+  justify-content: space-between;
+}
+
+.brand-section {
+  display: flex;
+  align-items: center;
+}
+
+.mobile-trigger {
+  display: flex;
+  align-items: center;
+}
+@media (min-width: 768px) {
+  .mobile-trigger {
+    display: none !important;
+  }
+}
+
+.divider {
+  display: none;
+  height: 24px;
+  width: 1px;
+  background-color: rgb(var(--color-border));
+  margin: 0 16px;
+}
+@media (min-width: 1024px) {
+  .divider {
+    display: block;
+  }
+}
+
+.search-section {
+  flex-grow: 1;
+  max-width: 32rem;
+  width: 100%;
+  padding: 0 8px;
+}
+@media (max-width: 767px) {
+  .search-section {
+    display: none;
+  }
+}
+
+.actions-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-panel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background-color: rgb(var(--color-surface) / 40%);
+  border-radius: 8px;
+  border: 1px solid rgb(var(--color-border) / 50%);
+}
+@media (max-width: 1023px) {
+  .status-panel.integrations {
+    display: none !important;
+  }
+}
+
+.status-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 32px;
+  width: 32px;
+  justify-content: center;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  transition: all 0.2s;
+  color: rgb(var(--color-text-secondary));
+}
+.status-btn:hover {
+  background-color: rgb(var(--color-surface-elevated));
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.status-indicator-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  height: 8px;
+  width: 8px;
+  border-radius: 50%;
+  border: 2px solid rgb(var(--color-surface));
+}
+
+.badge-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: flex;
+  height: 16px;
+  width: 16px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: #10b981;
+  font-size: 8px;
+  font-weight: 900;
+  color: white;
+  border: 1px solid rgb(var(--color-surface));
+}
+
+.badge-count.notifications {
+  background-color: #3b82f6;
+}
+
+.separator {
+  width: 1px;
+  height: 16px;
+  background-color: rgb(var(--color-border));
+  margin: 0 2px;
+}
+@media (max-width: 639px) {
+  .separator {
+    display: none !important;
+  }
+}
+
+.profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 10px 0 4px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  transition: all 0.2s;
+  cursor: pointer;
+  color: rgb(var(--color-text-primary));
+}
+.profile-btn:hover {
+  background-color: rgb(var(--color-surface-elevated));
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.profile-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.profile-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgb(var(--color-text-primary));
+}
+@media (max-width: 639px) {
+  .profile-name {
+    display: none !important;
+  }
+}
+
+.popover-card {
+  width: 288px;
+  border-radius: 12px;
+  border: 1px solid rgb(var(--color-border));
+  background-color: rgb(var(--color-surface-elevated) / 95%);
+  backdrop-filter: blur(24px);
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.popover-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgb(var(--color-border) / 50%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: rgb(var(--color-surface) / 30%);
+}
+
+.popover-header h3 {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgb(var(--color-text-primary));
+  margin: 0;
+}
+
+.popover-header button {
+  font-size: 9px;
+  font-weight: 700;
+  color: rgb(var(--color-text-secondary));
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.popover-header button:hover {
+  color: rgb(var(--color-text-primary));
+}
+
+.new-device-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgb(var(--color-border) / 30%);
+  text-align: left;
+  cursor: pointer;
+}
+.new-device-item:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+}
+.new-device-item:last-child {
+  border-bottom: none;
+}
+
+.new-device-icon {
+  padding: 8px;
+  background-color: rgb(var(--color-surface) / 50%);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgb(var(--color-text-secondary));
+}
+
+.new-device-item:hover .new-device-icon {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+}
+
+.popover-footer-link {
+  width: 100%;
+  padding: 8px 16px;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #2563eb;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+.popover-footer-link:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.pulse-animation {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+</style>

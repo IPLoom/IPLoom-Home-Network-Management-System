@@ -1,35 +1,36 @@
 <template>
-  <v-layout class="h-screen w-full bg-slate-50 dark:bg-slate-900 overflow-hidden">
+  <v-layout style="height: 100vh; overflow: hidden;">
     <!-- Full Width Top Bar -->
     <TopBar @toggle-mobile-menu="drawer = !drawer" />
 
     <v-navigation-drawer
       v-model="drawer"
       :rail="sidebarCollapsed"
-      class="bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700"
+      :permanent="!mobile"
+      border="right"
     >
       <!-- Navigation -->
-      <nav class="flex-grow overflow-y-auto py-4 px-0">
-        <ul class="space-y-1">
+      <nav class="nav-container">
+        <ul class="nav-list">
           <li v-for="item in navItems" :key="item.name">
-            <router-link :to="item.path" class="relative flex items-center text-sm font-medium transition-colors group w-full" :class="[
+            <router-link :to="item.path" class="layout-nav-item" :class="[
               $route.path === item.path || ($route.path.startsWith(item.path) && item.path !== '/')
-                ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold'
-                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700',
-              sidebarCollapsed ? 'justify-center py-3' : 'pl-6 pr-4 py-3'
+                ? 'active'
+                : '',
+              sidebarCollapsed ? 'collapsed' : 'expanded'
             ]" v-tooltip:right="sidebarCollapsed ? item.name : null">
               <!-- Active Indicator Line -->
               <div v-if="$route.path === item.path || ($route.path.startsWith(item.path) && item.path !== '/')"
-                class="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-500"></div>
+                class="active-indicator"></div>
 
-              <div class="relative flex items-center">
-                <component :is="item.icon" class="h-5 w-5 flex-shrink-0" :class="sidebarCollapsed ? '' : 'mr-3'" />
+              <div class="icon-wrapper">
+                <component :is="item.icon" class="nav-icon" />
                 <span v-if="sidebarCollapsed && item.badge" 
-                  class="absolute -top-1 -right-1 h-2 w-2 bg-emerald-500 rounded-full border border-white dark:border-slate-800 animate-pulse"></span>
+                  class="badge-dot animate-pulse"></span>
               </div>
-              <span v-if="!sidebarCollapsed" class="flex-1 text-sm">{{ item.name }}</span>
+              <span v-if="!sidebarCollapsed" class="nav-label">{{ item.name }}</span>
               <span v-if="!sidebarCollapsed && item.badge" 
-                class="ml-auto px-1.5 py-0.5 text-[9px] font-black bg-emerald-500 text-white rounded-full animate-pulse-slow">
+                class="nav-badge animate-pulse-slow">
                 {{ item.badge }}
               </span>
             </router-link>
@@ -38,25 +39,24 @@
       </nav>
 
       <template v-slot:append>
-        <div class="p-2 border-t border-slate-200 dark:border-slate-700 space-y-2">
-          <div v-if="!sidebarCollapsed"
-            class="text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-600 text-center py-2">
+        <div class="sidebar-footer">
+          <div v-if="!sidebarCollapsed" class="version-text">
             {{ version }}
           </div>
           <button @click="sidebarCollapsed = !sidebarCollapsed"
-            class="w-full flex items-center p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-all duration-300"
-            :class="sidebarCollapsed ? 'justify-center' : 'px-3 space-x-3'"
+            class="collapse-btn"
+            :class="sidebarCollapsed ? 'collapsed' : 'expanded'"
             v-tooltip:right="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
-            <component :is="sidebarCollapsed ? ChevronRightIcon : ChevronLeftIcon" class="h-5 w-5 flex-shrink-0" />
-            <span v-if="!sidebarCollapsed" class="text-sm font-medium">Collapse</span>
+            <component :is="sidebarCollapsed ? ChevronRightIcon : ChevronLeftIcon" style="height: 20px; width: 20px; flex-shrink: 0;" />
+            <span v-if="!sidebarCollapsed">Collapse</span>
           </button>
         </div>
       </template>
     </v-navigation-drawer>
 
     <!-- Main Content Area -->
-    <v-main class="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900">
-      <v-container fluid class="py-6 md:py-8 h-full">
+    <v-main style="flex: 1; overflow-y: auto;">
+      <v-container fluid style="padding: 24px; height: 100%;">
         <router-view />
       </v-container>
     </v-main>
@@ -68,6 +68,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useDisplay } from 'vuetify'
 import AppLogo from './AppLogo.vue'
 import TopBar from './TopBar.vue'
 import NotificationToast from './NotificationToast.vue'
@@ -80,6 +81,7 @@ const { connect } = useWebSockets()
 const { notifyInfo, notifyError, notifySuccess } = useNotifications()
 const notificationStore = useNotificationStore()
 const deviceStore = useDeviceStore()
+const { mobile } = useDisplay()
 
 onMounted(() => {
   connect()
@@ -100,7 +102,7 @@ import {
 } from '@heroicons/vue/24/outline'
 
 const sidebarCollapsed = ref(true)
-const drawer = ref(null)
+const drawer = ref(true)
 const version = import.meta.env.VITE_APP_VERSION || 'v0.3.1'
 
 const navItems = computed(() => [
@@ -115,3 +117,152 @@ const navItems = computed(() => [
   { name: 'Settings', path: '/settings', icon: Cog6ToothIcon },
 ])
 </script>
+
+<style scoped>
+.nav-container {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 16px 0;
+}
+
+.nav-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.layout-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.2s;
+  color: rgb(var(--color-text-secondary));
+}
+
+.layout-nav-item:hover {
+  background-color: rgba(var(--color-text-secondary), 0.08);
+  color: rgb(var(--color-text-primary));
+}
+
+.layout-nav-item.active {
+  background-color: rgba(var(--color-primary), 0.1);
+  color: rgb(var(--color-primary));
+  font-weight: 700;
+}
+
+.layout-nav-item.collapsed {
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.layout-nav-item.expanded {
+  justify-content: flex-start;
+  padding: 12px 16px 12px 24px;
+}
+
+.active-indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: rgb(var(--color-primary));
+}
+
+.icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.nav-icon {
+  height: 20px;
+  width: 20px;
+  flex-shrink: 0;
+  transition: margin 0.2s;
+}
+
+.layout-nav-item.expanded .nav-icon {
+  margin-right: 12px;
+}
+
+.badge-dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  height: 8px;
+  width: 8px;
+  background-color: #10b981;
+  border-radius: 50%;
+  border: 1px solid rgb(var(--color-background));
+}
+
+.nav-label {
+  flex: 1;
+  font-size: 14px;
+}
+
+.nav-badge {
+  margin-left: auto;
+  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: 900;
+  background-color: #10b981;
+  color: white;
+  border-radius: 9999px;
+}
+
+.sidebar-footer {
+  padding: 8px;
+  border-top: 1px solid rgb(var(--color-border));
+}
+
+.version-text {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgb(var(--color-text-tertiary));
+  text-align: center;
+  padding: 8px 0;
+}
+
+.collapse-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: rgb(var(--color-text-secondary));
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.collapse-btn:hover {
+  background-color: rgba(var(--color-text-secondary), 0.08);
+}
+
+.collapse-btn.collapsed {
+  justify-content: center;
+}
+
+.collapse-btn.expanded {
+  padding: 8px 12px;
+}
+
+.collapse-btn.expanded span {
+  margin-left: 12px;
+  font-size: 14px;
+  font-weight: 500;
+}
+</style>
