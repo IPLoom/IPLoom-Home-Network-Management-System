@@ -9,7 +9,10 @@ import VueApexCharts from "vue3-apexcharts"
 import VNetworkGraph from "v-network-graph"
 import "v-network-graph/lib/style.css"
 
+import vuetify from './plugins/vuetify'
+
 const app = createApp(App)
+app.use(vuetify)
 
 app.use(createPinia())
 app.use(router)

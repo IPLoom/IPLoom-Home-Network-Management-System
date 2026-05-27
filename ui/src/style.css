@@ -288,3 +288,9 @@
 *:focus-visible {
   @apply outline-none ring-2 ring-blue-500 ring-offset-2;
 }
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  @apply ring-0 ring-offset-0 outline-none;
+}
