@@ -20,17 +20,14 @@
       </div>
 
       <div class="flex items-center gap-3">
-        <Button 
+        <button 
           @click="syncAdguard" 
-          :disabled="!isConfigured"
-          :loading="syncing"
-          class="btn-primary !px-4 !py-2 !rounded-xl !text-sm !font-semibold transition-all active:scale-95 shadow-sm border-none"
+          :disabled="syncing || !isConfigured"
+          class="btn-primary !px-4 !py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm flex items-center gap-2 border-none"
         >
-          <template #icon>
-            <RefreshCw class="h-4 w-4" />
-          </template>
+          <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': syncing }" />
           <span>{{ syncing ? 'Syncing...' : 'Sync Now' }}</span>
-        </Button>
+        </button>
       </div>
     </div>
 
@@ -177,12 +174,11 @@
           </p>
         </div>
         <div>
-          <router-link to="/settings" custom v-slot="{ navigate }">
-            <Button 
-              @click="navigate" 
-              label="Go to Settings" 
-              class="btn-primary !px-4 !py-2 !rounded-xl !text-sm !font-semibold transition-all active:scale-95 shadow-sm border-none" 
-            />
+          <router-link 
+            to="/settings" 
+            class="btn-primary !px-4 !py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 shadow-sm inline-flex items-center justify-center cursor-pointer border-none"
+          >
+            Go to Settings
           </router-link>
         </div>
       </div>

@@ -20,17 +20,14 @@
       </div>
 
       <div class="flex items-center gap-3">
-        <Button 
+        <button 
           @click="syncDeco" 
-          :disabled="!isConfigured"
-          :loading="syncing"
-          class="btn-primary !px-4 !py-2 !rounded-xl !text-sm !font-semibold transition-all active:scale-95 shadow-sm border-none"
+          :disabled="syncing || !isConfigured"
+          class="btn-primary !px-4 !py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm flex items-center gap-2 border-none"
         >
-          <template #icon>
-            <RefreshCw class="h-4 w-4" />
-          </template>
+          <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': syncing }" />
           <span>{{ syncing ? 'Syncing...' : 'Sync Now' }}</span>
-        </Button>
+        </button>
       </div>
     </div>
 
@@ -60,7 +57,7 @@
         </h3>
 
         <!-- Only 1 Node Warning Notice -->
-        <div v-if="nodes.length === 1" class="p-4 bg-amber-50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-900/50 rounded-2xl flex items-start gap-3">
+        <div v-if="nodes.length === 1" class="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-2xl flex items-start gap-3">
           <AlertTriangle class="h-5 w-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
           <div class="text-sm text-amber-800 dark:text-amber-300 leading-normal">
             <strong class="font-semibold">Only 1 Deco Node showing?</strong>
@@ -134,7 +131,7 @@
               v-model="searchQuery"
               placeholder="Search clients..."
               class="w-full"
-              :pt="{ root: 'pl-11 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm w-full outline-none' }"
+              :pt="{ root: 'input-base' }"
             />
           </IconField>
         </div>
@@ -255,12 +252,11 @@
           </p>
         </div>
         <div>
-          <router-link to="/settings" custom v-slot="{ navigate }">
-            <Button 
-              @click="navigate" 
-              label="Go to Settings" 
-              class="btn-primary !px-4 !py-2 !rounded-xl !text-sm !font-semibold transition-all active:scale-95 shadow-sm border-none" 
-            />
+          <router-link 
+            to="/settings" 
+            class="btn-primary !px-4 !py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 shadow-sm inline-flex items-center justify-center cursor-pointer border-none"
+          >
+            Go to Settings
           </router-link>
         </div>
       </div>

@@ -202,7 +202,10 @@
     <!-- Tabs Navigation -->
     <Tabs v-model:value="activeTab" class="w-full">
       <TabList :pt="{
-        root: 'flex items-center gap-2 mb-6 bg-white/50 dark:bg-slate-900/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 w-fit'
+        root: 'flex items-center gap-2 mb-6 bg-white/50 dark:bg-slate-900/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 w-fit',
+        content: '!border-none bg-transparent',
+        nav: '!border-none bg-transparent',
+        activeBar: 'hidden'
       }">
         <Tab v-for="tab in tabs" :key="tab.id" :value="tab.id"
           :pt="{
