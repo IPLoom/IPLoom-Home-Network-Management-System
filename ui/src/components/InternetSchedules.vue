@@ -153,13 +153,19 @@
                 <span class="text-sm font-black text-slate-700 dark:text-slate-200">{{ s.end_time }}</span>
               </div>
             </div>
-            <div class="text-right">
-              <Switch v-model="s.enabled" @change="toggleSchedule(s)"
-                :class="s.enabled ? 'bg-rose-500' : 'bg-slate-200 dark:bg-slate-700'"
-                class="relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75">
-                <span aria-hidden="true" :class="s.enabled ? 'translate-x-5' : 'translate-x-0'"
-                  class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out" />
-              </Switch>
+            <div class="text-right flex items-center justify-end">
+              <ToggleSwitch v-model="s.enabled" @change="toggleSchedule(s)"
+                :pt="{
+                  slider: ({ props }) => [
+                    'h-5 w-10 rounded-full transition-colors duration-200 border-2 border-transparent relative flex items-center cursor-pointer',
+                    props.modelValue ? 'bg-rose-500' : 'bg-slate-200 dark:bg-slate-700'
+                  ],
+                  handle: ({ props }) => [
+                    'h-4 w-4 rounded-full bg-white shadow-md transform transition duration-200 ease-in-out block',
+                    props.modelValue ? 'translate-x-5' : 'translate-x-0'
+                  ]
+                }"
+              />
             </div>
           </div>
         </div>
@@ -167,77 +173,75 @@
     </div>
 
     <!-- Add/Edit Modal -->
-    <TransitionRoot appear :show="isModalOpen" as="template">
-      <Dialog as="div" @close="closeModal" class="relative z-[100]">
-        <TransitionChild as="template" enter="duration-300 ease-out" enter-from="opacity-0" enter-to="opacity-100" leave="duration-200 ease-in" leave-from="opacity-100" leave-to="opacity-0">
-          <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" />
-        </TransitionChild>
+    <Dialog 
+      v-model:visible="isModalOpen" 
+      modal 
+      :draggable="false"
+      :pt="{
+        root: 'w-full max-w-md transform overflow-hidden rounded-3xl bg-white dark:bg-slate-900 p-8 text-left align-middle shadow-2xl transition-all border border-slate-200 dark:border-slate-800',
+        header: 'hidden',
+        content: 'p-0 flex flex-col'
+      }"
+    >
+      <div class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-3 mb-6">
+        <div class="p-2 bg-rose-500/10 text-rose-500 rounded-xl">
+          <Clock class="w-5 h-5" />
+        </div>
+        {{ editingSchedule ? 'Edit Schedule Window' : 'New Schedule Window' }}
+      </div>
 
-        <div class="fixed inset-0 overflow-y-auto">
-          <div class="flex min-h-full items-center justify-center p-4 text-center">
-            <TransitionChild as="template" enter="duration-300 ease-out" enter-from="opacity-0 scale-95" enter-to="opacity-100 scale-100" leave="duration-200 ease-in" leave-from="opacity-100 scale-100" leave-to="opacity-0 scale-95">
-              <DialogPanel class="w-full max-w-md transform overflow-hidden rounded-3xl bg-white dark:bg-slate-900 p-8 text-left align-middle shadow-2xl transition-all border border-slate-200 dark:border-slate-800">
-                <DialogTitle as="h3" class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-3 mb-6">
-                  <div class="p-2 bg-rose-500/10 text-rose-500 rounded-xl">
-                    <Clock class="w-5 h-5" />
-                  </div>
-                  {{ editingSchedule ? 'Edit Schedule Window' : 'New Schedule Window' }}
-                </DialogTitle>
+      <div class="space-y-6">
+        <!-- Name -->
+        <div class="space-y-2">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Schedule Name</label>
+          <InputText v-model="form.name" type="text" placeholder="e.g. Night Time Block"
+            class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm font-bold focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500/50 transition-all dark:text-white" />
+        </div>
 
-                <div class="space-y-6">
-                  <!-- Name -->
-                  <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Schedule Name</label>
-                    <input v-model="form.name" type="text" placeholder="e.g. Night Time Block"
-                      class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm font-bold focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500/50 transition-all dark:text-white" />
-                  </div>
-
-                  <!-- Time Range -->
-                  <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-2">
-                      <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Start Time</label>
-                      <input v-model="form.start_time" type="time"
-                        class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm font-black focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500/50 transition-all dark:text-white" />
-                    </div>
-                    <div class="space-y-2">
-                      <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">End Time</label>
-                      <input v-model="form.end_time" type="time"
-                        class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm font-black focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500/50 transition-all dark:text-white" />
-                    </div>
-                  </div>
-
-                  <!-- Days Selection -->
-                  <div class="space-y-3">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Repeat On</label>
-                    <div class="flex justify-between gap-1">
-                      <button v-for="day in 7" :key="day-1" 
-                        @click="toggleDay(day-1)"
-                        class="w-10 h-10 flex items-center justify-center rounded-xl text-[10px] font-black border transition-all"
-                        :class="form.days.includes(day-1) 
-                          ? 'bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-500/20' 
-                          : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-100 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'">
-                        {{ dayNamesShort[day-1] }}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="mt-10 flex gap-3">
-                  <button @click="closeModal" class="flex-1 px-6 py-3.5 rounded-2xl text-sm font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
-                    Cancel
-                  </button>
-                  <button @click="saveSchedule" :disabled="isSaving"
-                    class="flex-2 px-8 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl shadow-xl shadow-rose-500/20 transition-all font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2">
-                    <Loader2 v-if="isSaving" class="w-4 h-4 animate-spin" />
-                    {{ editingSchedule ? 'Update Schedule' : 'Create Schedule' }}
-                  </button>
-                </div>
-              </DialogPanel>
-            </TransitionChild>
+        <!-- Time Range -->
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-2">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Start Time</label>
+            <input v-model="form.start_time" type="time"
+              class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm font-black focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500/50 transition-all dark:text-white" />
+          </div>
+          <div class="space-y-2">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">End Time</label>
+            <input v-model="form.end_time" type="time"
+              class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm font-black focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500/50 transition-all dark:text-white" />
           </div>
         </div>
-      </Dialog>
-    </TransitionRoot>
+
+        <!-- Days Selection -->
+        <div class="space-y-3">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Repeat On</label>
+          <div class="flex justify-between gap-1">
+            <button v-for="day in 7" :key="day-1" 
+              type="button"
+              @click="toggleDay(day-1)"
+              class="w-10 h-10 flex items-center justify-center rounded-xl text-[10px] font-black border transition-all cursor-pointer bg-transparent"
+              :class="form.days.includes(day-1) 
+                ? 'bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-500/20' 
+                : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-100 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'">
+              {{ dayNamesShort[day-1] }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-10 flex gap-3">
+        <Button @click="closeModal" label="Cancel"
+          :pt="{ root: 'flex-1 px-6 py-3.5 rounded-2xl text-sm font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border-none bg-transparent cursor-pointer' }" />
+        <Button @click="saveSchedule" :disabled="isSaving" :loading="isSaving"
+          :label="editingSchedule ? 'Update Schedule' : 'Create Schedule'"
+          :pt="{ root: 'flex-2 px-8 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl shadow-xl shadow-rose-500/20 transition-all font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 border-none cursor-pointer' }"
+        >
+          <template #icon>
+            <Loader2 v-if="isSaving" class="w-4 h-4 animate-spin" />
+          </template>
+        </Button>
+      </div>
+    </Dialog>
     <ConfirmationModal 
       :isOpen="isDeleteModalOpen"
       title="Delete Schedule"
@@ -256,9 +260,10 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { 
   Plus, Clock, Pencil, Trash2, ArrowRight, Loader2, Calendar
 } from 'lucide-vue-next'
-import { 
-  Dialog, DialogPanel, DialogTitle, TransitionChild, TransitionRoot, Switch 
-} from '@headlessui/vue'
+import Dialog from 'primevue/dialog'
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import ToggleSwitch from 'primevue/toggleswitch'
 import api from '@/utils/api'
 import { useNotifications } from '@/composables/useNotifications'
 import { DateTime } from 'luxon'
