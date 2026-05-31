@@ -36,11 +36,7 @@ const routes = [
         name: 'DeviceDetails',
         component: () => import('@/views/DeviceDetails.vue')
       },
-      {
-        path: 'occupancy',
-        name: 'Occupancy',
-        component: () => import('@/views/Occupancy.vue')
-      },
+
       {
         path: 'settings',
         name: 'Settings',
@@ -61,11 +57,7 @@ const routes = [
         name: 'Logs',
         component: () => import('@/views/Logs.vue')
       },
-      {
-        path: 'topology',
-        name: 'Topology',
-        component: () => import('@/views/Topology.vue')
-      },
+
       {
         path: 'integrations',
         name: 'Integrations',

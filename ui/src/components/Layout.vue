@@ -119,11 +119,9 @@ const version = import.meta.env.VITE_APP_VERSION || 'v0.3.1'
 const navItems = computed(() => [
   { name: 'Dashboard', path: '/', icon: HomeIcon },
   { name: 'Devices', path: '/devices', icon: ComputerDesktopIcon, badge: deviceStore.stats.new_24h > 0 ? deviceStore.stats.new_24h : null },
-  { name: 'Topology', path: '/topology', icon: ShareIcon },
   { name: 'Integrations', path: '/integrations', icon: SquaresPlusIcon },
   { name: 'Events', path: '/events', icon: BellIcon },
   { name: 'Analytics', path: '/analytics', icon: ChartBarIcon },
-  { name: 'IP Occupancy', path: '/occupancy', icon: TableCellsIcon },
   { name: 'Logs & Activity', path: '/logs', icon: CommandLineIcon },
   { name: 'Settings', path: '/settings', icon: Cog6ToothIcon },
 ])

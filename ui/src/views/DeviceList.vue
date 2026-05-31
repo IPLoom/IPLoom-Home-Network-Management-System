@@ -1,203 +1,224 @@
 <template>
-  <div class="space-y-4">
-    <!-- Header -->
-    <div class="page-header">
-      <div>
-        <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Devices</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ globalStats.total }} devices discovered</p>
+  <v-container fluid class="pa-4 space-y-4">
+    <!-- Main Header with Tabs -->
+    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between mb-4">
+      <div class="mb-2 mb-md-0">
+        <h1 class="text-h5 font-weight-bold">Devices</h1>
+        <div class="text-body-2 text-medium-emphasis mt-1">{{ globalStats.total }} devices discovered</div>
       </div>
-      <div class="flex items-center gap-3">
-        <div class="btn-group">
-          <button @click="exportDevices"
-            class="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-l-lg transition text-slate-600 dark:text-slate-400 flex items-center gap-2 text-xs font-medium"
-            v-tooltip="'Export Devices to JSON'">
-            <Download class="h-4 w-4" />
-            <span class="hidden sm:inline">Export</span>
-          </button>
-          <div class="w-px bg-slate-200 dark:bg-slate-700"></div>
-          <button @click="$refs.importInput.click()"
-            class="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-r-lg transition text-slate-600 dark:text-slate-400 flex items-center gap-2 text-xs font-medium"
-            v-tooltip="'Import Devices from JSON'">
-            <Upload class="h-4 w-4" />
-            <span class="hidden sm:inline">Import</span>
-          </button>
-        </div>
-        <input type="file" ref="importInput" class="hidden" @change="handleImport" accept=".json" />
+      
+      <v-tabs v-model="activeTab" color="primary" bg-color="transparent" slider-color="primary" density="compact" class="border-b w-100 w-md-auto">
+        <v-tab value="list" class="text-none font-weight-medium rounded-t-lg">
+          <component :is="LucideIcons.List" class="w-4 h-4 mr-2" /> List
+        </v-tab>
+        <v-tab value="topology" class="text-none font-weight-medium rounded-t-lg">
+          <component :is="LucideIcons.Network" class="w-4 h-4 mr-2" /> Topology
+        </v-tab>
+        <v-tab value="occupancy" class="text-none font-weight-medium rounded-t-lg">
+          <component :is="LucideIcons.Grid" class="w-4 h-4 mr-2" /> Occupancy
+        </v-tab>
+      </v-tabs>
+    </div>
+
+    <v-window v-model="activeTab">
+      <!-- List Tab -->
+      <v-window-item value="list">
         
-        <button @click="isDiscoveryOpen = true" 
-          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2"
-          v-tooltip="'Quick Scan for New Devices'">
-          <Radar class="w-4 h-4" />
-          Find New
-        </button>
+        <!-- List Toolbar -->
+        <div class="d-flex justify-end align-center gap-2 mb-4">
+          <v-btn-group variant="outlined" density="comfortable" class="bg-surface" style="border-radius: 8px;">
+            <v-btn @click="exportDevices" v-tooltip="'Export Devices to JSON'" class="text-none">
+              <template v-slot:prepend><component :is="LucideIcons.Download" class="w-4 h-4" /></template>
+              <span class="d-none d-sm-inline">Export</span>
+            </v-btn>
+            <v-btn @click="$refs.importInput.click()" v-tooltip="'Import Devices from JSON'" class="text-none">
+              <template v-slot:prepend><component :is="LucideIcons.Upload" class="w-4 h-4" /></template>
+              <span class="d-none d-sm-inline">Import</span>
+            </v-btn>
+          </v-btn-group>
+          <input type="file" ref="importInput" class="d-none" @change="handleImport" accept=".json" />
+          
+          <v-btn color="primary" @click="isDiscoveryOpen = true" v-tooltip="'Quick Scan for New Devices'" elevation="2" class="text-none font-weight-bold rounded-lg px-4">
+            <template v-slot:prepend><component :is="LucideIcons.Radar" class="w-4 h-4" /></template>
+            Find New
+          </v-btn>
 
-        <button @click="triggerScan" :disabled="isScanning" class="btn-action"
-          v-tooltip="isScanning ? 'Scanning Network...' : 'Scan Network'">
-          <component :is="isScanning ? Loader2 : RefreshCw" class="w-5 h-5" :class="{ 'animate-spin': isScanning }" />
-        </button>
-      </div>
-    </div>
-
-
-
-    <!-- Quick Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div v-for="stat in deviceStats" :key="stat.label" class="card-stat group">
-
-        <!-- Sparkline Background -->
-        <Sparkline :data="stat.trend" :color="stat.color" class="opacity-15" />
-
-        <!-- Header Row -->
-        <div class="relative z-10 flex items-center justify-between w-full">
-          <div :class="[stat.bgClass, 'p-1.5 rounded-lg shadow-sm border border-white/10']">
-            <component :is="stat.icon" class="h-4 w-4" />
-          </div>
-          <div v-if="stat.change"
-            class="flex items-center gap-1 bg-white/50 dark:bg-slate-900/40 px-2 py-0.5 rounded-full backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50">
-            <span :class="[stat.changeType === 'down' ? 'text-rose-500' : 'text-emerald-600', 'text-[10px] font-bold']">
-              {{ stat.change }}
-            </span>
-          </div>
+          <v-btn icon :loading="isScanning" @click="triggerScan" v-tooltip="isScanning ? 'Scanning Network...' : 'Scan Network'" variant="tonal" color="primary" class="rounded-lg">
+            <component :is="LucideIcons.RefreshCw" class="w-5 h-5" />
+          </v-btn>
         </div>
 
-        <!-- Center Content -->
-        <div class="relative z-10 flex flex-col items-center text-center -mt-1">
-          <p class="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none">
-            {{ stat.value }}
-          </p>
-          <p :class="stat.textColor" class="text-[9px] font-black uppercase tracking-[0.2em] opacity-80 mt-1">
-            {{ stat.label }}
-          </p>
-        </div>
-      </div>
-    </div>
+        <!-- Quick Stats -->
+        <v-row class="mb-4 mx-0">
+          <v-col cols="6" md="3" v-for="stat in deviceStats" :key="stat.label">
+            <v-card class="h-100 position-relative overflow-hidden" elevation="2" rounded="lg">
+              <Sparkline :data="stat.trend" :color="stat.color" class="opacity-20 position-absolute w-100 h-100" style="top:0; left:0; pointer-events:none;" />
+              <v-card-text class="d-flex flex-column align-center text-center position-relative z-10 pt-4 pb-3">
+                <div class="d-flex justify-space-between w-100 align-start mb-2">
+                  <v-avatar :class="stat.bgClass" rounded size="32">
+                    <component :is="stat.icon" class="h-4 w-4" />
+                  </v-avatar>
+                  <v-chip v-if="stat.change" size="x-small" :color="stat.changeType === 'down' ? 'error' : 'success'" variant="flat" class="font-weight-bold">
+                    {{ stat.change }}
+                  </v-chip>
+                </div>
+                <div class="text-h4 font-weight-black mt-2">{{ stat.value }}</div>
+                <div :class="stat.textColor" class="text-caption font-weight-black text-uppercase mt-1" style="letter-spacing: 0.1em;">
+                  {{ stat.label }}
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
 
-    <!-- Filters & Search -->
-    <div class="glass-panel flex flex-col gap-4">
-      <div class="flex flex-col md:flex-row gap-4 items-center">
-        <div class="relative flex-1 w-full">
-          <Search class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input v-model="search" @input="debounceFetch" type="text" placeholder="Search IP, Mac, Vendor or Name..."
-            class="input-base" />
-        </div>
-        <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-          <!-- Status Filter -->
-          <div class="relative flex-1 md:w-44 group" v-click-outside="() => isStatusOpen = false">
-            <button @click="isStatusOpen = !isStatusOpen"
-              class="w-full flex items-center justify-between pl-4 pr-3.5 py-2 bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl outline-none hover:ring-2 hover:ring-blue-500/10 transition-all text-sm font-medium text-slate-700 dark:text-slate-300">
-              <div class="flex items-center gap-2.5">
-                <Filter class="h-3.5 w-3.5" :class="statusFilter ? 'text-blue-500' : 'text-slate-400'" />
-                <span>{{ statusFilter ? (statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)) : 'All Statuses'
-                }}</span>
+        <v-card elevation="2" rounded="lg" class="border overflow-hidden">
+          <v-card-text class="pa-0">
+            <!-- Filters & Search -->
+            <div class="pa-4 bg-surface-elevated border-b">
+              <v-row align="center" class="mx-0">
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="search"
+                    @input="debounceFetch"
+                    placeholder="Search IP, Mac, Vendor or Name..."
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                    bg-color="surface"
+                  >
+                    <template v-slot:prepend-inner>
+                      <component :is="LucideIcons.Search" class="h-4 w-4 text-medium-emphasis" />
+                    </template>
+                  </v-text-field>
+                </v-col>
+                <v-col cols="12" md="3">
+                  <v-select
+                    v-model="statusFilter"
+                    :items="[{title: 'All Statuses', value: ''}, {title: 'Online', value: 'online'}, {title: 'Offline', value: 'offline'}]"
+                    @update:modelValue="fetchDevices"
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                    bg-color="surface"
+                  >
+                    <template v-slot:selection="{ item }">
+                      <div class="d-flex align-center">
+                        <component :is="LucideIcons.Filter" class="h-4 w-4 mr-2" :class="statusFilter ? 'text-primary' : 'text-medium-emphasis'" />
+                        {{ item.title }}
+                      </div>
+                    </template>
+                  </v-select>
+                </v-col>
+                <v-col cols="12" md="3">
+                  <v-select
+                    v-model="typeFilter"
+                    :items="[{title: 'All Types', value: ''}, ...deviceTypes.map(t => ({title: t, value: t}))]"
+                    @update:modelValue="fetchDevices"
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                    bg-color="surface"
+                  >
+                    <template v-slot:selection="{ item }">
+                      <div class="d-flex align-center">
+                        <component :is="LucideIcons.Layers" class="h-4 w-4 mr-2" :class="typeFilter ? 'text-primary' : 'text-medium-emphasis'" />
+                        <span class="text-truncate">{{ item.title }}</span>
+                      </div>
+                    </template>
+                  </v-select>
+                </v-col>
+              </v-row>
+              <!-- Display Info Line -->
+              <div class="d-flex align-center justify-space-between text-caption text-medium-emphasis mt-3">
+                <div class="d-flex align-center gap-2">
+                  <component :is="LucideIcons.Activity" class="h-4 w-4 text-primary" />
+                  <span>Showing <b class="text-high-emphasis">{{ devices.length }}</b> of <b class="text-high-emphasis">{{ totalDevices }}</b> devices matching current filters</span>
+                </div>
+                <div v-if="sortBy" class="d-none d-sm-block text-uppercase opacity-70" style="font-size: 10px;">
+                  Sorted by {{ sortBy }} ({{ sortOrder }})
+                </div>
               </div>
-              <ChevronDown class="h-4 w-4 text-slate-400 transition-transform duration-200"
-                :class="{ 'rotate-180': isStatusOpen }" />
-            </button>
+            </div>
 
-            <transition enter-active-class="transition duration-100 ease-out"
-              enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-              leave-active-class="transition duration-75 ease-in" leave-from-class="transform scale-100 opacity-100"
-              leave-to-class="transform scale-95 opacity-0">
-              <div v-if="isStatusOpen"
-                class="absolute z-[60] mt-2 w-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl py-1.5 overflow-hidden">
-                <button v-for="opt in ['', 'online', 'offline']" :key="opt"
-                  @click="statusFilter = opt; isStatusOpen = false; fetchDevices()"
-                  class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-left hover:bg-blue-600 hover:text-white transition-colors"
-                  :class="statusFilter === opt ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
-                  <div class="w-2 h-2 rounded-full"
-                    :class="opt === 'online' ? 'bg-emerald-500' : opt === 'offline' ? 'bg-slate-400' : 'bg-transparent border border-slate-300'">
-                  </div>
-                  {{ opt === '' ? 'All Statuses' : opt.charAt(0).toUpperCase() + opt.slice(1) }}
-                </button>
-              </div>
-            </transition>
-          </div>
+            <!-- Loading State -->
+            <v-skeleton-loader
+              v-if="loading && devices.length === 0"
+              type="table-heading, table-row-divider@5"
+              class="ma-4"
+            ></v-skeleton-loader>
 
-          <!-- Type Filter -->
-          <div class="relative flex-1 md:w-44 group" v-click-outside="() => isTypeOpen = false">
-            <button @click="isTypeOpen = !isTypeOpen"
-              class="w-full flex items-center justify-between pl-4 pr-3.5 py-2 bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl outline-none hover:ring-2 hover:ring-blue-500/10 transition-all text-sm font-medium text-slate-700 dark:text-slate-300">
-              <div class="flex items-center gap-2.5">
-                <Layers class="h-3.5 w-3.5" :class="typeFilter ? 'text-blue-500' : 'text-slate-400'" />
-                <span class="truncate">{{ typeFilter || 'All Types' }}</span>
-              </div>
-              <ChevronDown class="h-4 w-4 text-slate-400 transition-transform duration-200"
-                :class="{ 'rotate-180': isTypeOpen }" />
-            </button>
+            <!-- Empty State -->
+            <v-empty-state
+              v-else-if="!loading && devices.length === 0"
+              icon="mdi-magnify"
+              title="No devices found"
+              text="Try adjusting your search or filters to find what you're looking for."
+              class="my-8"
+            >
+              <template v-slot:media>
+                <component :is="LucideIcons.SearchX" class="w-16 h-16 text-medium-emphasis mb-4 mx-auto" />
+              </template>
+            </v-empty-state>
 
-            <transition enter-active-class="transition duration-100 ease-out"
-              enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-              leave-active-class="transition duration-75 ease-in" leave-from-class="transform scale-100 opacity-100"
-              leave-to-class="transform scale-95 opacity-0">
-              <div v-if="isTypeOpen"
-                class="absolute z-[60] mt-2 w-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl py-1.5 overflow-y-auto max-h-60 scrollbar-hide">
-                <button @click="typeFilter = ''; isTypeOpen = false; fetchDevices()"
-                  class="w-full px-4 py-2 text-sm text-left hover:bg-blue-600 hover:text-white transition-colors"
-                  :class="typeFilter === '' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
-                  All Types
-                </button>
-                <button v-for="type in deviceTypes" :key="type"
-                  @click="typeFilter = type; isTypeOpen = false; fetchDevices()"
-                  class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-left hover:bg-blue-600 hover:text-white transition-colors"
-                  :class="typeFilter === type ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
-                  <component :is="getIcon(type.toLowerCase())" class="h-3.5 w-3.5 opacity-60" />
-                  {{ type }}
-                </button>
-              </div>
-            </transition>
-          </div>
-        </div>
-      </div>
-      <!-- Display Info Line -->
-      <div class="px-2 flex items-center justify-between text-[11px] font-medium text-slate-500 dark:text-slate-400">
-        <div class="flex items-center gap-2">
-          <Activity class="h-3.5 w-3.5 text-blue-500" />
-          <span>Showing <b>{{ devices.length }}</b> of <b>{{ totalDevices }}</b> devices matching current filters</span>
-        </div>
-        <div v-if="sortBy" class="hidden sm:block text-[10px] uppercase tracking-wider opacity-60">
-          Sorted by {{ sortBy }} ({{ sortOrder }})
-        </div>
-      </div>
-    </div>
+            <!-- Devices Table -->
+            <DeviceTable
+              v-else
+              :devices="devices"
+              :columns="['identity', 'status', 'activity', 'actions']"
+              :approvingId="approvingId"
+              :blockingId="blockingId"
+              :sortBy="sortBy"
+              :sortOrder="sortOrder"
+              @sort="toggleSort"
+              @approve="approveDevice"
+              @block-toggle="toggleBlockList"
+              @edit="openEditDialog"
+              @delete="confirmDelete"
+            />
 
-    <!-- Devices Table -->
-    <div class="content-panel">
-      <DeviceTable
-        :devices="devices"
-        :columns="['device', 'network', 'activity', 'ports', 'type', 'last_seen', 'actions']"
-        :approvingId="approvingId"
-        :blockingId="blockingId"
-        :sortBy="sortBy"
-        :sortOrder="sortOrder"
-        @sort="toggleSort"
-        @approve="approveDevice"
-        @block-toggle="toggleBlockList"
-        @edit="openEditDialog"
-        @delete="confirmDelete"
-      />
-    </div>
+            <!-- Pagination -->
+            <div v-if="totalPages > 1" class="d-flex justify-space-between align-center px-4 py-3 border-t bg-surface">
+              <v-btn @click="fetchDevices" icon variant="text" size="small" :loading="loading" v-tooltip="'Refresh List'" class="rounded-lg">
+                <component :is="LucideIcons.RefreshCw" class="h-4 w-4" />
+              </v-btn>
+              
+              <v-pagination
+                v-model="currentPage"
+                :length="totalPages"
+                :total-visible="5"
+                density="comfortable"
+                rounded="circle"
+                @update:modelValue="fetchDevices"
+              ></v-pagination>
+              
+              <div style="width: 40px;"></div> <!-- Spacer to center pagination -->
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-window-item>
 
-    <!-- Pagination -->
-    <div v-if="totalPages > 1" class="flex justify-center items-center gap-2">
-      <button @click="changePage(currentPage - 1)" :disabled="currentPage <= 1" class="pagination-btn">
-        Previous
-      </button>
-      <button @click="fetchDevices" class="btn-action !p-2" v-tooltip="'Refresh List'">
-        <RefreshCw class="h-5 w-5" :class="{ 'animate-spin': loading }" />
-      </button>
-      <div class="px-4 py-2 bg-slate-900 dark:bg-white rounded-lg text-sm font-medium text-white dark:text-slate-900">
-        {{ currentPage }} / {{ totalPages }}
-      </div>
-      <button @click="changePage(currentPage + 1)" :disabled="currentPage >= totalPages" class="pagination-btn">
-        Next
-      </button>
-    </div>
+      <!-- Topology Tab -->
+      <v-window-item value="topology">
+        <v-card elevation="2" rounded="lg" class="border overflow-hidden">
+          <v-card-text class="pa-0" style="min-height: 600px;">
+            <Topology />
+          </v-card-text>
+        </v-card>
+      </v-window-item>
 
-    <!-- Edit Modal -->
-    <EditDeviceModal :isOpen="isEditModalOpen" :device="deviceToEdit" @close="isEditModalOpen = false"
-      @save="handleDeviceSaved" />
+      <!-- Occupancy Tab -->
+      <v-window-item value="occupancy">
+        <v-card elevation="2" rounded="lg" class="border overflow-hidden">
+          <v-card-text class="pa-0" style="min-height: 600px;">
+            <Occupancy />
+          </v-card-text>
+        </v-card>
+      </v-window-item>
+    </v-window>
 
-    <!-- Delete Confirmation Modal -->
+    <!-- Modals -->
+    <EditDeviceModal :isOpen="isEditModalOpen" :device="deviceToEdit" @close="isEditModalOpen = false" @save="handleDeviceSaved" />
+
     <ConfirmationModal
       :isOpen="!!deviceToDelete"
       title="Delete Device?"
@@ -208,7 +229,6 @@
       @confirm="deleteDevice"
     />
 
-    <!-- Approve Confirmation Modal -->
     <ConfirmationModal
       :isOpen="!!deviceToApprove"
       title="Trust this Device?"
@@ -219,9 +239,8 @@
       @confirm="confirmApprove"
     />
 
-    <!-- Discovery Modal -->
     <DiscoveryModal :isOpen="isDiscoveryOpen" @close="isDiscoveryOpen = false" @onboarded="fetchDevices" />
-  </div>
+  </v-container>
 </template>
 
 <script setup>
@@ -232,9 +251,11 @@ import EditDeviceModal from '@/components/EditDeviceModal.vue'
 import DiscoveryModal from '@/components/DiscoveryModal.vue'
 import DeviceTable from '@/components/DeviceTable.vue'
 import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import Topology from './Topology.vue'
+import Occupancy from './Occupancy.vue'
 import { getIcon } from '@/utils/icons'
 import * as LucideIcons from 'lucide-vue-next'
-const { Download, Upload, RefreshCw, Loader2, Search, ChevronUp, ChevronDown, ChevronRight, ArrowUpDown, Activity, Wifi, Network, Database, ZapOff, Ticket, Filter, Layers, ShieldCheck, ShieldAlert, Radar, Ban, Zap, Clock } = LucideIcons
+const { Download, Upload, RefreshCw, Loader2, Search, SearchX, ChevronUp, ChevronDown, ChevronRight, ArrowUpDown, Activity, Wifi, Network, Database, ZapOff, Ticket, Filter, Layers, ShieldCheck, ShieldAlert, Radar, Ban, Zap, Clock } = LucideIcons
 import { DateTime } from 'luxon'
 import { formatRelativeTime, parseUTC } from '@/utils/date'
 import { useNotifications } from '@/composables/useNotifications'
@@ -271,6 +292,7 @@ const globalStats = ref({ total: 0, online: 0, offline: 0, top_vendor: 'None', t
 const currentPage = ref(1)
 const totalPages = ref(1)
 const limit = ref(20)
+const activeTab = ref('list')
 
 const isStatusOpen = ref(false)
 const isTypeOpen = ref(false)
