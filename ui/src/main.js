@@ -8,6 +8,8 @@ import clickOutside from './directives/click-outside'
 import VueApexCharts from "vue3-apexcharts"
 import VNetworkGraph from "v-network-graph"
 import "v-network-graph/lib/style.css"
+import PrimeVue from 'primevue/config'
+import Aura from '@primevue/themes/aura'
 
 const app = createApp(App)
 
@@ -15,6 +17,18 @@ app.use(createPinia())
 app.use(router)
 app.use(VueApexCharts)
 app.use(VNetworkGraph)
+app.use(PrimeVue, {
+    theme: {
+        preset: Aura,
+        options: {
+            darkModeSelector: '.dark',
+            cssLayer: {
+                name: 'primevue',
+                order: 'tailwind-base, primevue, tailwind-utilities'
+            }
+        }
+    }
+})
 app.directive('tooltip', tooltip)
 app.directive('click-outside', clickOutside)
 

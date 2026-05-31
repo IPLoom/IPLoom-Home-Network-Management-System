@@ -1,17 +1,17 @@
 <template>
-    <header class="sticky top-0 z-30 w-full bg-white/80 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-all">
+    <header class="sticky top-0 z-30 w-full bg-white/80 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 transition-all duration-300">
         <div class="px-4 sm:px-6 lg:px-8">
             <div class="flex h-16 items-center justify-between gap-4">
                 <!-- Left: Branding -->
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-2 md:hidden">
                         <button @click="$emit('toggle-mobile-menu')"
-                            class="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-all">
+                            class="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-all">
                             <MenuIcon class="h-6 w-6" />
                         </button>
                     </div>
                     <AppLogo class="scale-100 origin-left" />
-                    <div class="hidden lg:block h-6 w-px bg-slate-200 dark:bg-slate-700 mx-2"></div>
+                    <div class="hidden lg:block h-6 w-px bg-slate-200 dark:bg-slate-700/60 mx-2"></div>
                 </div>
 
                 <!-- Center: Search Bar -->
@@ -21,7 +21,7 @@
                         <SearchIcon class="h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                     </div>
                     <input v-model="searchStore.searchQuery" type="text" placeholder="Search devices or activity..."
-                        class="block w-full pl-10 pr-12 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all dark:text-slate-200" 
+                        class="block w-full pl-10 pr-12 py-2 border border-slate-200 dark:border-slate-700/80 rounded-xl bg-slate-50 dark:bg-slate-800/40 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all dark:text-slate-200" 
                         @input="handleInput" @focus="showResults = true"
                         @keyup.enter="goToDevices" />
                     
@@ -37,14 +37,14 @@
                         </button>
                     </div>
 
-                    <!-- Search Results -->
+                    <!-- Search Results Dropdown (Absolute Container for Input width alignment) -->
                     <transition enter-active-class="transition duration-200 ease-out"
                         enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
                         leave-active-class="transition duration-150 ease-in"
                         leave-from-class="transform scale-100 opacity-100"
                         leave-to-class="transform scale-95 opacity-0">
                         <div v-if="showResults && (searchStore.results.length > 0 || searchStore.isLoading || (searchStore.searchQuery.length >= 2 && !searchStore.isLoading))"
-                            class="absolute mt-2 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden z-50">
+                            class="absolute mt-2 w-full bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden z-50">
                             <div v-if="searchStore.isLoading" class="p-6 flex items-center justify-center">
                                 <Loader2Icon class="h-5 w-5 text-blue-500 animate-spin" />
                             </div>
@@ -77,7 +77,7 @@
                 <!-- Right: Actions -->
                 <div class="flex items-center gap-3">
                     <!-- Integrations Status -->
-                    <div class="hidden lg:flex items-center gap-1.5 p-1 bg-slate-50/80 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/30">
+                    <div class="hidden lg:flex items-center gap-1.5 p-1 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/50 dark:border-slate-700/30">
                         <div v-for="integration in ['mqtt', 'openwrt', 'adguard', 'deco']" :key="integration" 
                             @click="router.push('/settings')"
                             class="group relative flex items-center h-9 w-9 justify-center cursor-pointer hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all shadow-sm shadow-transparent hover:shadow-slate-200/50">
@@ -100,10 +100,10 @@
                     </div>
 
                     <!-- System Hub: Live & Notifications -->
-                    <div class="flex items-center gap-1.5 p-1 bg-slate-50/80 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/30">
-                        <!-- New Devices Alert -->
-                        <div v-if="hasNewDevices" class="relative" v-click-outside="() => showNewDevices = false">
-                            <button @click="toggleNewDevices"
+                    <div class="flex items-center gap-1.5 p-1 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/50 dark:border-slate-700/30">
+                        <!-- New Devices Alert (PrimeVue Popover) -->
+                        <div v-if="hasNewDevices" class="relative">
+                            <button @click="toggleNewDevices($event)"
                                 class="hidden sm:flex items-center gap-1.5 px-3 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 cursor-pointer hover:bg-emerald-500/20 transition-all group relative">
                                 <Radar class="w-3.5 h-3.5 animate-pulse" />
                                 <span class="text-[10px] font-black uppercase tracking-widest">{{ deviceStore.stats.new_24h }} New</span>
@@ -113,9 +113,9 @@
                                 </span>
                             </button>
 
-                            <!-- New Devices Popover -->
-                            <transition enter-active-class="transition duration-200 ease-out" enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100" leave-active-class="transition duration-150 ease-in" leave-from-class="transform scale-100 opacity-100" leave-to-class="transform scale-95 opacity-0">
-                                <div v-if="showNewDevices" class="absolute right-0 mt-3 w-72 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden z-50">
+                            <!-- PrimeVue Popover for Newly Discovered Devices -->
+                            <Popover ref="newDevicesPopover" :pt="{ content: 'p-0 overflow-hidden border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl bg-white dark:bg-slate-800' }">
+                                <div class="w-72">
                                     <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between bg-emerald-50/50 dark:bg-emerald-900/10">
                                         <h3 class="text-[10px] font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-400">Newly Discovered</h3>
                                         <button @click="dismissNewDevices" class="text-[9px] font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">Dismiss</button>
@@ -135,15 +135,16 @@
                                         </button>
                                     </div>
                                     <div class="p-2 border-t border-slate-100 dark:border-slate-700/50">
-                                        <router-link to="/devices" @click="showNewDevices = false" class="w-full py-2 px-4 text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-xl transition-all flex items-center justify-between">
+                                        <router-link to="/devices" @click="newDevicesPopover.hide()" class="w-full py-2 px-4 text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-xl transition-all flex items-center justify-between">
                                             <span>Manage all devices</span>
                                             <ArrowRightIcon class="h-3 w-3" />
                                         </router-link>
                                     </div>
                                 </div>
-                            </transition>
+                            </Popover>
                         </div>
 
+                        <!-- Zap Connection Status -->
                         <div class="hidden sm:flex items-center gap-1.5 px-3 h-9 rounded-lg border transition-colors duration-500"
                             :class="ws.connected.value ? 'bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400' : 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400'">
                             <Zap class="w-3.5 h-3.5" :class="{ 'animate-pulse': ws.connected.value }" />
@@ -152,9 +153,10 @@
 
                         <div class="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5 hidden sm:block"></div>
 
-                        <div class="relative" v-click-outside="() => showNotifications = false">
-                            <button @click="toggleNotifications"
-                                class="h-9 w-9 flex items-center justify-center text-slate-500 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all relative shadow-sm shadow-transparent hover:shadow-slate-200/50">
+                        <!-- Notifications Bell (PrimeVue Popover) -->
+                        <div class="relative">
+                            <button @click="toggleNotifications($event)"
+                                class="h-9 w-9 flex items-center justify-center text-slate-500 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all relative shadow-sm shadow-transparent hover:shadow-slate-200/50">
                                 <BellIcon class="h-5 w-5" />
                                 <span v-if="notificationStore.unreadCount > 0" class="absolute top-2 right-2 flex h-2 w-2">
                                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
@@ -162,9 +164,9 @@
                                 </span>
                             </button>
 
-                            <!-- Notifications Dropdown -->
-                            <transition enter-active-class="transition duration-200 ease-out" enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100" leave-active-class="transition duration-150 ease-in" leave-from-class="transform scale-100 opacity-100" leave-to-class="transform scale-95 opacity-0">
-                                <div v-if="showNotifications" class="absolute right-0 mt-3 w-80 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden z-50">
+                            <!-- PrimeVue Popover for Notifications -->
+                            <Popover ref="notificationsPopover" :pt="{ content: 'p-0 overflow-hidden border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl bg-white dark:bg-slate-800' }">
+                                <div class="w-80">
                                     <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
                                         <h3 class="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">Recent Activity</h3>
                                         <button @click="markAllAsRead" class="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline">Clear all</button>
@@ -184,34 +186,42 @@
                                         </button>
                                     </div>
                                     <div class="p-2 border-t border-slate-100 dark:border-slate-700/50">
-                                        <router-link to="/logs" @click="showNotifications = false" class="w-full py-2 px-4 text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all flex items-center justify-between">
+                                        <router-link to="/logs" @click="notificationsPopover.hide()" class="w-full py-2 px-4 text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all flex items-center justify-between">
                                             <span>View all events</span>
                                             <ArrowRightIcon class="h-3 w-3" />
                                         </router-link>
                                     </div>
                                 </div>
-                            </transition>
+                            </Popover>
                         </div>
-
                     </div>
 
+                    <!-- Theme Switcher -->
+                    <button @click="toggleTheme" 
+                        class="h-9 w-9 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg border border-slate-200/50 dark:border-slate-700/30 transition-all shadow-sm"
+                        v-tooltip="'Toggle Theme'">
+                        <component :is="isDark ? SunIcon : MoonIcon" class="h-5 w-5 transition-transform duration-300 hover:rotate-12" />
+                    </button>
+
                     <!-- User Profile -->
-                    <div class="relative" v-click-outside="() => showUserMenu = false">
-                        <button @click="showUserMenu = !showUserMenu" class="flex items-center gap-2 h-11 pl-1 pr-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all relative group">
+                    <div class="relative">
+                        <button @click="toggleUserMenu($event)" class="flex items-center gap-2 h-11 pl-1 pr-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all relative group">
                             <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-[11px] font-bold shadow-sm group-hover:scale-105 transition-transform">
                                 {{ authStore.user?.username?.charAt(0).toUpperCase() || 'U' }}
                             </div>
                             <span class="hidden sm:block text-xs font-bold text-slate-700 dark:text-slate-300">{{ authStore.user?.username || 'User' }}</span>
-                            <ChevronDownIcon class="h-3 w-3 text-slate-400 transition-transform duration-200" :class="showUserMenu ? 'rotate-180' : ''" />
+                            <ChevronDownIcon class="h-3 w-3 text-slate-400 transition-transform duration-300" :class="userMenuOpen ? 'rotate-180 text-blue-500' : ''" />
                         </button>
-                        <transition enter-active-class="transition duration-200 ease-out" enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100" leave-active-class="transition duration-150 ease-in" leave-from-class="transform scale-100 opacity-100" leave-to-class="transform scale-95 opacity-0">
-                            <div v-if="showUserMenu" class="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden z-50">
+                        
+                        <!-- PrimeVue Popover for User Profile Options -->
+                        <Popover ref="userMenuPopover" @show="userMenuOpen = true" @hide="userMenuOpen = false" :pt="{ content: 'p-0 overflow-hidden border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl bg-white dark:bg-slate-800' }">
+                            <div class="w-56">
                                 <div class="px-4 py-4 bg-slate-50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-700/50">
                                     <p class="text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white">{{ authStore.user?.full_name || authStore.user?.username }}</p>
                                     <p class="text-[10px] text-slate-500 truncate mt-0.5">System Administrator</p>
                                 </div>
-                                <div class="p-1.5">
-                                    <router-link to="/settings" @click="showUserMenu = false" class="user-menu-item rounded-xl">
+                                <div class="p-1.5 flex flex-col">
+                                    <router-link to="/settings" @click="userMenuPopover.hide()" class="user-menu-item rounded-xl">
                                         <UserIcon class="h-4 w-4" />
                                         <span>Profile Settings</span>
                                     </router-link>
@@ -221,7 +231,7 @@
                                     </button>
                                 </div>
                             </div>
-                        </transition>
+                        </Popover>
                     </div>
                 </div>
             </div>
@@ -262,11 +272,14 @@ import {
     Router as RouterIcon,
     ShieldCheck as ShieldCheckIcon,
     ChevronRight as ChevronRightIcon,
-    Radar
+    Radar,
+    Sun as SunIcon,
+    Moon as MoonIcon
 } from 'lucide-vue-next'
 import { useNotifications } from '@/composables/useNotifications'
 import { ref, onMounted, watch, computed } from 'vue'
 import AppLogo from './AppLogo.vue'
+import Popover from 'primevue/popover'
 import { useSearchStore } from '@/stores/search'
 import { useNotificationStore } from '@/stores/notifications'
 import { useIntegrationStore } from '@/stores/integrations'
@@ -275,6 +288,7 @@ import { useDeviceStore } from '@/stores/devices'
 import { useRouter } from 'vue-router'
 import { formatRelativeTime, parseUTC } from '@/utils/date'
 import { useWebSockets } from '@/composables/useWebSockets'
+import { useTheme } from '@/composables/useTheme'
 
 defineEmits(['toggle-mobile-menu'])
 
@@ -285,35 +299,34 @@ const authStore = useAuthStore()
 const deviceStore = useDeviceStore()
 const router = useRouter()
 const ws = useWebSockets()
+const { isDark, toggleTheme } = useTheme()
 
 const showResults = ref(false)
-const showNotifications = ref(false)
-const showUserMenu = ref(false)
-const showNewDevices = ref(false)
+
+// Popover component references
+const newDevicesPopover = ref(null)
+const notificationsPopover = ref(null)
+const userMenuPopover = ref(null)
+const userMenuOpen = ref(false)
 
 // Last seen timestamp for "New" badge dismissal
 const lastDismissed = ref(localStorage.getItem('new_devices_last_dismissed') || '0')
 
 const hasNewDevices = computed(() => {
     if (deviceStore.stats.new_24h <= 0) return false
-    // If we have new devices in 24h, we check if they were already dismissed
-    // For simplicity, if new_24h > 0 and user hasn't dismissed in last hour, show it
-    // Or more precisely: if we have new ones, show it. Dismissing just hides it until next one.
     return lastDismissed.value !== 'all_seen'
 })
 
-const toggleNewDevices = () => {
-    showNewDevices.value = !showNewDevices.value
-    if (showNewDevices.value) {
-        showResults.value = false
-        showNotifications.value = false
-        showUserMenu.value = false
-        deviceStore.fetchNewDevices()
-    }
+const toggleNewDevices = (event) => {
+    newDevicesPopover.value.toggle(event)
+    notificationsPopover.value.hide()
+    userMenuPopover.value.hide()
+    showResults.value = false
+    deviceStore.fetchNewDevices()
 }
 
 const dismissNewDevices = () => {
-    showNewDevices.value = false
+    newDevicesPopover.value.hide()
     lastDismissed.value = 'all_seen'
     localStorage.setItem('new_devices_last_dismissed', 'all_seen')
 }
@@ -321,7 +334,6 @@ const dismissNewDevices = () => {
 watch(ws.lastNotification, (notif) => {
     if (notif && notif.event_type === 'new_device') {
         deviceStore.fetchStats()
-        // Reset dismissal if a literal new device event arrives
         lastDismissed.value = 'new_event'
         localStorage.removeItem('new_devices_last_dismissed')
     }
@@ -333,7 +345,6 @@ onMounted(() => {
     integrationStore.fetchStatuses()
     deviceStore.fetchStats()
 })
-
 
 const getIntegrationStatus = (key) => {
     if (key === 'mqtt') return integrationStore.mqttStatus.reachable
@@ -376,17 +387,24 @@ const getEventColor = (level) => {
     return 'bg-blue-500/10 text-blue-500'
 }
 
-const toggleNotifications = () => {
-    showNotifications.value = !showNotifications.value
-    if (showNotifications.value) {
-        showResults.value = false
-        showUserMenu.value = false
-        notificationStore.fetchNotifications(true)
-        notificationStore.fetchUnreadCount()
-    }
+const toggleNotifications = (event) => {
+    notificationsPopover.value.toggle(event)
+    newDevicesPopover.value.hide()
+    userMenuPopover.value.hide()
+    showResults.value = false
+    notificationStore.fetchNotifications(true)
+    notificationStore.fetchUnreadCount()
+}
+
+const toggleUserMenu = (event) => {
+    userMenuPopover.value.toggle(event)
+    newDevicesPopover.value.hide()
+    notificationsPopover.value.hide()
+    showResults.value = false
 }
 
 const handleLogout = () => {
+    userMenuPopover.value.hide()
     authStore.logout()
     router.push('/login')
 }
@@ -398,7 +416,7 @@ const markAllAsRead = async () => {
 }
 
 const goToEvent = async (event) => {
-    showNotifications.value = false
+    notificationsPopover.value.hide()
     if (!event.read_at) {
         try {
             await notificationStore.markAsRead([event.id])
@@ -447,10 +465,9 @@ const clearSearch = () => {
 
 const goToDevice = (device) => {
     showResults.value = false
-    showNewDevices.value = false
+    newDevicesPopover.value.hide()
     router.push({ name: 'DeviceDetails', params: { id: device.id } })
 }
-
 
 const goToDevices = () => {
     showResults.value = false
@@ -474,3 +491,4 @@ const getIcon = (name) => {
     return iconMap[key] || HelpCircle
 }
 </script>
+

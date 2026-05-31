@@ -1,6 +1,13 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@layer tailwind-base, primevue, tailwind-utilities;
+
+@layer tailwind-base {
+  @tailwind base;
+}
+
+@layer tailwind-utilities {
+  @tailwind components;
+  @tailwind utilities;
+}
 
 @layer base {
   :root {
@@ -240,9 +247,39 @@
     @apply hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors;
   }
 
+  /* Dashboard Card (PrimeVue Card pass-through wrapper) */
+  .dashboard-card {
+    @apply bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm;
+  }
+
+  .dashboard-card-lg {
+    @apply bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm;
+  }
+
+  /* Skeleton loading placeholder for chart areas */
+  .skeleton-chart {
+    @apply w-full rounded-lg overflow-hidden;
+  }
+
   /* Insight Cards (Dashboard) */
   .insight-card {
     @apply rounded-2xl p-4 text-white flex items-center gap-4 relative overflow-hidden;
+  }
+
+  .insight-card-blue {
+    @apply rounded-2xl p-4 text-white flex items-center gap-4 relative overflow-hidden bg-blue-600;
+  }
+
+  .insight-card-indigo {
+    @apply rounded-2xl p-4 text-white flex items-center gap-4 relative overflow-hidden bg-indigo-600;
+  }
+
+  .insight-card-rose {
+    @apply rounded-2xl p-4 text-white flex items-center gap-4 relative overflow-hidden bg-rose-600;
+  }
+
+  .insight-card-slate {
+    @apply rounded-2xl p-4 text-white flex items-center gap-4 relative overflow-hidden bg-slate-800;
   }
 
   /* Settings Specific */
