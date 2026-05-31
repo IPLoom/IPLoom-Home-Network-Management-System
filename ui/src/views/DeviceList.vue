@@ -6,146 +6,158 @@
         <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Devices</h1>
         <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ globalStats.total }} devices discovered</p>
       </div>
-      <div class="flex items-center gap-3">
-        <div class="btn-group">
-          <button @click="exportDevices"
-            class="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-l-lg transition text-slate-600 dark:text-slate-400 flex items-center gap-2 text-xs font-medium"
-            v-tooltip="'Export Devices to JSON'">
-            <Download class="h-4 w-4" />
-            <span class="hidden sm:inline">Export</span>
-          </button>
-          <div class="w-px bg-slate-200 dark:bg-slate-700"></div>
-          <button @click="$refs.importInput.click()"
-            class="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-r-lg transition text-slate-600 dark:text-slate-400 flex items-center gap-2 text-xs font-medium"
-            v-tooltip="'Import Devices from JSON'">
-            <Upload class="h-4 w-4" />
-            <span class="hidden sm:inline">Import</span>
-          </button>
-        </div>
-        <input type="file" ref="importInput" class="hidden" @change="handleImport" accept=".json" />
-        
-        <button @click="isDiscoveryOpen = true" 
-          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2"
-          v-tooltip="'Quick Scan for New Devices'">
-          <Radar class="w-4 h-4" />
-          Find New
+      <div class="flex items-center gap-1.5 p-1 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/50 dark:border-slate-700/30">
+        <!-- Export -->
+        <button
+          @click="exportDevices"
+          class="px-3 h-9 rounded-lg hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition-all text-slate-600 dark:text-slate-400 flex items-center gap-2 text-xs font-semibold cursor-pointer border-none bg-transparent"
+          v-tooltip="'Export Devices to JSON'"
+        >
+          <Download class="h-4 w-4" />
+          <span class="hidden sm:inline">Export</span>
         </button>
 
-        <button @click="triggerScan" :disabled="isScanning" class="btn-action"
-          v-tooltip="isScanning ? 'Scanning Network...' : 'Scan Network'">
-          <component :is="isScanning ? Loader2 : RefreshCw" class="w-5 h-5" :class="{ 'animate-spin': isScanning }" />
+        <div class="w-px h-5 bg-slate-200 dark:bg-slate-700/60 mx-0.5"></div>
+
+        <!-- Import -->
+        <button
+          @click="$refs.importInput.click()"
+          class="px-3 h-9 rounded-lg hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition-all text-slate-600 dark:text-slate-400 flex items-center gap-2 text-xs font-semibold cursor-pointer border-none bg-transparent"
+          v-tooltip="'Import Devices from JSON'"
+        >
+          <Upload class="h-4 w-4" />
+          <span class="hidden sm:inline">Import</span>
+        </button>
+        <input type="file" ref="importInput" class="hidden" @change="handleImport" accept=".json" />
+
+        <div class="w-px h-5 bg-slate-200 dark:bg-slate-700/60 mx-0.5"></div>
+
+        <!-- Find New -->
+        <button
+          @click="isDiscoveryOpen = true"
+          class="px-3 h-9 rounded-lg hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition-all text-slate-600 dark:text-slate-400 flex items-center gap-2 text-xs font-semibold cursor-pointer border-none bg-transparent"
+          v-tooltip="'Quick Scan for New Devices'"
+        >
+          <Radar class="w-4 h-4" />
+          <span class="hidden sm:inline">Find New</span>
+        </button>
+
+        <div class="w-px h-5 bg-slate-200 dark:bg-slate-700/60 mx-0.5"></div>
+
+        <!-- Scan Network -->
+        <button
+          @click="triggerScan"
+          :disabled="isScanning"
+          class="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition-all text-slate-600 dark:text-slate-400 cursor-pointer border-none bg-transparent"
+          v-tooltip="isScanning ? 'Scanning Network...' : 'Scan Network'"
+        >
+          <component :is="isScanning ? Loader2 : RefreshCw" class="w-4 h-4" :class="{ 'animate-spin': isScanning }" />
         </button>
       </div>
     </div>
 
-
-
     <!-- Quick Stats -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div v-for="stat in deviceStats" :key="stat.label" class="card-stat group">
-
-        <!-- Sparkline Background -->
-        <Sparkline :data="stat.trend" :color="stat.color" class="opacity-15" />
-
-        <!-- Header Row -->
-        <div class="relative z-10 flex items-center justify-between w-full">
-          <div :class="[stat.bgClass, 'p-1.5 rounded-lg shadow-sm border border-white/10']">
-            <component :is="stat.icon" class="h-4 w-4" />
+      <template v-if="loading && devices.length === 0">
+        <div v-for="i in 4" :key="'skel-stat-' + i" class="card-stat">
+          <div class="relative z-10 flex items-center justify-between w-full">
+            <Skeleton width="1.75rem" height="1.75rem" borderRadius="8px" />
+            <Skeleton width="3.5rem" height="1rem" borderRadius="9999px" />
           </div>
-          <div v-if="stat.change"
-            class="flex items-center gap-1 bg-white/50 dark:bg-slate-900/40 px-2 py-0.5 rounded-full backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50">
-            <span :class="[stat.changeType === 'down' ? 'text-rose-500' : 'text-emerald-600', 'text-[10px] font-bold']">
-              {{ stat.change }}
-            </span>
+          <div class="relative z-10 flex flex-col items-center text-center mt-2">
+            <Skeleton width="2.5rem" height="1.75rem" class="mb-1" />
+            <Skeleton width="4rem" height="0.625rem" />
           </div>
         </div>
+      </template>
+      <template v-else>
+        <div v-for="stat in deviceStats" :key="stat.label" class="card-stat group">
+          <!-- Sparkline Background -->
+          <Sparkline :data="stat.trend" :color="stat.color" class="opacity-15" />
 
-        <!-- Center Content -->
-        <div class="relative z-10 flex flex-col items-center text-center -mt-1">
-          <p class="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none">
-            {{ stat.value }}
-          </p>
-          <p :class="stat.textColor" class="text-[9px] font-black uppercase tracking-[0.2em] opacity-80 mt-1">
-            {{ stat.label }}
-          </p>
+          <!-- Header Row -->
+          <div class="relative z-10 flex items-center justify-between w-full">
+            <div :class="[stat.bgClass, 'p-1.5 rounded-lg shadow-sm border border-white/10']">
+              <component :is="stat.icon" class="h-4 w-4" />
+            </div>
+            <Tag v-if="stat.change"
+              :pt="{
+                root: 'bg-white/50 dark:bg-slate-900/40 px-2 py-0.5 rounded-full border border-slate-200/50 dark:border-slate-700/50'
+              }"
+            >
+              <template #default>
+                <span :class="[stat.changeType === 'down' ? 'text-rose-500' : 'text-emerald-600', 'text-[10px] font-bold']">
+                  {{ stat.change }}
+                </span>
+              </template>
+            </Tag>
+          </div>
+
+          <!-- Center Content -->
+          <div class="relative z-10 flex flex-col items-center text-center -mt-1">
+            <p class="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none">
+              {{ stat.value }}
+            </p>
+            <p :class="stat.textColor" class="text-[9px] font-black uppercase tracking-[0.2em] opacity-80 mt-1">
+              {{ stat.label }}
+            </p>
+          </div>
         </div>
-      </div>
+      </template>
     </div>
 
     <!-- Filters & Search -->
     <div class="glass-panel flex flex-col gap-4">
       <div class="flex flex-col md:flex-row gap-4 items-center">
-        <div class="relative flex-1 w-full">
-          <Search class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input v-model="search" @input="debounceFetch" type="text" placeholder="Search IP, Mac, Vendor or Name..."
-            class="input-base" />
-        </div>
+        <IconField class="flex-1 w-full">
+          <InputIcon>
+            <Search class="h-4 w-4 text-slate-400" />
+          </InputIcon>
+          <InputText
+            v-model="search"
+            @input="debounceFetch"
+            placeholder="Search IP, Mac, Vendor or Name..."
+            class="w-full"
+            :pt="{ root: 'pl-11 pr-4 py-2 bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl text-sm' }"
+          />
+        </IconField>
         <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
           <!-- Status Filter -->
-          <div class="relative flex-1 md:w-44 group" v-click-outside="() => isStatusOpen = false">
-            <button @click="isStatusOpen = !isStatusOpen"
-              class="w-full flex items-center justify-between pl-4 pr-3.5 py-2 bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl outline-none hover:ring-2 hover:ring-blue-500/10 transition-all text-sm font-medium text-slate-700 dark:text-slate-300">
-              <div class="flex items-center gap-2.5">
-                <Filter class="h-3.5 w-3.5" :class="statusFilter ? 'text-blue-500' : 'text-slate-400'" />
-                <span>{{ statusFilter ? (statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)) : 'All Statuses'
-                }}</span>
-              </div>
-              <ChevronDown class="h-4 w-4 text-slate-400 transition-transform duration-200"
-                :class="{ 'rotate-180': isStatusOpen }" />
-            </button>
-
-            <transition enter-active-class="transition duration-100 ease-out"
-              enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-              leave-active-class="transition duration-75 ease-in" leave-from-class="transform scale-100 opacity-100"
-              leave-to-class="transform scale-95 opacity-0">
-              <div v-if="isStatusOpen"
-                class="absolute z-[60] mt-2 w-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl py-1.5 overflow-hidden">
-                <button v-for="opt in ['', 'online', 'offline']" :key="opt"
-                  @click="statusFilter = opt; isStatusOpen = false; fetchDevices()"
-                  class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-left hover:bg-blue-600 hover:text-white transition-colors"
-                  :class="statusFilter === opt ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
-                  <div class="w-2 h-2 rounded-full"
-                    :class="opt === 'online' ? 'bg-emerald-500' : opt === 'offline' ? 'bg-slate-400' : 'bg-transparent border border-slate-300'">
-                  </div>
-                  {{ opt === '' ? 'All Statuses' : opt.charAt(0).toUpperCase() + opt.slice(1) }}
-                </button>
-              </div>
-            </transition>
-          </div>
+          <Select
+            v-model="statusFilter"
+            :options="statusOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="All Statuses"
+            @change="fetchDevices()"
+            class="flex-1 md:w-44"
+            :pt="{
+              root: 'bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl',
+              label: 'text-sm font-medium py-2 pl-4 pr-3.5',
+              dropdown: 'w-8',
+              list: 'py-1.5',
+              option: 'text-sm px-4 py-2'
+            }"
+          />
 
           <!-- Type Filter -->
-          <div class="relative flex-1 md:w-44 group" v-click-outside="() => isTypeOpen = false">
-            <button @click="isTypeOpen = !isTypeOpen"
-              class="w-full flex items-center justify-between pl-4 pr-3.5 py-2 bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl outline-none hover:ring-2 hover:ring-blue-500/10 transition-all text-sm font-medium text-slate-700 dark:text-slate-300">
-              <div class="flex items-center gap-2.5">
-                <Layers class="h-3.5 w-3.5" :class="typeFilter ? 'text-blue-500' : 'text-slate-400'" />
-                <span class="truncate">{{ typeFilter || 'All Types' }}</span>
-              </div>
-              <ChevronDown class="h-4 w-4 text-slate-400 transition-transform duration-200"
-                :class="{ 'rotate-180': isTypeOpen }" />
-            </button>
-
-            <transition enter-active-class="transition duration-100 ease-out"
-              enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-              leave-active-class="transition duration-75 ease-in" leave-from-class="transform scale-100 opacity-100"
-              leave-to-class="transform scale-95 opacity-0">
-              <div v-if="isTypeOpen"
-                class="absolute z-[60] mt-2 w-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl py-1.5 overflow-y-auto max-h-60 scrollbar-hide">
-                <button @click="typeFilter = ''; isTypeOpen = false; fetchDevices()"
-                  class="w-full px-4 py-2 text-sm text-left hover:bg-blue-600 hover:text-white transition-colors"
-                  :class="typeFilter === '' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
-                  All Types
-                </button>
-                <button v-for="type in deviceTypes" :key="type"
-                  @click="typeFilter = type; isTypeOpen = false; fetchDevices()"
-                  class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-left hover:bg-blue-600 hover:text-white transition-colors"
-                  :class="typeFilter === type ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
-                  <component :is="getIcon(type.toLowerCase())" class="h-3.5 w-3.5 opacity-60" />
-                  {{ type }}
-                </button>
-              </div>
-            </transition>
-          </div>
+          <Select
+            v-model="typeFilter"
+            :options="typeOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="All Types"
+            @change="fetchDevices()"
+            class="flex-1 md:w-44"
+            filter
+            :pt="{
+              root: 'bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl',
+              label: 'text-sm font-medium py-2 pl-4 pr-3.5',
+              dropdown: 'w-8',
+              list: 'py-1.5 max-h-60',
+              option: 'text-sm px-4 py-2'
+            }"
+          />
         </div>
       </div>
       <!-- Display Info Line -->
@@ -178,19 +190,26 @@
     </div>
 
     <!-- Pagination -->
-    <div v-if="totalPages > 1" class="flex justify-center items-center gap-2">
-      <button @click="changePage(currentPage - 1)" :disabled="currentPage <= 1" class="pagination-btn">
-        Previous
-      </button>
-      <button @click="fetchDevices" class="btn-action !p-2" v-tooltip="'Refresh List'">
-        <RefreshCw class="h-5 w-5" :class="{ 'animate-spin': loading }" />
-      </button>
+    <div v-if="totalPages > 1" class="flex justify-end items-center gap-2 mt-4">
+      <Button
+        @click="changePage(currentPage - 1)"
+        :disabled="currentPage <= 1"
+        severity="secondary"
+        outlined
+        label="Previous"
+        :pt="{ root: 'px-4 py-2 rounded-lg text-sm font-medium' }"
+      />
       <div class="px-4 py-2 bg-slate-900 dark:bg-white rounded-lg text-sm font-medium text-white dark:text-slate-900">
         {{ currentPage }} / {{ totalPages }}
       </div>
-      <button @click="changePage(currentPage + 1)" :disabled="currentPage >= totalPages" class="pagination-btn">
-        Next
-      </button>
+      <Button
+        @click="changePage(currentPage + 1)"
+        :disabled="currentPage >= totalPages"
+        severity="secondary"
+        outlined
+        label="Next"
+        :pt="{ root: 'px-4 py-2 rounded-lg text-sm font-medium' }"
+      />
     </div>
 
     <!-- Edit Modal -->
@@ -240,6 +259,16 @@ import { formatRelativeTime, parseUTC } from '@/utils/date'
 import { useNotifications } from '@/composables/useNotifications'
 import { useWebSockets } from '@/composables/useWebSockets'
 
+// PrimeVue components
+import Button from 'primevue/button'
+import Tag from 'primevue/tag'
+import Skeleton from 'primevue/skeleton'
+import InputText from 'primevue/inputtext'
+import IconField from 'primevue/iconfield'
+import InputIcon from 'primevue/inputicon'
+import Select from 'primevue/select'
+import Toolbar from 'primevue/toolbar'
+
 const { lastNotification } = useWebSockets()
 const formatBytes = (bytes) => {
   if (bytes === 0) return '0 B'
@@ -272,8 +301,6 @@ const currentPage = ref(1)
 const totalPages = ref(1)
 const limit = ref(20)
 
-const isStatusOpen = ref(false)
-const isTypeOpen = ref(false)
 const expandedRows = ref(new Set())
 
 const toggleRow = (id) => {
@@ -300,13 +327,11 @@ const deviceToEdit = ref(null)
 
 const { notifySuccess, notifyError } = useNotifications()
 
-const tableHeaders = [
-  { key: 'display_name', label: 'Device', class: 'md:w-1/4' },
-  { key: 'mac', label: 'Network Info', class: 'hidden md:table-cell w-1/5' },
-  { key: 'activity', label: 'Activity', class: 'hidden md:table-cell w-1/6' },
-  { key: 'open_ports', label: 'Open Ports', class: 'hidden md:table-cell w-1/6' },
-  { key: 'device_type', label: 'Type', class: 'hidden md:table-cell w-1/12' },
-  { key: 'last_seen', label: 'Last Seen', class: 'hidden md:table-cell w-1/12' },
+// PrimeVue Select options
+const statusOptions = [
+  { label: 'All Statuses', value: '' },
+  { label: 'Online', value: 'online' },
+  { label: 'Offline', value: 'offline' }
 ]
 
 import { useSystemStore } from '@/stores/system'
@@ -316,6 +341,21 @@ const deviceTypes = computed(() => {
   return systemStore.deviceTypes
 })
 
+const typeOptions = computed(() => {
+  return [
+    { label: 'All Types', value: '' },
+    ...deviceTypes.value.map(t => ({ label: t, value: t }))
+  ]
+})
+
+const tableHeaders = [
+  { key: 'display_name', label: 'Device', class: 'md:w-1/4' },
+  { key: 'mac', label: 'Network Info', class: 'hidden md:table-cell w-1/5' },
+  { key: 'activity', label: 'Activity', class: 'hidden md:table-cell w-1/6' },
+  { key: 'open_ports', label: 'Open Ports', class: 'hidden md:table-cell w-1/6' },
+  { key: 'device_type', label: 'Type', class: 'hidden md:table-cell w-1/12' },
+  { key: 'last_seen', label: 'Last Seen', class: 'hidden md:table-cell w-1/12' },
+]
 
 const getSortIcon = (key) => {
   if (sortBy.value !== key) return ArrowUpDown

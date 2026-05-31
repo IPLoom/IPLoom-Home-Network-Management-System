@@ -7,30 +7,24 @@
         <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Network overview and real-time monitoring</p>
       </div>
       <div class="flex items-center gap-3">
-        <Tag
-          class="hidden md:inline-flex h-9"
-          severity="success"
-          :pt="{
-            root: 'px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-900/20 h-9 flex items-center'
-          }"
+        <div
+          class="hidden md:inline-flex items-center h-9 px-3 rounded-lg border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-900/20 shadow-sm"
         >
-          <template #default>
-            <div class="flex items-center gap-2">
-              <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span class="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Scanner Active</span>
-            </div>
-          </template>
-        </Tag>
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span class="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Scanner Active</span>
+          </div>
+        </div>
         <Button
           @click="fetchAllData"
           :loading="loading"
           severity="secondary"
           text
           v-tooltip="'Refresh All Data'"
-          :pt="{ root: 'h-9 w-9 p-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center' }"
+          :pt="{ root: 'h-9 w-9 p-0 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center bg-white/60 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-700/50' }"
         >
           <template #icon>
-            <RefreshCw class="w-5 h-5" />
+            <RefreshCw class="w-4 h-4" :class="{ 'animate-spin': loading }" />
           </template>
         </Button>
       </div>
