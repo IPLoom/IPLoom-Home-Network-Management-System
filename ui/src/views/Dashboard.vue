@@ -1,305 +1,255 @@
 <template>
-  <div class="space-y-4">
+  <v-container fluid class="pa-4 d-flex flex-column gap-4">
     <!-- Header -->
-    <div class="page-header">
+    <div class="d-flex flex-column flex-md-row align-md-center justify-space-between mb-2 gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-white leading-tight">Dashboard</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Network overview and real-time monitoring</p>
+        <h1 class="text-h4 font-weight-bold">Dashboard</h1>
+        <p class="text-subtitle-2 text-medium-emphasis mt-1">Network overview and real-time monitoring</p>
       </div>
-      <div class="flex items-center gap-3">
-        <div
-          class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-          <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-          <span class="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Scanner
-            Active</span>
-        </div>
-        <button @click="fetchAllData" class="btn-action !rounded-xl p-2.5" v-tooltip="'Refresh All Data'">
-          <RefreshCw class="w-5 h-5" :class="{ 'animate-spin': loading }" />
-        </button>
+      <div class="d-none d-md-flex align-center px-3 py-1 rounded-pill" style="background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2);">
+        <div class="bg-success rounded-circle pulse-animation mr-2" style="width: 8px; height: 8px;"></div>
+        <span class="text-caption font-weight-bold text-uppercase text-success" style="letter-spacing: 0.05em;">Scanner Active</span>
       </div>
     </div>
 
     <!-- Stats Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div v-for="stat in mainStats" :key="stat.label" class="card-stat group">
-
-        <!-- Decoration -->
-        <div
-          class="absolute -right-4 -top-4 w-24 h-24 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity text-slate-900 dark:text-white">
-          <component :is="stat.icon" class="w-full h-full" />
-        </div>
-
-        <div class="flex items-start justify-between relative z-10">
-          <div :class="[stat.bgClass, 'p-2.5 rounded-xl shadow-sm border border-white/10']">
-            <component :is="stat.icon" class="h-5 w-5" />
-          </div>
-          <div v-if="stat.trend"
-            class="flex items-center gap-1 bg-white/50 dark:bg-slate-900/40 px-2 py-0.5 rounded-full border border-slate-200/50 dark:border-slate-700/50 text-[10px] font-bold"
-            :class="stat.trendColor">
-            {{ stat.trend }}
-          </div>
-        </div>
-
-        <div class="mt-4 relative z-10">
-          <p class="heading-xl">
-            {{ stat.value }}
-          </p>
-          <p class="subtext-caps">
-            {{ stat.label }}
-          </p>
-        </div>
-      </div>
-    </div>
+    <v-row>
+      <v-col v-for="stat in mainStats" :key="stat.label" cols="12" sm="6" lg="3">
+        <v-card variant="flat" border class="h-100 position-relative overflow-hidden bg-surface-elevated">
+          <component :is="stat.icon" class="position-absolute text-medium-emphasis" style="width: 96px; height: 96px; right: -16px; top: -16px; opacity: 0.05;" />
+          <v-card-item>
+            <div class="d-flex align-center justify-space-between mb-4">
+              <v-avatar rounded :class="stat.bgClass" size="40">
+                <component :is="stat.icon" style="width: 20px; height: 20px;" />
+              </v-avatar>
+              <v-chip v-if="stat.trend" size="small" :color="stat.trendColor" variant="tonal" class="font-weight-bold">
+                {{ stat.trend }}
+              </v-chip>
+            </div>
+            <div class="text-h4 font-weight-bold">{{ stat.value }}</div>
+            <div class="text-overline text-medium-emphasis">{{ stat.label }}</div>
+          </v-card-item>
+        </v-card>
+      </v-col>
+    </v-row>
 
     <!-- Insights Row -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div class="insight-card bg-blue-600 group">
-        <div class="p-3 bg-white/20 rounded-xl">
-          <Layers class="w-6 h-6" />
-        </div>
-        <div class="relative z-10">
-          <p class="text-[10px] font-black uppercase tracking-widest opacity-70">Inventory</p>
-          <p class="text-lg font-bold">{{ globalStats.unique_vendors || 0 }} Brands</p>
-        </div>
-        <div class="absolute -right-2 -bottom-2 opacity-10 group-hover:scale-110 transition-transform">
-          <Layers class="w-16 h-16" />
-        </div>
-      </div>
-
-      <div class="insight-card bg-indigo-600 group">
-        <div class="p-3 bg-white/20 rounded-xl">
-          <Globe class="w-6 h-6" />
-        </div>
-        <div class="relative z-10">
-          <p class="text-[10px] font-black uppercase tracking-widest opacity-70">DNS Queries</p>
-          <p class="text-lg font-bold">{{ summary.dns?.total?.toLocaleString() || 0 }} <span
-              class="text-xs font-normal opacity-60 ml-0.5">24h</span></p>
-        </div>
-        <div class="absolute -right-2 -bottom-2 opacity-10 group-hover:scale-110 transition-transform">
-          <Globe class="w-16 h-16" />
-        </div>
-      </div>
-
-      <div class="insight-card bg-rose-600 group">
-        <div class="p-3 bg-white/20 rounded-xl">
-          <ShieldAlert class="w-6 h-6" />
-        </div>
-        <div class="relative z-10">
-          <p class="text-[10px] font-black uppercase tracking-widest opacity-70">Block Rate</p>
-          <p class="text-lg font-bold">{{ summary.dns?.block_rate || 0 }}% <span
-              class="text-xs font-normal opacity-60 ml-0.5">Threats</span></p>
-        </div>
-        <div class="absolute -right-2 -bottom-2 opacity-10 group-hover:scale-110 transition-transform">
-          <ShieldAlert class="w-16 h-16" />
-        </div>
-      </div>
-
-      <div class="insight-card bg-slate-800 group">
-        <div class="p-3 bg-white/10 rounded-xl">
-          <Zap class="w-6 h-6" />
-        </div>
-        <div class="relative z-10">
-          <p class="text-[10px] font-black uppercase tracking-widest opacity-70">Top DNS Client</p>
-          <p class="text-xs font-bold truncate max-w-[120px]">{{ summary.dns?.top_client || 'None' }}</p>
-        </div>
-        <div class="absolute -right-2 -bottom-2 opacity-10 group-hover:scale-110 transition-transform">
-          <Activity class="w-16 h-16" />
-        </div>
-      </div>
-    </div>
+    <v-row>
+      <v-col cols="12" sm="6" md="3">
+        <v-card class="bg-blue-darken-2 position-relative overflow-hidden text-white" elevation="4" rounded="lg">
+          <Layers class="position-absolute" style="width: 64px; height: 64px; right: -8px; bottom: -8px; opacity: 0.1;" />
+          <v-card-item>
+            <div class="d-flex align-center gap-4">
+              <v-avatar color="rgba(255,255,255,0.2)" rounded>
+                <Layers style="width: 24px; height: 24px;" />
+              </v-avatar>
+              <div>
+                <div class="text-caption font-weight-bold text-uppercase opacity-70">Inventory</div>
+                <div class="text-h6 font-weight-bold">{{ globalStats.unique_vendors || 0 }} Brands</div>
+              </div>
+            </div>
+          </v-card-item>
+        </v-card>
+      </v-col>
+      <v-col cols="12" sm="6" md="3">
+        <v-card class="bg-indigo-darken-2 position-relative overflow-hidden text-white" elevation="4" rounded="lg">
+          <Globe class="position-absolute" style="width: 64px; height: 64px; right: -8px; bottom: -8px; opacity: 0.1;" />
+          <v-card-item>
+            <div class="d-flex align-center gap-4">
+              <v-avatar color="rgba(255,255,255,0.2)" rounded>
+                <Globe style="width: 24px; height: 24px;" />
+              </v-avatar>
+              <div>
+                <div class="text-caption font-weight-bold text-uppercase opacity-70">DNS Queries</div>
+                <div class="text-h6 font-weight-bold">{{ summary.dns?.total?.toLocaleString() || 0 }} <span class="text-caption opacity-60">24h</span></div>
+              </div>
+            </div>
+          </v-card-item>
+        </v-card>
+      </v-col>
+      <v-col cols="12" sm="6" md="3">
+        <v-card class="bg-pink-darken-2 position-relative overflow-hidden text-white" elevation="4" rounded="lg">
+          <ShieldAlert class="position-absolute" style="width: 64px; height: 64px; right: -8px; bottom: -8px; opacity: 0.1;" />
+          <v-card-item>
+            <div class="d-flex align-center gap-4">
+              <v-avatar color="rgba(255,255,255,0.2)" rounded>
+                <ShieldAlert style="width: 24px; height: 24px;" />
+              </v-avatar>
+              <div>
+                <div class="text-caption font-weight-bold text-uppercase opacity-70">Block Rate</div>
+                <div class="text-h6 font-weight-bold">{{ summary.dns?.block_rate || 0 }}% <span class="text-caption opacity-60">Threats</span></div>
+              </div>
+            </div>
+          </v-card-item>
+        </v-card>
+      </v-col>
+      <v-col cols="12" sm="6" md="3">
+        <v-card class="bg-blue-grey-darken-3 position-relative overflow-hidden text-white" elevation="4" rounded="lg">
+          <Activity class="position-absolute" style="width: 64px; height: 64px; right: -8px; bottom: -8px; opacity: 0.1;" />
+          <v-card-item>
+            <div class="d-flex align-center gap-4">
+              <v-avatar color="rgba(255,255,255,0.2)" rounded>
+                <Zap style="width: 24px; height: 24px;" />
+              </v-avatar>
+              <div>
+                <div class="text-caption font-weight-bold text-uppercase opacity-70">Top DNS Client</div>
+                <div class="text-subtitle-2 font-weight-bold text-truncate" style="max-width: 120px;">{{ summary.dns?.top_client || 'None' }}</div>
+              </div>
+            </div>
+          </v-card-item>
+        </v-card>
+      </v-col>
+    </v-row>
 
     <!-- Charts Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <v-row>
       <!-- Aggregate Traffic Chart -->
-      <div
-        class="lg:col-span-2 bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
-        <div class="flex items-center justify-between mb-6">
-          <div class="flex items-center gap-3">
-            <div class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
-              <Activity class="w-5 h-5" />
+      <v-col cols="12" lg="8">
+        <v-card variant="flat" border class="h-100 bg-surface-elevated" rounded="lg">
+          <v-card-title class="d-flex align-center justify-space-between pa-4 pb-0">
+            <div class="d-flex align-center gap-3">
+              <v-avatar color="blue-lighten-5 text-blue" rounded size="40">
+                <Activity style="width: 20px; height: 20px;" />
+              </v-avatar>
+              <div>
+                <div class="text-h6 font-weight-bold">Network Throughput</div>
+                <div class="text-caption text-medium-emphasis">Aggregate traffic across all devices (24h)</div>
+              </div>
             </div>
-            <div>
-              <h2 class="text-lg font-bold text-slate-900 dark:text-white">Network Throughput</h2>
-              <p class="text-xs text-slate-500">Aggregate traffic across all devices (24h)</p>
+          </v-card-title>
+          <v-card-text style="height: 300px;" class="mt-4">
+            <apexchart v-if="trafficSeries[0].data.length > 0" type="area" height="100%" :options="trafficChartOptions" :series="trafficSeries" />
+            <div v-else class="h-100 d-flex flex-column align-center justify-center text-medium-emphasis font-italic">
+              <v-avatar color="surface-variant" size="64" class="mb-4">
+                <Activity style="width: 32px; height: 32px; opacity: 0.2;" />
+              </v-avatar>
+              No traffic data recorded in the last 24h
             </div>
-          </div>
-          <div class="hidden sm:flex items-center gap-4 text-[10px] font-black uppercase tracking-widest">
-            <div class="flex items-center gap-2">
-              <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
-              <span class="text-slate-600 dark:text-slate-300">Download</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <div class="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
-              <span class="text-slate-600 dark:text-slate-300">Upload</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="h-[300px] w-full">
-          <apexchart v-if="trafficSeries[0].data.length > 0" type="area" height="100%" :options="trafficChartOptions"
-            :series="trafficSeries" />
-          <div v-else class="h-full flex flex-col items-center justify-center text-slate-400 italic space-y-3">
-            <div class="p-4 bg-slate-100 dark:bg-slate-900/50 rounded-full">
-              <Activity class="w-8 h-8 opacity-20" />
-            </div>
-            <p class="text-sm">No traffic data recorded in the last 24h</p>
-          </div>
-        </div>
-      </div>
+          </v-card-text>
+        </v-card>
+      </v-col>
 
       <!-- Device Distribution -->
-      <div
-        class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
-        <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Device Types</h2>
-        <p class="text-xs text-slate-500 mb-6">Inventory by category</p>
-
-        <div class="h-[250px] flex items-center justify-center">
-          <apexchart v-if="distributionSeries.length > 0" type="donut" height="100%" :options="distributionOptions"
-            :series="distributionSeries" />
-          <div v-else class="text-slate-400 text-sm italic">Insufficient data</div>
-        </div>
-
-        <div class="mt-6 space-y-2">
-          <div v-for="(item, index) in distributionData.types.slice(0, 4)" :key="item.label"
-            class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <div class="w-2 h-2 rounded-full" :class="categoryColorClasses[index]"></div>
-              <span class="text-xs text-slate-600 dark:text-slate-400 capitalize">{{ item.label }}</span>
+      <v-col cols="12" lg="4">
+        <v-card variant="flat" border class="h-100 bg-surface-elevated" rounded="lg">
+          <v-card-title class="pa-4 pb-0">
+            <div class="text-h6 font-weight-bold">Device Types</div>
+            <div class="text-caption text-medium-emphasis">Inventory by category</div>
+          </v-card-title>
+          <v-card-text class="d-flex flex-column mt-4">
+            <div style="height: 200px;" class="d-flex align-center justify-center">
+              <apexchart v-if="distributionSeries.length > 0" type="donut" height="100%" :options="distributionOptions" :series="distributionSeries" />
+              <div v-else class="text-medium-emphasis font-italic">Insufficient data</div>
             </div>
-            <span class="text-xs font-bold text-slate-900 dark:text-white">{{ item.value }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
+            <div class="mt-4 d-flex flex-column gap-2">
+              <div v-for="(item, index) in distributionData.types.slice(0, 4)" :key="item.label" class="d-flex align-center justify-space-between">
+                <div class="d-flex align-center gap-2">
+                  <v-badge dot inline :color="categoryColorClasses[index]" class="mr-2"></v-badge>
+                  <span class="text-caption text-capitalize text-medium-emphasis">{{ item.label }}</span>
+                </div>
+                <span class="text-caption font-weight-bold">{{ item.value }}</span>
+              </div>
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
 
     <!-- DNS Activity Row -->
-    <div
-      class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
-      <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center gap-3">
-          <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
-            <ShieldCheck class="w-5 h-5" />
-          </div>
-          <div>
-            <h2 class="text-lg font-bold text-slate-900 dark:text-white">DNS Security Pulse</h2>
-            <p class="text-xs text-slate-500">Global DNS activity and blocked threats (24h)</p>
-          </div>
-        </div>
-        <div class="hidden sm:flex items-center gap-4 text-[10px] font-black uppercase tracking-widest">
-          <div class="flex items-center gap-2">
-            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
-            <span class="text-slate-600 dark:text-slate-300">Passed</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="w-2.5 h-2.5 rounded-full bg-rose-500"></div>
-            <span class="text-slate-600 dark:text-slate-300">Blocked</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="h-[200px] w-full">
-        <apexchart v-if="dnsHistory.length > 0" type="area" height="100%" :options="dnsChartOptions"
-          :series="dnsHistorySeries" />
-        <div v-else class="h-full flex flex-col items-center justify-center text-slate-400 italic space-y-3">
-          <p class="text-sm">Waiting for DNS data sync...</p>
-        </div>
-      </div>
-    </div>
+    <v-row>
+      <v-col cols="12">
+        <v-card variant="flat" border class="h-100 bg-surface-elevated" rounded="lg">
+          <v-card-title class="d-flex align-center justify-space-between pa-4 pb-0">
+            <div class="d-flex align-center gap-3">
+              <v-avatar color="indigo-lighten-5 text-indigo" rounded size="40">
+                <ShieldCheck style="width: 20px; height: 20px;" />
+              </v-avatar>
+              <div>
+                <div class="text-h6 font-weight-bold">DNS Security Pulse</div>
+                <div class="text-caption text-medium-emphasis">Global DNS activity and blocked threats (24h)</div>
+              </div>
+            </div>
+          </v-card-title>
+          <v-card-text style="height: 250px;" class="mt-4">
+            <apexchart v-if="dnsHistory.length > 0" type="area" height="100%" :options="dnsChartOptions" :series="dnsHistorySeries" />
+            <div v-else class="h-100 d-flex flex-column align-center justify-center text-medium-emphasis font-italic">
+              Waiting for DNS data sync...
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
 
     <!-- Bottom Row: Activity & Top Consumers -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <v-row>
       <!-- Live Activity -->
-      <div
-        class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-lg font-bold text-slate-900 dark:text-white">Recent Activity</h2>
-          <router-link to="/events"
-            class="text-xs font-bold text-blue-500 hover:text-blue-600 transition-colors uppercase tracking-widest">
-            View All
-          </router-link>
-        </div>
-
-        <div class="space-y-4">
-          <div v-for="event in recentEvents" :key="event.id"
-            class="flex items-center gap-4 p-3 bg-white/50 dark:bg-slate-900/30 rounded-xl border border-slate-100 dark:border-slate-700/50 hover:border-blue-500/30 transition-all group">
-            <div :class="[
-              event.status === 'online' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-slate-100 dark:bg-slate-700 text-slate-500',
-              'p-2 rounded-lg'
-            ]">
-              <component :is="getIcon(event.icon || 'help-circle')" class="w-4 h-4" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center justify-between">
-                <p
-                  class="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-blue-600 transition-colors">
-                  {{ event.display_name || event.ip }}
-                </p>
-                <span class="text-[10px] font-medium text-slate-500 whitespace-nowrap">{{ formatTime(event.changed_at)
-                }}</span>
+      <v-col cols="12" lg="6">
+        <v-card variant="flat" border class="h-100 bg-surface-elevated" rounded="lg">
+          <v-card-title class="d-flex align-center justify-space-between pa-4">
+            <div class="text-h6 font-weight-bold">Recent Activity</div>
+            <v-btn variant="text" color="primary" size="small" class="text-overline" to="/events">View All</v-btn>
+          </v-card-title>
+          <v-list bg-color="transparent" class="px-2 pb-4">
+            <div v-if="recentEvents.length === 0" class="text-center text-medium-emphasis font-italic py-8">No recent activity detected</div>
+            <v-list-item v-for="event in recentEvents" :key="event.id" class="mb-2 bg-surface-variant rounded-lg border">
+              <template v-slot:prepend>
+                <v-avatar rounded :color="event.status === 'online' ? 'success' : 'grey'" variant="tonal" size="40" class="mr-4">
+                  <component :is="getIcon(event.icon || 'help-circle')" style="width: 20px; height: 20px;" />
+                </v-avatar>
+              </template>
+              <div class="d-flex justify-space-between align-center">
+                <v-list-item-title class="font-weight-bold text-truncate" style="max-width: 250px;">{{ event.display_name || event.ip }}</v-list-item-title>
+                <span class="text-caption text-medium-emphasis">{{ formatTime(event.changed_at) }}</span>
               </div>
-              <p class="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
-                <span :class="event.status === 'online' ? 'text-emerald-500' : 'text-slate-400'"
-                  class="w-1.5 h-1.5 rounded-full bg-current"></span>
+              <v-list-item-subtitle class="mt-1 d-flex align-center gap-1">
+                <v-badge dot inline :color="event.status === 'online' ? 'success' : 'grey'"></v-badge>
                 Became {{ event.status }}
-              </p>
-            </div>
-          </div>
-          <div v-if="recentEvents.length === 0" class="py-12 text-center text-slate-400 italic text-sm">
-            No recent activity detected
-          </div>
-        </div>
-      </div>
+              </v-list-item-subtitle>
+            </v-list-item>
+          </v-list>
+        </v-card>
+      </v-col>
 
       <!-- Top Consumers -->
-      <div
-        class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
-        <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-6">Top Consumers <span
-            class="text-xs font-normal text-slate-500 ml-2">(24h)</span></h2>
-
-        <div class="space-y-4">
-          <div v-for="device in topConsumers" :key="device.id" class="flex items-center gap-4 group">
-            <div class="relative">
-              <div
-                class="w-10 h-10 p-2 bg-slate-100 dark:bg-slate-900/50 rounded-xl group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 transition-colors">
-                <component :is="getIcon(device.icon || 'help-circle')"
-                  class="w-full h-full text-slate-600 dark:text-slate-400" />
-              </div>
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-bold text-slate-900 dark:text-white truncate">{{ device.name || device.ip }}</p>
-              <p class="text-[10px] text-slate-500 font-mono">{{ device.ip }}</p>
-            </div>
-            <div class="text-right">
-              <p class="text-sm font-black text-slate-900 dark:text-white">{{ formatBytes(device.total) }}</p>
-              <div class="flex items-center justify-end gap-2 text-[9px] font-bold text-slate-500">
-                <span class="flex items-center gap-0.5">
-                  <ArrowDown class="w-2 h-2 text-emerald-500" /> {{ formatBytes(device.download, 0) }}
-                </span>
-                <span class="flex items-center gap-0.5">
-                  <ArrowUp class="w-2 h-2 text-blue-500" /> {{ formatBytes(device.upload, 0) }}
-                </span>
-              </div>
+      <v-col cols="12" lg="6">
+        <v-card variant="flat" border class="h-100 bg-surface-elevated" rounded="lg">
+          <v-card-title class="pa-4">
+            <span class="text-h6 font-weight-bold">Top Consumers</span>
+            <span class="text-caption text-medium-emphasis ml-2">(24h)</span>
+          </v-card-title>
+          <v-list bg-color="transparent" class="px-2">
+            <div v-if="topConsumers.length === 0" class="text-center text-medium-emphasis font-italic py-8">No traffic data available. Ensure OpenWRT integration is active.</div>
+            <v-list-item v-for="device in topConsumers" :key="device.id" class="mb-2">
+              <template v-slot:prepend>
+                <v-avatar rounded color="grey" variant="tonal" size="40" class="mr-4">
+                  <component :is="getIcon(device.icon || 'help-circle')" style="width: 20px; height: 20px;" />
+                </v-avatar>
+              </template>
+              <v-list-item-title class="font-weight-bold text-truncate" style="max-width: 180px;">{{ device.name || device.ip }}</v-list-item-title>
+              <v-list-item-subtitle class="font-family-mono mt-1">{{ device.ip }}</v-list-item-subtitle>
+              <template v-slot:append>
+                <div class="text-right">
+                  <div class="text-body-2 font-weight-black">{{ formatBytes(device.total) }}</div>
+                  <div class="text-caption text-medium-emphasis font-weight-bold mt-1 d-flex align-center justify-end gap-2">
+                    <span class="d-flex align-center"><ArrowDown style="width: 10px; height: 10px; color: #10b981; margin-right: 2px;" /> {{ formatBytes(device.download, 0) }}</span>
+                    <span class="d-flex align-center"><ArrowUp style="width: 10px; height: 10px; color: #3b82f6; margin-right: 2px;" /> {{ formatBytes(device.upload, 0) }}</span>
+                  </div>
+                </div>
+              </template>
+            </v-list-item>
+          </v-list>
+          <div v-if="topConsumers.length > 0" class="ma-4 pa-4 bg-blue-darken-2 text-white rounded-lg position-relative overflow-hidden">
+            <Zap class="position-absolute" style="width: 96px; height: 96px; right: -16px; bottom: -16px; opacity: 0.1;" />
+            <div class="text-caption font-weight-black text-uppercase opacity-80" style="letter-spacing: 0.2em;">Total Throughput</div>
+            <div class="d-flex align-baseline gap-2 mt-1">
+              <span class="text-h4 font-weight-black">{{ formatBytes(aggregateTotals.download + aggregateTotals.upload) }}</span>
+              <span class="text-caption font-weight-bold opacity-70">processed in 24h</span>
             </div>
           </div>
-          <div v-if="topConsumers.length === 0" class="py-12 text-center text-slate-400 italic text-sm">
-            No traffic data available. Ensure OpenWRT integration is active.
-          </div>
-        </div>
-
-        <!-- Summary Card -->
-        <div v-if="topConsumers.length > 0"
-          class="mt-8 p-4 bg-blue-600 rounded-2xl text-white overflow-hidden relative group">
-          <Zap class="absolute -right-4 -bottom-4 w-24 h-24 text-white/10 group-hover:scale-110 transition-transform" />
-          <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Total Throughput</p>
-          <div class="mt-1 flex items-baseline gap-2">
-            <span class="text-3xl font-black">{{ formatBytes(aggregateTotals.download + aggregateTotals.upload)
-            }}</span>
-            <span class="text-xs font-bold opacity-70">processed in 24h</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script setup>
@@ -349,43 +299,43 @@ const mainStats = computed(() => [
     label: 'Total Devices',
     value: globalStats.value.total,
     icon: Database,
-    bgClass: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+    bgClass: 'bg-blue-lighten-4 text-blue',
     trend: `${Math.round((globalStats.value.trusted / (globalStats.value.total || 1)) * 100)}% Trusted`,
-    trendColor: 'text-blue-600 dark:text-blue-400'
+    trendColor: 'blue'
   },
   {
     label: 'Online Now',
     value: globalStats.value.online,
     icon: Wifi,
-    bgClass: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
+    bgClass: 'bg-green-lighten-4 text-green',
     trend: `${Math.round((globalStats.value.online / (globalStats.value.total || 1)) * 100)}% Active`,
-    trendColor: 'text-emerald-600 dark:text-emerald-400'
+    trendColor: 'success'
   },
   {
     label: 'Open Ports',
     value: globalStats.value.total_ports || 0,
     icon: Lock,
-    bgClass: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
+    bgClass: 'bg-amber-lighten-4 text-amber',
     trend: 'Audited',
-    trendColor: 'text-amber-600'
+    trendColor: 'warning'
   },
   {
     label: 'Untrusted',
     value: globalStats.value.untrusted,
     icon: ShieldAlert,
-    bgClass: 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400',
+    bgClass: 'bg-red-lighten-4 text-red',
     trend: globalStats.value.untrusted > 0 ? `${globalStats.value.untrusted} Verify` : 'Secure',
-    trendColor: globalStats.value.untrusted > 0 ? 'text-rose-600' : 'text-emerald-600'
+    trendColor: globalStats.value.untrusted > 0 ? 'error' : 'success'
   }
 ])
 
 const categoryColorClasses = [
-  'bg-blue-500',
-  'bg-emerald-500',
-  'bg-amber-500',
-  'bg-red-500',
-  'bg-violet-500',
-  'bg-cyan-500'
+  'blue',
+  'green',
+  'amber',
+  'red',
+  'deep-purple',
+  'cyan'
 ]
 
 const getIcon = (name) => {
@@ -470,13 +420,12 @@ const distributionOptions = computed(() => ({
             fontFamily: 'inherit',
             fontWeight: 800,
             color: '#94a3b8',
-            formatter: () => globalStats.value.total
+            formatter: () => String(globalStats.value.total || 0)
           },
           value: {
             fontSize: '20px',
             fontWeight: 900,
-            fontFamily: 'inherit',
-            color: '#1e293b'
+            fontFamily: 'inherit'
           }
         }
       }
@@ -543,3 +492,14 @@ onUnmounted(() => {
   if (pollTimer) clearInterval(pollTimer)
 })
 </script>
+
+<style scoped>
+.pulse-animation {
+  animation: pulse-dot-anim 2s infinite;
+}
+
+@keyframes pulse-dot-anim {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.5; }
+}
+</style>

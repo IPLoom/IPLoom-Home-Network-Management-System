@@ -1,193 +1,204 @@
 <template>
     <v-app-bar :elevation="0" class="border-b" height="64" style="background-color: rgb(var(--color-surface-elevated) / 80%) !important; backdrop-filter: blur(12px);">
-        <div class="top-bar-container">
+        <div class="d-flex align-center w-100 px-4 justify-space-between">
             <!-- Left: Branding & Mobile Trigger -->
-            <div class="brand-section">
-                <div class="mobile-trigger">
-                    <v-btn icon variant="text" size="small" @click="$emit('toggle-mobile-menu')" style="color: rgb(var(--color-text-primary));">
-                        <MenuIcon style="height: 24px; width: 24px;" />
-                    </v-btn>
-                </div>
+            <div class="d-flex align-center">
+                <v-btn class="d-md-none mr-2" icon variant="text" size="small" @click="$emit('toggle-mobile-menu')">
+                    <MenuIcon style="height: 24px; width: 24px;" />
+                </v-btn>
                 <AppLogo style="transform: scale(1); transform-origin: left;" />
-                <div class="divider"></div>
+                <v-divider vertical class="mx-4 d-none d-lg-block"></v-divider>
             </div>
 
             <v-spacer class="hidden-sm-and-down"></v-spacer>
 
             <!-- Center: Search Bar -->
-            <div class="search-section">
+            <div class="flex-grow-1 px-2 d-none d-md-block" style="max-width: 32rem;">
                 <TopBarSearch />
             </div>
 
             <v-spacer></v-spacer>
 
             <!-- Right: Actions -->
-            <div class="actions-section">
+            <div class="d-flex align-center" style="gap: 12px;">
                 <!-- Integrations Status -->
-                <div class="status-panel integrations">
-                    <div v-for="integration in ['mqtt', 'openwrt', 'adguard', 'deco']" :key="integration" 
+                <div class="d-none d-lg-flex align-center pa-1 rounded-lg border bg-surface" style="gap: 4px;">
+                    <v-btn
+                        v-for="integration in ['mqtt', 'openwrt', 'adguard', 'deco']"
+                        :key="integration"
+                        icon
+                        size="small"
+                        variant="text"
                         @click="router.push('/settings')"
-                        class="status-btn">
-                        <component :is="integration === 'mqtt' ? Share2Icon : (integration === 'openwrt' ? RouterIcon : (integration === 'deco' ? Wifi : ShieldCheckIcon))" 
-                            style="height: 16px; width: 16px; transition: color 0.2s;" 
-                            :style="{ color: getIntegrationStatus(integration) ? getIntegrationColorValue(integration) : 'rgb(var(--color-text-tertiary))' }" />
-                        <div v-if="getIntegrationStatus(integration)" 
-                            class="status-indicator-dot"
-                            :style="{ backgroundColor: getIntegrationColorValue(integration) }"
-                            :class="{ 'pulse-animation': getIntegrationPulse(integration) }"></div>
-                        
-                        <v-tooltip activator="parent" location="bottom" content-class="!px-2 !py-1 !text-[10px] !min-h-0">
-                            <div style="display: flex; flex-direction: column; gap: 2px;">
-                                <div style="display: flex; align-items: center; gap: 6px; font-weight: bold;">
-                                    <span style="width: 6px; height: 6px; border-radius: 50%;" :style="{ backgroundColor: getIntegrationStatus(integration) ? '#10b981' : '#ef4444' }"></span>
-                                    <span>{{ integration.toUpperCase() }}: {{ getIntegrationStatus(integration) ? 'Active' : 'Offline' }}</span>
-                                </div>
-                                <span style="color: #94a3b8; font-style: italic; font-size: 9px;">Manage in Settings</span>
-                            </div>
+                    >
+                        <v-badge
+                            :model-value="getIntegrationStatus(integration)"
+                            dot
+                            :color="getIntegrationColorValue(integration)"
+                        >
+                            <component
+                                :is="integration === 'mqtt' ? Share2Icon : (integration === 'openwrt' ? RouterIcon : (integration === 'deco' ? Wifi : ShieldCheckIcon))"
+                                style="height: 16px; width: 16px; transition: color 0.2s;"
+                                :style="{ color: getIntegrationStatus(integration) ? getIntegrationColorValue(integration) : 'rgb(var(--color-text-tertiary))' }"
+                            />
+                        </v-badge>
+                        <v-tooltip activator="parent" location="bottom">
+                            <span class="text-caption font-weight-bold text-uppercase">{{ integration }}: {{ getIntegrationStatus(integration) ? 'Active' : 'Offline' }}</span>
                         </v-tooltip>
-                    </div>
+                    </v-btn>
                 </div>
 
-                <!-- System Hub: Live & Notifications -->
-                <div class="status-panel">
+                <!-- System Hub -->
+                <div class="d-flex align-center pa-1 rounded-lg border bg-surface" style="gap: 4px;">
                     <!-- New Devices Alert -->
                     <v-menu location="bottom end" transition="scale-transition" offset="8" :close-on-content-click="false" v-model="showNewDevices">
                         <template v-slot:activator="{ props }">
-                            <button v-bind="props" @click="deviceStore.fetchNewDevices" class="status-btn">
-                                <Radar style="width: 16px; height: 16px; transition: color 0.2s;" :style="{ color: hasNewDevices ? '#10b981' : 'rgb(var(--color-text-secondary))' }" :class="{ 'pulse-animation': hasNewDevices }" />
-                                <span v-if="hasNewDevices" class="badge-count">
-                                    {{ deviceStore.stats.new_24h }}
-                                </span>
-                                <v-tooltip activator="parent" location="bottom" content-class="!px-2 !py-1 !text-[10px] !min-h-0">
-                                    <span>Discovered Devices</span>
-                                </v-tooltip>
-                            </button>
+                            <v-btn icon size="small" variant="text" v-bind="props" @click="deviceStore.fetchNewDevices">
+                                <v-badge
+                                    :model-value="hasNewDevices"
+                                    :content="deviceStore.stats.new_24h"
+                                    color="success"
+                                >
+                                    <Radar style="width: 16px; height: 16px; transition: color 0.2s;" :style="{ color: hasNewDevices ? '#10b981' : 'rgb(var(--color-text-secondary))' }" />
+                                </v-badge>
+                                <v-tooltip activator="parent" location="bottom"><span class="text-caption">Discovered Devices</span></v-tooltip>
+                            </v-btn>
                         </template>
 
-                        <!-- New Devices Popover -->
-                        <div class="popover-card">
-                            <div class="popover-header">
-                                <h3>Newly Discovered</h3>
-                                <button @click="dismissNewDevices">Dismiss</button>
+                        <!-- Popover -->
+                        <v-card width="340" rounded="lg" elevation="8">
+                            <v-card-title class="d-flex align-center justify-space-between text-caption font-weight-bold text-uppercase py-3 px-4 border-b">
+                                Newly Discovered
+                                <v-btn variant="text" size="small" class="text-none text-medium-emphasis" @click="dismissNewDevices">Dismiss</v-btn>
+                            </v-card-title>
+                            <v-list class="overflow-hidden pa-0" lines="two" density="compact">
+                                <v-list-item v-if="deviceStore.newDevices.length === 0" class="text-center text-caption text-medium-emphasis py-4">Loading devices...</v-list-item>
+                                <v-list-item
+                                    v-for="device in deviceStore.newDevices.slice(0, 3)"
+                                    :key="device.id"
+                                    @click="goToDevice(device)"
+                                    class="border-b"
+                                    density="compact"
+                                >
+                                    <template v-slot:prepend>
+                                        <v-avatar color="grey" variant="tonal" rounded size="32" class="mr-3">
+                                            <component :is="getIcon(device.icon || 'help-circle')" style="width: 16px; height: 16px;" />
+                                        </v-avatar>
+                                    </template>
+                                    <v-list-item-title class="text-body-2 font-weight-bold">{{ device.display_name || device.name }}</v-list-item-title>
+                                    <v-list-item-subtitle class="text-caption font-family-mono" style="font-size: 11px;">{{ device.ip }}</v-list-item-subtitle>
+                                    <template v-slot:append>
+                                        <ChevronRightIcon style="width: 14px; height: 14px; color: rgb(var(--color-text-tertiary));" />
+                                    </template>
+                                </v-list-item>
+                            </v-list>
+                            <div class="pa-2 bg-surface-variant opacity-80">
+                                <v-btn block color="primary" variant="tonal" class="text-none d-flex justify-space-between px-4" @click="showNewDevices = false; router.push('/devices')">
+                                    Manage all devices <ArrowRightIcon style="width: 16px; height: 16px;" />
+                                </v-btn>
                             </div>
-                            <div style="max-h: 320px; overflow-y: auto;">
-                                <div v-if="deviceStore.newDevices.length === 0" style="padding: 32px; text-align: center; color: rgb(var(--color-text-secondary)); font-size: 10px; font-weight: 500;">Loading devices...</div>
-                                <button v-for="device in deviceStore.newDevices" :key="device.id" @click="goToDevice(device)" class="new-device-item">
-                                    <div class="new-device-icon">
-                                        <component :is="getIcon(device.icon || 'help-circle')" style="height: 16px; width: 16px;" />
-                                    </div>
-                                    <div style="flex: 1; min-width: 0;">
-                                        <div style="font-size: 12px; font-weight: bold; color: rgb(var(--color-text-primary)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ device.display_name || device.name }}</div>
-                                        <div style="font-size: 10px; color: rgb(var(--color-text-secondary)); font-family: monospace;">{{ device.ip }}</div>
-                                    </div>
-                                    <ChevronRightIcon style="height: 12px; width: 12px; color: rgb(var(--color-text-tertiary));" />
-                                </button>
-                            </div>
-                            <div style="padding: 8px; border-top: 1px solid rgba(var(--color-border), 0.5);">
-                                <router-link to="/devices" @click="showNewDevices = false" class="popover-footer-link">
-                                    <span>Manage all devices</span>
-                                    <ArrowRightIcon style="height: 12px; width: 12px;" />
-                                </router-link>
-                            </div>
-                        </div>
+                        </v-card>
                     </v-menu>
 
                     <!-- Connection Status -->
-                    <div class="status-btn">
-                        <Zap style="width: 16px; height: 16px;" :style="{ color: ws.connected.value ? '#10b981' : '#rose-500' }" :class="{ 'pulse-animation': ws.connected.value }" />
-                        <v-tooltip activator="parent" location="bottom" content-class="!px-2 !py-1 !text-[10px] !min-h-0">
-                            <span>System Status: {{ ws.connected.value ? 'Live' : 'Offline' }}</span>
-                        </v-tooltip>
-                    </div>
+                    <v-btn icon size="small" variant="text">
+                        <Zap style="width: 16px; height: 16px;" :style="{ color: ws.connected.value ? '#10b981' : '#ef4444' }" />
+                        <v-tooltip activator="parent" location="bottom"><span class="text-caption">System Status: {{ ws.connected.value ? 'Live' : 'Offline' }}</span></v-tooltip>
+                    </v-btn>
+                    
+                    <v-divider vertical class="mx-1 my-2" style="height: 16px;"></v-divider>
 
-                    <div class="separator"></div>
-
-                    <!-- Notifications Dropdown -->
+                    <!-- Notifications -->
                     <v-menu location="bottom end" transition="scale-transition" offset="8" :close-on-content-click="false" v-model="showNotifications" @update:modelValue="onNotificationsToggle">
                         <template v-slot:activator="{ props }">
-                            <button v-bind="props" class="status-btn">
-                                <BellIcon style="height: 16px; width: 16px; color: rgb(var(--color-text-secondary));" />
-                                <span v-if="notificationStore.unreadCount > 0" class="badge-count notifications">
-                                    {{ notificationStore.unreadCount }}
-                                </span>
-                                <v-tooltip activator="parent" location="bottom" content-class="!px-2 !py-1 !text-[10px] !min-h-0">
-                                    <span>System Activity</span>
-                                </v-tooltip>
-                            </button>
+                            <v-btn icon size="small" variant="text" v-bind="props">
+                                <v-badge
+                                    :model-value="notificationStore.unreadCount > 0"
+                                    :content="notificationStore.unreadCount"
+                                    color="primary"
+                                >
+                                    <BellIcon style="height: 16px; width: 16px; color: rgb(var(--color-text-secondary));" />
+                                </v-badge>
+                                <v-tooltip activator="parent" location="bottom"><span class="text-caption">System Activity</span></v-tooltip>
+                            </v-btn>
                         </template>
 
-                        <div class="popover-card" style="width: 320px;">
-                            <div class="popover-header">
-                                <h3>Recent Activity</h3>
-                                <button @click="markAllAsRead" style="color: #2563eb;">Clear all</button>
-                            </div>
-                            <div style="max-h: 384px; overflow-y: auto;">
-                                <div v-if="notificationStore.events.length === 0" style="padding: 40px; text-align: center; color: rgb(var(--color-text-secondary)); font-size: 10px; font-weight: 500;">All caught up!</div>
-                                <button v-for="event in notificationStore.events" :key="event.id" @click="goToEvent(event)" class="notif-item">
-                                    <div v-if="!event.read_at" class="notif-indicator"></div>
-                                    <div style="padding: 8px; border-radius: 12px; display: flex; align-items: center; justify-content: center;" :style="getEventColorStyles(event.level)">
-                                        <component :is="getEventIcon(event)" style="height: 16px; width: 16px;" />
+                        <v-card width="380" rounded="lg" elevation="8">
+                            <v-card-title class="d-flex align-center justify-space-between text-caption font-weight-bold text-uppercase py-3 px-4 border-b">
+                                System Activity
+                                <v-btn variant="text" size="small" class="text-none" color="primary" @click="markAllAsRead">Clear all</v-btn>
+                            </v-card-title>
+                            <v-list class="overflow-hidden pa-0" density="compact">
+                                <v-list-item v-if="notificationStore.events.length === 0" class="text-center text-caption text-medium-emphasis py-4">All caught up!</v-list-item>
+                                <v-list-item
+                                    v-for="event in notificationStore.events.slice(0, 4)"
+                                    :key="event.id"
+                                    @click="goToEvent(event)"
+                                    class="border-b"
+                                    :active="!event.read_at"
+                                    color="primary"
+                                    active-class="bg-blue-lighten-5 dark:bg-blue-darken-4"
+                                    density="compact"
+                                >
+                                    <template v-slot:prepend>
+                                        <v-badge :model-value="!event.read_at" dot color="primary" class="mr-3">
+                                            <v-avatar size="28" :color="getEventColor(event.level)" variant="tonal">
+                                                <component :is="getEventIcon(event)" style="height: 14px; width: 14px;" />
+                                            </v-avatar>
+                                        </v-badge>
+                                    </template>
+                                    <div class="d-flex justify-space-between align-center mb-1">
+                                        <span class="text-caption font-weight-bold text-uppercase text-medium-emphasis" :class="{ 'text-primary': !event.read_at }">{{ event.task_type?.replace('_', ' ') || 'System' }}</span>
+                                        <span class="text-caption text-medium-emphasis" style="font-size: 10px;">{{ formatRelativeTime(parseUTC(event.created_at)) }}</span>
                                     </div>
-                                    <div style="flex: 1; min-width: 0;">
-                                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-                                            <span style="font-size: 10px; font-weight: 900; text-transform: uppercase; color: rgb(var(--color-text-tertiary));">{{ event.task_type?.replace('_', ' ') || 'System' }}</span>
-                                            <span style="font-size: 9px; color: rgb(var(--color-text-tertiary));">{{ formatRelativeTime(parseUTC(event.created_at)) }}</span>
-                                        </div>
-                                        <p style="font-size: 12px; font-weight: 500; color: rgb(var(--color-text-primary)); margin: 2px 0 0 0; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">{{ event.message }}</p>
-                                    </div>
-                                </button>
+                                    <div class="text-body-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4;">{{ event.message }}</div>
+                                </v-list-item>
+                            </v-list>
+                            <div class="pa-2 bg-surface-variant opacity-80">
+                                <v-btn block color="primary" variant="tonal" class="text-none d-flex justify-space-between px-4" @click="showNotifications = false; router.push('/logs')">
+                                    View all events <ArrowRightIcon style="width: 16px; height: 16px;" />
+                                </v-btn>
                             </div>
-                            <div style="padding: 8px; border-top: 1px solid rgba(var(--color-border), 0.5);">
-                                <router-link to="/logs" @click="showNotifications = false" class="popover-footer-link">
-                                    <span>View all events</span>
-                                    <ArrowRightIcon style="height: 12px; width: 12px;" />
-                                </router-link>
-                            </div>
-                        </div>
+                        </v-card>
                     </v-menu>
                 </div>
 
                 <!-- Theme Toggle -->
-                <div class="status-panel">
-                    <button @click="toggleTheme" class="status-btn">
+                <div class="d-flex align-center pa-1 rounded-lg border bg-surface">
+                    <v-btn icon size="small" variant="text" @click="toggleTheme">
                         <SunIcon v-if="theme.global.current.value.dark" style="height: 16px; width: 16px;" />
                         <MoonIcon v-else style="height: 16px; width: 16px;" />
-                        <v-tooltip activator="parent" location="bottom" content-class="!px-2 !py-1 !text-[10px] !min-h-0">
-                            <span>{{ theme.global.current.value.dark ? 'Light Mode' : 'Dark Mode' }}</span>
-                        </v-tooltip>
-                    </button>
+                        <v-tooltip activator="parent" location="bottom"><span class="text-caption">{{ theme.global.current.value.dark ? 'Light Mode' : 'Dark Mode' }}</span></v-tooltip>
+                    </v-btn>
                 </div>
 
                 <!-- User Profile -->
-                <div class="status-panel">
+                <div class="d-flex align-center pa-1 rounded-lg border bg-surface">
                     <v-menu location="bottom end" transition="scale-transition" offset="8" :close-on-content-click="false" v-model="showUserMenu">
                         <template v-slot:activator="{ props }">
-                            <button v-bind="props" class="profile-btn">
-                                <div class="profile-avatar">
+                            <v-btn variant="text" class="px-2" height="32" v-bind="props">
+                                <v-avatar size="24" color="primary" class="mr-2 text-caption font-weight-bold">
                                     {{ authStore.user?.username?.charAt(0).toUpperCase() || 'U' }}
-                                </div>
-                                <span class="profile-name">{{ authStore.user?.username || 'User' }}</span>
-                                <ChevronDownIcon style="height: 12px; width: 12px; color: rgb(var(--color-text-secondary)); transition: transform 0.2s;" :style="{ transform: showUserMenu ? 'rotate(180deg)' : 'rotate(0)' }" />
-                                <v-tooltip activator="parent" location="bottom" content-class="!px-2 !py-1 !text-[10px] !min-h-0">
-                                    <span>User Account</span>
-                                </v-tooltip>
-                            </button>
+                                </v-avatar>
+                                <span class="text-caption font-weight-bold d-none d-sm-block">{{ authStore.user?.username || 'User' }}</span>
+                                <ChevronDownIcon style="height: 14px; width: 14px; margin-left: 4px;" class="text-medium-emphasis" />
+                            </v-btn>
                         </template>
-                        <v-card style="width: 224px; border-radius: 12px; border: 1px solid rgb(var(--color-border)); background-color: rgb(var(--color-surface-elevated)); overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
-                            <div style="padding: 16px; background-color: rgba(var(--color-surface), 0.3); border-bottom: 1px solid rgba(var(--color-border), 0.5);">
-                                <p style="font-size: 12px; font-weight: 900; text-transform: uppercase; color: rgb(var(--color-text-primary)); margin: 0;">{{ authStore.user?.full_name || authStore.user?.username }}</p>
-                                <p style="font-size: 10px; color: rgb(var(--color-text-secondary)); margin: 2px 0 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">System Administrator</p>
+                        <v-card width="224" rounded="lg" elevation="4">
+                            <div class="pa-4 border-b bg-surface-variant">
+                                <p class="text-overline font-weight-black mb-0">{{ authStore.user?.full_name || authStore.user?.username }}</p>
+                                <p class="text-caption text-medium-emphasis mb-0">System Administrator</p>
                             </div>
-                            <div style="padding: 6px;">
-                                <router-link to="/settings" @click="showUserMenu = false" class="user-menu-item" style="border-radius: 8px;">
-                                    <UserIcon style="height: 16px; width: 16px;" />
-                                    <span>Profile Settings</span>
-                                </router-link>
-                                <button @click="handleLogout" class="user-menu-item" style="border-radius: 8px; color: #ef4444; width: 100%; text-align: left; background: transparent; border: none; margin-top: 4px;">
-                                    <LogOutIcon style="height: 16px; width: 16px;" />
-                                    <span>Sign Out</span>
-                                </button>
-                            </div>
+                            <v-list density="compact" class="pa-2">
+                                <v-list-item rounded="lg" @click="showUserMenu = false; router.push('/settings')">
+                                    <template v-slot:prepend><UserIcon style="height: 16px; width: 16px; margin-right: 12px;" /></template>
+                                    <v-list-item-title class="text-body-2">Profile Settings</v-list-item-title>
+                                </v-list-item>
+                                <v-list-item rounded="lg" color="error" class="text-error mt-1" @click="handleLogout">
+                                    <template v-slot:prepend><LogOutIcon style="height: 16px; width: 16px; margin-right: 12px;" /></template>
+                                    <v-list-item-title class="text-body-2">Sign Out</v-list-item-title>
+                                </v-list-item>
+                            </v-list>
                         </v-card>
                     </v-menu>
                 </div>
@@ -291,7 +302,11 @@ const theme = useTheme()
 
 const toggleTheme = () => {
     const nextTheme = theme.global.current.value.dark ? 'light' : 'dark'
-    theme.global.name.value = nextTheme
+    if (theme.change) {
+        theme.change(nextTheme)
+    } else {
+        theme.global.name.value = nextTheme
+    }
     localStorage.setItem('theme', nextTheme)
     
     // Sync with Tailwind dark mode if class exists, otherwise document
@@ -304,7 +319,11 @@ const toggleTheme = () => {
 
 onMounted(() => {
     const savedTheme = localStorage.getItem('theme') || 'light'
-    theme.global.name.value = savedTheme
+    if (theme.change) {
+        theme.change(savedTheme)
+    } else {
+        theme.global.name.value = savedTheme
+    }
     if (savedTheme === 'dark') {
         document.documentElement.classList.add('dark')
     } else {
@@ -347,10 +366,10 @@ const getEventIcon = (event) => {
     return Activity
 }
 
-const getEventColorStyles = (level) => {
-    if (level === 'ERROR') return { backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }
-    if (level === 'WARNING') return { backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }
-    return { backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }
+const getEventColor = (level) => {
+    if (level === 'ERROR') return 'error'
+    if (level === 'WARNING') return 'warning'
+    return 'primary'
 }
 
 const onNotificationsToggle = (isOpen) => {
@@ -415,277 +434,5 @@ const getIcon = (name) => {
 </script>
 
 <style scoped>
-.top-bar-container {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding: 0 16px;
-  justify-content: space-between;
-}
-
-.brand-section {
-  display: flex;
-  align-items: center;
-}
-
-.mobile-trigger {
-  display: flex;
-  align-items: center;
-}
-@media (min-width: 768px) {
-  .mobile-trigger {
-    display: none !important;
-  }
-}
-
-.divider {
-  display: none;
-  height: 24px;
-  width: 1px;
-  background-color: rgb(var(--color-border));
-  margin: 0 16px;
-}
-@media (min-width: 1024px) {
-  .divider {
-    display: block;
-  }
-}
-
-.search-section {
-  flex-grow: 1;
-  max-width: 32rem;
-  width: 100%;
-  padding: 0 8px;
-}
-@media (max-width: 767px) {
-  .search-section {
-    display: none;
-  }
-}
-
-.actions-section {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.status-panel {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px;
-  background-color: rgb(var(--color-surface) / 40%);
-  border-radius: 8px;
-  border: 1px solid rgb(var(--color-border) / 50%);
-}
-@media (max-width: 1023px) {
-  .status-panel.integrations {
-    display: none !important;
-  }
-}
-
-.status-btn {
-  position: relative;
-  display: flex;
-  align-items: center;
-  height: 32px;
-  width: 32px;
-  justify-content: center;
-  cursor: pointer;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  transition: all 0.2s;
-  color: rgb(var(--color-text-secondary));
-}
-.status-btn:hover {
-  background-color: rgb(var(--color-surface-elevated));
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-}
-
-.status-indicator-dot {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  height: 8px;
-  width: 8px;
-  border-radius: 50%;
-  border: 2px solid rgb(var(--color-surface));
-}
-
-.badge-count {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  display: flex;
-  height: 16px;
-  width: 16px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background-color: #10b981;
-  font-size: 8px;
-  font-weight: 900;
-  color: white;
-  border: 1px solid rgb(var(--color-surface));
-}
-
-.badge-count.notifications {
-  background-color: #3b82f6;
-}
-
-.separator {
-  width: 1px;
-  height: 16px;
-  background-color: rgb(var(--color-border));
-  margin: 0 2px;
-}
-@media (max-width: 639px) {
-  .separator {
-    display: none !important;
-  }
-}
-
-.profile-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 32px;
-  padding: 0 10px 0 4px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  transition: all 0.2s;
-  cursor: pointer;
-  color: rgb(var(--color-text-primary));
-}
-.profile-btn:hover {
-  background-color: rgb(var(--color-surface-elevated));
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-}
-
-.profile-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.profile-name {
-  font-size: 11px;
-  font-weight: 700;
-  color: rgb(var(--color-text-primary));
-}
-@media (max-width: 639px) {
-  .profile-name {
-    display: none !important;
-  }
-}
-
-.popover-card {
-  width: 288px;
-  border-radius: 12px;
-  border: 1px solid rgb(var(--color-border));
-  background-color: rgb(var(--color-surface-elevated) / 95%);
-  backdrop-filter: blur(24px);
-  overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-}
-
-.popover-header {
-  padding: 12px 16px;
-  border-bottom: 1px solid rgb(var(--color-border) / 50%);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background-color: rgb(var(--color-surface) / 30%);
-}
-
-.popover-header h3 {
-  font-size: 10px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: rgb(var(--color-text-primary));
-  margin: 0;
-}
-
-.popover-header button {
-  font-size: 9px;
-  font-weight: 700;
-  color: rgb(var(--color-text-secondary));
-  background: transparent;
-  border: none;
-  cursor: pointer;
-}
-.popover-header button:hover {
-  color: rgb(var(--color-text-primary));
-}
-
-.new-device-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid rgb(var(--color-border) / 30%);
-  text-align: left;
-  cursor: pointer;
-}
-.new-device-item:hover {
-  background-color: rgba(59, 130, 246, 0.05);
-}
-.new-device-item:last-child {
-  border-bottom: none;
-}
-
-.new-device-icon {
-  padding: 8px;
-  background-color: rgb(var(--color-surface) / 50%);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgb(var(--color-text-secondary));
-}
-
-.new-device-item:hover .new-device-icon {
-  background-color: rgba(59, 130, 246, 0.1);
-  color: #2563eb;
-}
-
-.popover-footer-link {
-  width: 100%;
-  padding: 8px 16px;
-  font-size: 10px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #2563eb;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-sizing: border-box;
-}
-.popover-footer-link:hover {
-  background-color: rgba(59, 130, 246, 0.05);
-}
-
-.pulse-animation {
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
+/* Vuetify handles spacing, flex, borders, badges and popovers natively now */
 </style>

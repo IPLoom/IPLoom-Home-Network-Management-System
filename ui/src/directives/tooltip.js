@@ -58,7 +58,7 @@ export default {
 
       tooltipDiv = document.createElement('div')
       tooltipDiv.textContent = text
-      tooltipDiv.className = 'fixed z-[9999] px-2.5 py-1.5 text-xs font-medium text-white bg-slate-900/90 dark:bg-slate-700/90 backdrop-blur-md rounded-lg shadow-xl pointer-events-none transition-all duration-200 opacity-0 transform scale-95 border border-white/10 dark:border-slate-600/50'
+      tooltipDiv.className = 'custom-tooltip-box'
       
       document.body.appendChild(tooltipDiv)
       
@@ -68,8 +68,7 @@ export default {
       // Animate in
       requestAnimationFrame(() => {
         if (tooltipDiv) {
-          tooltipDiv.classList.remove('opacity-0', 'scale-95')
-          tooltipDiv.classList.add('opacity-100', 'scale-100')
+          tooltipDiv.classList.add('show')
           // Re-update position after it has definitely painted once
           updatePosition()
         }

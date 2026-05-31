@@ -10,46 +10,57 @@
       border="right"
     >
       <!-- Navigation -->
-      <nav class="nav-container">
-        <ul class="nav-list">
-          <li v-for="item in navItems" :key="item.name">
-            <router-link :to="item.path" class="layout-nav-item" :class="[
-              $route.path === item.path || ($route.path.startsWith(item.path) && item.path !== '/')
-                ? 'active'
-                : '',
-              sidebarCollapsed ? 'collapsed' : 'expanded'
-            ]" v-tooltip:right="sidebarCollapsed ? item.name : null">
-              <!-- Active Indicator Line -->
-              <div v-if="$route.path === item.path || ($route.path.startsWith(item.path) && item.path !== '/')"
-                class="active-indicator"></div>
+      <v-list nav class="flex-grow-1 overflow-y-auto px-2 py-4">
+        <v-list-item
+          v-for="item in navItems"
+          :key="item.name"
+          :to="item.path"
+          :value="item.name"
+          color="primary"
+          rounded="lg"
+          class="mb-1"
+          v-tooltip:right="sidebarCollapsed ? item.name : null"
+        >
+          <template v-slot:prepend>
+            <div class="position-relative d-flex align-center justify-center" style="width: 24px; height: 24px; margin-right: 24px;">
+              <component :is="item.icon" style="width: 20px; height: 20px;" />
+              <v-badge
+                v-if="sidebarCollapsed && item.badge"
+                dot
+                color="success"
+                class="position-absolute"
+                style="top: -4px; right: -4px;"
+              ></v-badge>
+            </div>
+          </template>
+          
+          <v-list-item-title class="text-body-2 font-weight-medium" v-if="!sidebarCollapsed">{{ item.name }}</v-list-item-title>
 
-              <div class="icon-wrapper">
-                <component :is="item.icon" class="nav-icon" />
-                <span v-if="sidebarCollapsed && item.badge" 
-                  class="badge-dot animate-pulse"></span>
-              </div>
-              <span v-if="!sidebarCollapsed" class="nav-label">{{ item.name }}</span>
-              <span v-if="!sidebarCollapsed && item.badge" 
-                class="nav-badge animate-pulse-slow">
-                {{ item.badge }}
-              </span>
-            </router-link>
-          </li>
-        </ul>
-      </nav>
+          <template v-slot:append v-if="!sidebarCollapsed && item.badge">
+            <v-badge
+              :content="item.badge"
+              color="success"
+              inline
+            ></v-badge>
+          </template>
+        </v-list-item>
+      </v-list>
 
       <template v-slot:append>
-        <div class="sidebar-footer">
-          <div v-if="!sidebarCollapsed" class="version-text">
+        <div class="pa-2 border-t">
+          <div v-if="!sidebarCollapsed" class="text-center font-weight-bold text-uppercase text-medium-emphasis mb-2" style="letter-spacing: 0.1em; font-size: 10px;">
             {{ version }}
           </div>
-          <button @click="sidebarCollapsed = !sidebarCollapsed"
-            class="collapse-btn"
-            :class="sidebarCollapsed ? 'collapsed' : 'expanded'"
-            v-tooltip:right="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
-            <component :is="sidebarCollapsed ? ChevronRightIcon : ChevronLeftIcon" style="height: 20px; width: 20px; flex-shrink: 0;" />
-            <span v-if="!sidebarCollapsed">Collapse</span>
-          </button>
+          <v-btn
+            block
+            variant="text"
+            color="medium-emphasis"
+            @click="sidebarCollapsed = !sidebarCollapsed"
+            v-tooltip:right="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+          >
+            <component :is="sidebarCollapsed ? ChevronRightIcon : ChevronLeftIcon" style="width: 20px; height: 20px;" />
+            <span v-if="!sidebarCollapsed" class="ml-2">Collapse</span>
+          </v-btn>
         </div>
       </template>
     </v-navigation-drawer>
@@ -119,150 +130,4 @@ const navItems = computed(() => [
 </script>
 
 <style scoped>
-.nav-container {
-  flex-grow: 1;
-  overflow-y: auto;
-  padding: 16px 0;
-}
-
-.nav-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.layout-nav-item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-  font-weight: 500;
-  text-decoration: none;
-  width: 100%;
-  box-sizing: border-box;
-  transition: all 0.2s;
-  color: rgb(var(--color-text-secondary));
-}
-
-.layout-nav-item:hover {
-  background-color: rgba(var(--color-text-secondary), 0.08);
-  color: rgb(var(--color-text-primary));
-}
-
-.layout-nav-item.active {
-  background-color: rgba(var(--color-primary), 0.1);
-  color: rgb(var(--color-primary));
-  font-weight: 700;
-}
-
-.layout-nav-item.collapsed {
-  justify-content: center;
-  padding: 12px 0;
-}
-
-.layout-nav-item.expanded {
-  justify-content: flex-start;
-  padding: 12px 16px 12px 24px;
-}
-
-.active-indicator {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background-color: rgb(var(--color-primary));
-}
-
-.icon-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.nav-icon {
-  height: 20px;
-  width: 20px;
-  flex-shrink: 0;
-  transition: margin 0.2s;
-}
-
-.layout-nav-item.expanded .nav-icon {
-  margin-right: 12px;
-}
-
-.badge-dot {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  height: 8px;
-  width: 8px;
-  background-color: #10b981;
-  border-radius: 50%;
-  border: 1px solid rgb(var(--color-background));
-}
-
-.nav-label {
-  flex: 1;
-  font-size: 14px;
-}
-
-.nav-badge {
-  margin-left: auto;
-  padding: 2px 6px;
-  font-size: 9px;
-  font-weight: 900;
-  background-color: #10b981;
-  color: white;
-  border-radius: 9999px;
-}
-
-.sidebar-footer {
-  padding: 8px;
-  border-top: 1px solid rgb(var(--color-border));
-}
-
-.version-text {
-  font-size: 10px;
-  text-transform: uppercase;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: rgb(var(--color-text-tertiary));
-  text-align: center;
-  padding: 8px 0;
-}
-
-.collapse-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  padding: 8px;
-  border-radius: 12px;
-  border: none;
-  background: transparent;
-  color: rgb(var(--color-text-secondary));
-  transition: all 0.2s;
-  cursor: pointer;
-}
-
-.collapse-btn:hover {
-  background-color: rgba(var(--color-text-secondary), 0.08);
-}
-
-.collapse-btn.collapsed {
-  justify-content: center;
-}
-
-.collapse-btn.expanded {
-  padding: 8px 12px;
-}
-
-.collapse-btn.expanded span {
-  margin-left: 12px;
-  font-size: 14px;
-  font-weight: 500;
-}
 </style>
