@@ -8,27 +8,55 @@
                     {{ currentTab === 'scans' ? 'Discovery activity log and network scans.' : 'View backend system events and monitoring.' }}
                 </p>
             </div>
-            <!-- Tab Switcher (Standardized) -->
-            <div class="flex p-1 bg-slate-100 dark:bg-slate-700/50 rounded-xl h-11">
-                <button @click="currentTab = 'all'"
-                    class="px-5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2"
-                    :class="currentTab === 'all' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'">
-                    <Activity class="w-4 h-4" />
-                    System
-                </button>
-                <button @click="currentTab = 'tasks'"
-                    class="px-5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2"
-                    :class="currentTab === 'tasks' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'">
-                    <Cog class="w-4 h-4" />
-                    Tasks
-                </button>
-                <button @click="currentTab = 'scans'"
-                    class="px-5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2"
-                    :class="currentTab === 'scans' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'">
-                    <Radar class="w-4 h-4" />
-                    Scans
-                </button>
-            </div>
+            <!-- Tab Switcher (PrimeVue Tabs) -->
+            <Tabs v-model:value="currentTab" class="h-11">
+                <TabList :pt="{
+                  root: { class: 'flex items-center gap-1 bg-slate-100 dark:bg-slate-700/50 p-1 rounded-xl shadow-sm border-none' },
+                  content: { class: '!border-none !border-b-0 !shadow-none bg-transparent', style: 'border: none !important; box-shadow: none !important;' },
+                  tabList: { class: '!border-none !border-b-0 bg-transparent', style: 'border: none !important; border-bottom: none !important;' },
+                  activeBar: { class: 'hidden', style: 'display: none !important;' }
+                }">
+                    <Tab value="all"
+                        :pt="{
+                          root: ({ context }) => [
+                            'flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 border-none outline-none cursor-pointer',
+                            context.active
+                              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' 
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-750 bg-transparent'
+                          ]
+                        }"
+                    >
+                        <Activity class="w-4 h-4" />
+                        <span>System</span>
+                    </Tab>
+                    <Tab value="tasks"
+                        :pt="{
+                          root: ({ context }) => [
+                            'flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 border-none outline-none cursor-pointer',
+                            context.active
+                              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' 
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-750 bg-transparent'
+                          ]
+                        }"
+                    >
+                        <Cog class="w-4 h-4" />
+                        <span>Tasks</span>
+                    </Tab>
+                    <Tab value="scans"
+                        :pt="{
+                          root: ({ context }) => [
+                            'flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 border-none outline-none cursor-pointer',
+                            context.active
+                              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' 
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-750 bg-transparent'
+                          ]
+                        }"
+                    >
+                        <Radar class="w-4 h-4" />
+                        <span>Scans</span>
+                    </Tab>
+                </TabList>
+            </Tabs>
         </div>
 
         <template v-if="currentTab === 'scans'">
@@ -55,124 +83,66 @@
             <ScanHistoryTab ref="scanTabRef" />
         </template>
         <template v-else>
-            <!-- Filters & Search Toolbar -->
+            <!-- Filters & Search Toolbar (PrimeVue Select and InputText) -->
             <div class="glass-panel flex flex-col gap-4">
                 <div class="flex flex-col md:flex-row gap-4 items-center">
                     <div class="relative flex-1 w-full">
-                        <Search class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <input v-model="search" @input="debounceSearch" type="text" placeholder="Search logs..."
-                            class="input-base" />
+                        <IconField>
+                            <InputIcon class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                                <Search class="h-4 w-4" />
+                            </InputIcon>
+                            <InputText v-model="search" @input="debounceSearch" type="text" placeholder="Search logs..."
+                                class="w-full !pl-10 h-10 border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" />
+                        </IconField>
                     </div>
                     <div class="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
                         <!-- Task Type Filter -->
-                        <div v-if="currentTab === 'tasks'" class="relative flex-1 md:w-56 group"
-                            v-click-outside="() => isTaskTypeOpen = false">
-                            <button @click="isTaskTypeOpen = !isTaskTypeOpen"
-                                class="w-full flex items-center justify-between pl-4 pr-3.5 py-2 bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl outline-none hover:ring-2 hover:ring-blue-500/10 transition-all text-sm font-medium text-slate-700 dark:text-slate-300">
-                                <div class="flex items-center gap-2.5">
-                                    <Filter class="h-3.5 w-3.5"
-                                        :class="taskTypeFilter ? 'text-blue-500' : 'text-slate-400'" />
-                                    <span>{{ getTaskLabel(taskTypeFilter) || 'All Types' }}</span>
-                                </div>
-                                <ChevronDown class="h-4 w-4 text-slate-400 transition-transform duration-200"
-                                    :class="{ 'rotate-180': isTaskTypeOpen }" />
-                            </button>
-
-                            <transition enter-active-class="transition duration-100 ease-out"
-                                enter-from-class="transform scale-95 opacity-0"
-                                enter-to-class="transform scale-100 opacity-100"
-                                leave-active-class="transition duration-75 ease-in"
-                                leave-from-class="transform scale-100 opacity-100"
-                                leave-to-class="transform scale-95 opacity-0">
-                                <div v-if="isTaskTypeOpen"
-                                    class="absolute z-[60] mt-2 w-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl py-1.5 overflow-hidden">
-                                    <button @click="taskTypeFilter = ''; isTaskTypeOpen = false; fetchLogs()"
-                                        class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-left hover:bg-blue-600 hover:text-white transition-colors whitespace-nowrap"
-                                        :class="taskTypeFilter === '' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
-                                        All Types
-                                    </button>
-                                    <button v-for="type in taskTypes" :key="type.value"
-                                        @click="taskTypeFilter = type.value; isTaskTypeOpen = false; fetchLogs()"
-                                        class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-left hover:bg-blue-600 hover:text-white transition-colors whitespace-nowrap"
-                                        :class="taskTypeFilter === type.value ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
-                                        <component :is="type.icon" class="w-3.5 h-3.5 opacity-70" />
-                                        {{ type.label }}
-                                    </button>
-                                </div>
-                            </transition>
-                        </div>
+                        <Select v-if="currentTab === 'tasks'"
+                            v-model="taskTypeFilter"
+                            :options="taskTypeOptions"
+                            optionLabel="label"
+                            optionValue="value"
+                            @change="fetchLogs"
+                            placeholder="All Types"
+                            class="w-full md:w-56"
+                            :pt="{
+                                root: { class: 'h-10 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-xl flex items-center justify-between text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500' }
+                            }"
+                        />
 
                         <!-- Level Filter -->
-                        <div v-else class="relative flex-1 md:w-44 group" v-click-outside="() => isLevelOpen = false">
-                            <button @click="isLevelOpen = !isLevelOpen"
-                                class="w-full flex items-center justify-between pl-4 pr-3.5 py-2 bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl outline-none hover:ring-2 hover:ring-blue-500/10 transition-all text-sm font-medium text-slate-700 dark:text-slate-300">
-                                <div class="flex items-center gap-2.5">
-                                    <Filter class="h-3.5 w-3.5" :class="levelFilter ? 'text-blue-500' : 'text-slate-400'" />
-                                    <span>{{ levelFilter || 'All Levels' }}</span>
-                                </div>
-                                <ChevronDown class="h-4 w-4 text-slate-400 transition-transform duration-200"
-                                    :class="{ 'rotate-180': isLevelOpen }" />
-                            </button>
-
-                            <transition enter-active-class="transition duration-100 ease-out"
-                                enter-from-class="transform scale-95 opacity-0"
-                                enter-to-class="transform scale-100 opacity-100"
-                                leave-active-class="transition duration-75 ease-in"
-                                leave-from-class="transform scale-100 opacity-100"
-                                leave-to-class="transform scale-95 opacity-0">
-                                <div v-if="isLevelOpen"
-                                    class="absolute z-[60] mt-2 w-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl py-1.5 overflow-hidden">
-                                    <button @click="levelFilter = ''; isLevelOpen = false; fetchLogs()"
-                                        class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-left hover:bg-blue-600 hover:text-white transition-colors"
-                                        :class="levelFilter === '' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
-                                        All Levels
-                                    </button>
-                                    <button v-for="lvl in levels" :key="lvl"
-                                        @click="levelFilter = lvl; isLevelOpen = false; fetchLogs()"
-                                        class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-left hover:bg-blue-600 hover:text-white transition-colors"
-                                        :class="levelFilter === lvl ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
-                                        {{ lvl }}
-                                    </button>
-                                </div>
-                            </transition>
-                        </div>
+                        <Select v-else
+                            v-model="levelFilter"
+                            :options="levelOptions"
+                            optionLabel="label"
+                            optionValue="value"
+                            @change="fetchLogs"
+                            placeholder="All Levels"
+                            class="w-full md:w-44"
+                            :pt="{
+                                root: { class: 'h-10 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-xl flex items-center justify-between text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500' }
+                            }"
+                        />
 
                         <!-- Rows Limit Filter -->
-                        <div class="relative flex-1 md:w-28 group" v-click-outside="() => isRowsOpen = false">
-                            <button @click="isRowsOpen = !isRowsOpen"
-                                class="w-full flex items-center justify-between pl-4 pr-3.5 py-2 bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl outline-none hover:ring-2 hover:ring-blue-500/10 transition-all text-sm font-medium text-slate-700 dark:text-slate-300">
-                                <div class="flex items-center gap-2.5">
-                                    <span class="font-bold">{{ limit }}</span>
-                                </div>
-                                <ChevronDown class="h-4 w-4 text-slate-400 transition-transform duration-200"
-                                    :class="{ 'rotate-180': isRowsOpen }" />
-                            </button>
-
-                            <transition enter-active-class="transition duration-100 ease-out"
-                                enter-from-class="transform scale-95 opacity-0"
-                                enter-to-class="transform scale-100 opacity-100"
-                                leave-active-class="transition duration-75 ease-in"
-                                leave-from-class="transform scale-100 opacity-100"
-                                leave-to-class="transform scale-95 opacity-0">
-                                <div v-if="isRowsOpen"
-                                    class="absolute z-[60] mt-2 w-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl py-1.5 overflow-hidden">
-                                    <button v-for="opt in [20, 50, 100, 200]" :key="opt"
-                                        @click="limit = opt; isRowsOpen = false; fetchLogs()"
-                                        class="w-full px-4 py-2 text-sm text-left hover:bg-blue-600 hover:text-white transition-colors"
-                                        :class="limit === opt ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
-                                        {{ opt }}
-                                    </button>
-                                </div>
-                            </transition>
-                        </div>
+                        <Select
+                            v-model="limit"
+                            :options="[20, 50, 100, 200]"
+                            @change="fetchLogs"
+                            placeholder="Limit"
+                            class="w-full md:w-28"
+                            :pt="{
+                                root: { class: 'h-10 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-xl flex items-center justify-between text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500' }
+                            }"
+                        />
 
                         <!-- Toolbar Actions -->
                         <div class="flex items-center gap-2 ml-1">
-                            <button @click="fetchLogs" class="btn-action" v-tooltip="'Refresh Logs'">
+                            <button @click="fetchLogs" class="btn-action h-10" v-tooltip="'Refresh Logs'">
                                 <RefreshCw class="w-4 h-4" :class="{ 'animate-spin': loading }" />
                             </button>
                             <button @click.stop="promptClearLogs"
-                                class="btn-action hover:!text-red-500 hover:!bg-red-50 dark:hover:!bg-red-900/20"
+                                class="btn-action h-10 hover:!text-red-500 hover:!bg-red-50 dark:hover:!bg-red-900/20"
                                 v-tooltip="'Clear All Logs'">
                                 <Trash2 class="w-4 h-4" />
                             </button>
@@ -325,6 +295,15 @@ import { useNotifications } from '@/composables/useNotifications'
 import { useWebSockets } from '@/composables/useWebSockets'
 import { formatDate } from '@/utils/date'
 
+// PrimeVue components
+import Tabs from 'primevue/tabs'
+import TabList from 'primevue/tablist'
+import Tab from 'primevue/tab'
+import Select from 'primevue/select'
+import InputText from 'primevue/inputtext'
+import IconField from 'primevue/iconfield'
+import InputIcon from 'primevue/inputicon'
+
 const { notifySuccess, notifyError } = useNotifications()
 const { lastNotification } = useWebSockets()
 
@@ -367,15 +346,28 @@ const totalPages = ref(1)
 const search = ref('')
 const levelFilter = ref('WARNING')
 const taskTypeFilter = ref('')
-const isRowsOpen = ref(false)
-const isLevelOpen = ref(false)
-const isTaskTypeOpen = ref(false)
 const levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+
+const levelOptions = [
+    { value: '', label: 'All Levels' },
+    { value: 'DEBUG', label: 'DEBUG' },
+    { value: 'INFO', label: 'INFO' },
+    { value: 'WARNING', label: 'WARNING' },
+    { value: 'ERROR', label: 'ERROR' },
+    { value: 'CRITICAL', label: 'CRITICAL' }
+]
 
 const taskTypes = [
     { value: 'scan', label: 'Network Scan', icon: Network },
     { value: 'adguard_sync', label: 'AdGuard Sync', icon: ShieldCheck },
     { value: 'openwrt_sync', label: 'OpenWRT Sync', icon: Router },
+]
+
+const taskTypeOptions = [
+    { value: '', label: 'All Types' },
+    { value: 'scan', label: 'Network Scan' },
+    { value: 'adguard_sync', label: 'AdGuard Sync' },
+    { value: 'openwrt_sync', label: 'OpenWRT Sync' }
 ]
 
 // Tab and Auto-refresh State

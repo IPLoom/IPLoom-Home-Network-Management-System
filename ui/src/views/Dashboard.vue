@@ -458,7 +458,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onUnmounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted, watch } from 'vue'
 import api from '@/utils/api'
 import * as LucideIcons from 'lucide-vue-next'
 import {
@@ -467,7 +467,7 @@ import {
 } from 'lucide-vue-next'
 import { formatRelativeTime, parseUTC } from '@/utils/date'
 import { useWebSockets } from '@/composables/useWebSockets'
-import { watch } from 'vue'
+import { useTheme } from '@/composables/useTheme'
 
 // PrimeVue components
 import Card from 'primevue/card'
@@ -477,6 +477,8 @@ import ProgressBar from 'primevue/progressbar'
 import Skeleton from 'primevue/skeleton'
 
 const { lastNotification } = useWebSockets()
+const { theme } = useTheme()
+const isDark = computed(() => theme.value === 'dark')
 
 watch(lastNotification, (notif) => {
   if (notif && (notif.event_type === 'new_device' || notif.event_type === 'status_changed' || notif.event_type === 'completed')) {
@@ -591,10 +593,13 @@ const trafficChartOptions = computed(() => ({
     sparkline: { enabled: false },
     zoom: { enabled: false }
   },
+  theme: {
+    mode: isDark.value ? 'dark' : 'light'
+  },
   xaxis: {
     type: 'datetime',
     labels: {
-      style: { colors: '#94a3b8', fontSize: '9px', fontWeight: 600 },
+      style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '9px', fontWeight: 600 },
       datetimeFormatter: { hour: 'HH:mm' }
     },
     axisBorder: { show: false },
@@ -602,7 +607,7 @@ const trafficChartOptions = computed(() => ({
   },
   yaxis: {
     labels: {
-      style: { colors: '#94a3b8', fontSize: '9px' },
+      style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '9px' },
       formatter: (val) => formatBytes(val, 0)
     }
   },
@@ -613,9 +618,9 @@ const trafficChartOptions = computed(() => ({
     gradient: { opacityFrom: 0.4, opacityTo: 0.05 }
   },
   dataLabels: { enabled: false },
-  grid: { borderColor: 'rgba(148, 163, 184, 0.05)', strokeDashArray: 4 },
+  grid: { borderColor: isDark.value ? 'rgba(148, 163, 184, 0.08)' : 'rgba(148, 163, 184, 0.15)', strokeDashArray: 4 },
   tooltip: {
-    theme: 'dark',
+    theme: isDark.value ? 'dark' : 'light',
     x: { format: 'HH:mm' },
     y: { formatter: (val) => formatBytes(val) }
   }
@@ -628,6 +633,9 @@ const trafficSeries = computed(() => [
 
 const distributionOptions = computed(() => ({
   chart: { fontFamily: 'inherit' },
+  theme: {
+    mode: isDark.value ? 'dark' : 'light'
+  },
   labels: distributionData.value.types.map(t => t.label),
   colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
   stroke: { show: false },
@@ -645,14 +653,14 @@ const distributionOptions = computed(() => ({
             fontSize: '10px',
             fontFamily: 'inherit',
             fontWeight: 800,
-            color: '#94a3b8',
+            color: isDark.value ? '#94a3b8' : '#64748b',
             formatter: () => globalStats.value.total
           },
           value: {
             fontSize: '20px',
             fontWeight: 900,
             fontFamily: 'inherit',
-            color: '#1e293b'
+            color: isDark.value ? '#ffffff' : '#1e293b'
           }
         }
       }
