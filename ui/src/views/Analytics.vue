@@ -743,6 +743,7 @@ const vendorSeries = ref([])
 const categorySeries = ref([])
 const typeSeries = ref([])
 const heatmapSeries = ref([])
+const maxTrafficVal = ref(0)
 
 const securityData = reactive({
     untrusted_devices: [],
@@ -950,8 +951,14 @@ const fetchTrafficData = async () => {
         const offsetHours = Math.round(DateTime.now().offset / 60)
         const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
-        // matrix[day][hour]
-        const localizedMatrix = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => null))
+        // matrix[day][hour] - Initialize with default values to avoid null cells mapping to black
+        const localizedMatrix = Array.from({ length: 7 }, () => 
+            Array.from({ length: 24 }, (v, i) => ({
+                x: `${String(i).padStart(2, '0')}:00`,
+                y: 0,
+                top: []
+            }))
+        )
 
         heatRes.data.forEach((daySeries, dayIdx) => {
             daySeries.data.forEach((point, hourIdx) => {
@@ -984,46 +991,7 @@ const fetchTrafficData = async () => {
                 if (p.y > maxVal) maxVal = p.y
             })
         })
-
-        if (maxVal > 0) {
-            // Gradient Scale: 10 steps from Green -> Yellow -> Orange -> Red
-            // Plus specific 0 handling
-            const colors = [
-                '#10b981', '#34d399', '#6ee7b7', // Greens
-                '#a3e635', '#facc15', '#f59e0b', // Yellows/Oranges
-                '#fb923c', '#f87171', '#ef4444', '#dc2626' // Reds
-            ]
-
-            const ranges = []
-
-            // Zero value (light/transparent)
-            ranges.push({ from: 0, to: 0, color: '#f1f5f9', name: '0 B' })
-
-            // Positive values divided into 10 buckets
-            const step = maxVal / 10
-            for (let i = 0; i < 10; i++) {
-                ranges.push({
-                    from: (i * step) + (i === 0 ? 0.000001 : 0), // Start just above 0
-                    to: (i + 1) * step,
-                    color: colors[i],
-                    name: i < 3 ? 'Low' : (i < 7 ? 'Med' : 'High')
-                })
-            }
-
-            heatmapOptions.value = {
-                ...heatmapOptions.value,
-                legend: { show: false }, // Hide default messy legend
-                plotOptions: {
-                    ...heatmapOptions.value.plotOptions,
-                    heatmap: {
-                        ...heatmapOptions.value.plotOptions.heatmap,
-                        colorScale: {
-                            ranges: ranges
-                        }
-                    }
-                }
-            }
-        }
+        maxTrafficVal.value = maxVal
 
         // Update Options
         updateChartOptions(distRes.data, topRes.data, catRes.data)
@@ -1044,7 +1012,6 @@ const typeCategories = ref([])
 const categoryLabels = ref([])
 const dnsClientNames = ref([])
 const queryTypeLabels = ref([])
-const heatmapRanges = ref([])
 
 // Chart Options
 const commonOptions = computed(() => ({
@@ -1146,89 +1113,118 @@ const queryTypeOptions = computed(() => ({
     }
 }))
 
-const heatmapOptions = computed(() => ({
-    ...commonOptions.value,
-    chart: { type: 'heatmap', fontFamily: 'inherit', toolbar: { show: false }, background: 'transparent' },
-    dataLabels: { enabled: false },
-    legend: { position: 'right', offsetY: 50, labels: { colors: isDark.value ? '#94a3b8' : '#64748b' } },
-    plotOptions: {
-        heatmap: {
-            shadeIntensity: 0.5,
-            radius: 4,
-            useFillColorAsStroke: false,
-            colorScale: {
-                ranges: heatmapRanges.value
-            }
+const heatmapOptions = computed(() => {
+    const ranges = []
+    const zeroColor = isDark.value ? '#1e293b' : '#f1f5f9'
+    ranges.push({ from: 0, to: 0, color: zeroColor, name: '0 B' })
+
+    if (maxTrafficVal.value > 0) {
+        // Smooth color progression for dark mode (deeper richer tones) vs light mode
+        const colors = isDark.value ? [
+            '#064e3b', '#065f46', '#0f766e', 
+            '#115e59', '#78350f', '#9a3412', 
+            '#991b1b', '#c2410c', '#991b1b', '#7f1d1d'
+        ] : [
+            '#a7f3d0', '#6ee7b7', '#34d399', 
+            '#059669', '#fef08a', '#fde047', 
+            '#facc15', '#f87171', '#ef4444', '#b91c1c'
+        ]
+        
+        const step = maxTrafficVal.value / 10
+        for (let i = 0; i < 10; i++) {
+            ranges.push({
+                from: (i * step) + (i === 0 ? 0.000001 : 0),
+                to: (i + 1) * step,
+                color: colors[i],
+                name: i < 3 ? 'Low' : (i < 7 ? 'Med' : 'High')
+            })
         }
-    },
-    stroke: { show: true, width: 1, colors: [isDark.value ? '#1e293b' : '#fff'] },
-    xaxis: {
-        type: 'category',
-        tooltip: { enabled: false },
-        labels: {
-            rotate: -45,
-            style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px' },
-            formatter: (val) => {
-                // Show label only every 3 hours (00, 03, 06...)
-                if (typeof val === 'string') {
-                    const h = parseInt(val.split(':')[0])
-                    if (!isNaN(h) && h % 3 === 0) return val
-                    return ''
+    }
+
+    return {
+        ...commonOptions.value,
+        chart: { type: 'heatmap', fontFamily: 'inherit', toolbar: { show: false }, background: 'transparent' },
+        dataLabels: { enabled: false },
+        legend: { position: 'right', offsetY: 50, labels: { colors: isDark.value ? '#94a3b8' : '#64748b' } },
+        plotOptions: {
+            heatmap: {
+                shadeIntensity: 0.5,
+                radius: 4,
+                useFillColorAsStroke: false,
+                colorScale: {
+                    ranges: ranges
                 }
-                return val
             }
         },
-        axisTicks: { show: false },
-        axisBorder: { show: false }
-    },
-    yaxis: {
-        labels: {
-            style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px' }
-        }
-    },
-    tooltip: {
-        custom: ({ series, seriesIndex, dataPointIndex, w }) => {
-            try {
-                if (!w.config.series || !w.config.series[seriesIndex] || !w.config.series[seriesIndex].data[dataPointIndex]) {
+        stroke: { show: true, width: 1, colors: [isDark.value ? '#1e293b' : '#fff'] },
+        xaxis: {
+            type: 'category',
+            tooltip: { enabled: false },
+            labels: {
+                rotate: -45,
+                style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px' },
+                formatter: (val) => {
+                    // Show label only every 3 hours (00, 03, 06...)
+                    if (typeof val === 'string') {
+                        const h = parseInt(val.split(':')[0])
+                        if (!isNaN(h) && h % 3 === 0) return val
+                        return ''
+                    }
+                    return val
+                }
+            },
+            axisTicks: { show: false },
+            axisBorder: { show: false }
+        },
+        yaxis: {
+            labels: {
+                style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px' }
+            }
+        },
+        tooltip: {
+            custom: ({ series, seriesIndex, dataPointIndex, w }) => {
+                try {
+                    if (!w.config.series || !w.config.series[seriesIndex] || !w.config.series[seriesIndex].data[dataPointIndex]) {
+                        return ''
+                    }
+                    const data = w.config.series[seriesIndex].data[dataPointIndex]
+                    if (typeof data !== 'object' || data === null) {
+                        return `<div class="px-2 py-1 bg-slate-800 text-white text-xs">${data}</div>`
+                    }
+                    const val = formatBytes(data.y || 0)
+                    const top = data.top || []
+                    const activeTop = Array.isArray(top) ? top.filter(t => (t.value || 0) > 0) : []
+                    let html = `
+                        <div class="px-3 py-2 bg-slate-800 text-white rounded shadow-lg border border-slate-700 text-xs font-sans z-50">
+                            <div class="font-bold mb-1 border-b border-slate-600 pb-1 flex justify-between gap-4">
+                                <span>${w.globals.seriesNames[seriesIndex]} ${data.x}</span>
+                                <span class="text-blue-400">${val}</span>
+                            </div>
+                    `
+                    if (activeTop.length > 0) {
+                        html += `<div class="space-y-1 mt-1">`
+                        activeTop.forEach(t => {
+                            html += `
+                                <div class="flex justify-between gap-3 text-[10px] text-slate-300">
+                                    <span class="truncate max-w-[100px]">${t.name || 'Unknown'}</span>
+                                    <span class="font-mono">${formatBytes(t.value || 0)}</span>
+                                </div>
+                            `
+                        })
+                        html += `</div>`
+                    } else {
+                        html += `<div class="italic text-slate-500 text-[10px]">No activity</div>`
+                    }
+                    html += `</div>`
+                    return html
+                } catch (e) {
+                    console.error("Tooltip error", e)
                     return ''
                 }
-                const data = w.config.series[seriesIndex].data[dataPointIndex]
-                if (typeof data !== 'object' || data === null) {
-                    return `<div class="px-2 py-1 bg-slate-800 text-white text-xs">${data}</div>`
-                }
-                const val = formatBytes(data.y || 0)
-                const top = data.top || []
-                const activeTop = Array.isArray(top) ? top.filter(t => (t.value || 0) > 0) : []
-                let html = `
-                    <div class="px-3 py-2 bg-slate-800 text-white rounded shadow-lg border border-slate-700 text-xs font-sans z-50">
-                        <div class="font-bold mb-1 border-b border-slate-600 pb-1 flex justify-between gap-4">
-                            <span>${w.globals.seriesNames[seriesIndex]} ${data.x}</span>
-                            <span class="text-blue-400">${val}</span>
-                        </div>
-                `
-                if (activeTop.length > 0) {
-                    html += `<div class="space-y-1 mt-1">`
-                    activeTop.forEach(t => {
-                        html += `
-                            <div class="flex justify-between gap-3 text-[10px] text-slate-300">
-                                <span class="truncate max-w-[100px]">${t.name || 'Unknown'}</span>
-                                <span class="font-mono">${formatBytes(t.value || 0)}</span>
-                            </div>
-                        `
-                    })
-                    html += `</div>`
-                } else {
-                    html += `<div class="italic text-slate-500 text-[10px]">No activity</div>`
-                }
-                html += `</div>`
-                return html
-            } catch (e) {
-                console.error("Tooltip error", e)
-                return ''
             }
         }
     }
-}))
+})
 
 const barOptions = computed(() => ({
     ...commonOptions.value,
