@@ -1,5 +1,5 @@
 <template>
-    <div class="space-y-6 overflow-hidden">
+    <div class="space-y-6 !overflow-visible">
         <!-- Header -->
         <div class="page-header flex-col lg:flex-row lg:items-center relative z-20">
             <div>
@@ -114,7 +114,7 @@
         </div>
 
         <!-- IP Grid -->
-        <div class="premium-card !p-6 !rounded-2xl">
+        <div class="premium-card !p-6 !rounded-2xl !overflow-visible">
             <div class="space-y-6">
                 <div v-for="rowIndex in 8" :key="rowIndex">
                     <div class="flex items-center gap-3 mb-3">
@@ -124,7 +124,7 @@
                     </div>
                     <div class="grid grid-cols-4 min-[480px]:grid-cols-5 sm:grid-cols-8 md:grid-cols-16 gap-1 sm:gap-2">
                         <template v-for="i in 32" :key="i">
-                            <div v-if="((rowIndex - 1) * 32 + i) <= 254" class="relative group min-w-0">
+                            <div v-if="((rowIndex - 1) * 32 + i) <= 254" class="relative group min-w-0 hover:z-30">
                                 <div :class="['h-10 flex flex-col items-center justify-center text-[10px] font-mono leading-none rounded-lg cursor-pointer transition-all gap-0.5 px-0.5', getStatusClass((rowIndex - 1) * 32 + i)]"
                                     @click="goToDevice((rowIndex - 1) * 32 + i)">
                                     <span class="opacity-40 text-[9px] font-bold">{{ (rowIndex - 1) * 32 + i }}</span>
