@@ -109,7 +109,7 @@
                 <!-- DNS Traffic Chart -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div
-                        class="lg:col-span-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                        class="lg:col-span-3 premium-card !p-6 !rounded-2xl shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-6">DNS Traffic</h3>
                         <div class="h-[350px]">
                             <apexchart type="area" height="100%" :options="dnsChartOptions"
@@ -125,15 +125,15 @@
                         <div
                             class="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
                             <h3 class="text-base font-semibold text-slate-900 dark:text-white">Top Blocked Domains</h3>
-                            <div class="flex gap-2">
+                            <div class="flex items-center gap-2">
                                 <button @click="changeDnsPage('blocked', -1)" :disabled="dnsPage.blocked === 1"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronLeft class="w-4 h-4" />
                                 </button>
-                                <span class="text-xs font-mono self-center">Page {{ dnsPage.blocked }}</span>
+                                <span class="text-xs font-semibold px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg">Page {{ dnsPage.blocked }}</span>
                                 <button @click="changeDnsPage('blocked', 1)"
                                     :disabled="topBlockedDomains.length < dnsLimit"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronRight class="w-4 h-4" />
                                 </button>
                             </div>
@@ -171,15 +171,15 @@
                         <div
                             class="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
                             <h3 class="text-base font-semibold text-slate-900 dark:text-white">Top Queried Domains</h3>
-                            <div class="flex gap-2">
+                            <div class="flex items-center gap-2">
                                 <button @click="changeDnsPage('allowed', -1)" :disabled="dnsPage.allowed === 1"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronLeft class="w-4 h-4" />
                                 </button>
-                                <span class="text-xs font-mono self-center">Page {{ dnsPage.allowed }}</span>
+                                <span class="text-xs font-semibold px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg">Page {{ dnsPage.allowed }}</span>
                                 <button @click="changeDnsPage('allowed', 1)"
                                     :disabled="topAllowedDomains.length < dnsLimit"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronRight class="w-4 h-4" />
                                 </button>
                             </div>
@@ -217,7 +217,7 @@
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <!-- Query Type Distribution -->
                     <div
-                        class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                        class="premium-card !p-6 !rounded-2xl shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-4">Query Types</h3>
                         <div class="h-[300px] flex items-center justify-center">
                             <div v-if="queryTypeSeries.length === 0" class="text-sm text-slate-400">No data</div>
@@ -274,7 +274,7 @@
                 <!-- Top Clients (Chart) - Full Width -->
                 <div class="grid grid-cols-1 gap-6">
                     <div
-                        class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                        class="premium-card !p-6 !rounded-2xl shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-4">Top Clients (DNS
                             Queries)
                         </h3>
@@ -285,7 +285,7 @@
                 </div>
             </div>
             <div v-else
-                class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-8 text-center max-w-2xl mx-auto mt-12">
+                class="premium-card !p-8 !rounded-2xl text-center max-w-2xl mx-auto mt-12">
                 <div
                     class="w-16 h-16 bg-slate-50 dark:bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
                     <ShieldCheck class="w-8 h-8 text-slate-400" />
@@ -313,7 +313,7 @@
 
             <!-- Not Configured State -->
             <div v-if="!loading && !localConfigured"
-                class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-8 text-center max-w-2xl mx-auto mt-12">
+                class="premium-card !p-8 !rounded-2xl text-center max-w-2xl mx-auto mt-12">
                 <div
                     class="w-16 h-16 bg-slate-50 dark:bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Router class="w-8 h-8 text-slate-400" />
@@ -406,7 +406,7 @@
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <!-- Main Traffic Chart -->
                     <div
-                        class="lg:col-span-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                        class="lg:col-span-3 premium-card !p-6 !rounded-2xl shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-6">Traffic Overview</h3>
                         <div class="h-[350px]">
                             <apexchart type="area" height="100%" :options="chartOptions" :series="chartSeries" />
@@ -415,7 +415,7 @@
 
                     <!-- Usage Heatmap -->
                     <div
-                        class="lg:col-span-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                        class="lg:col-span-3 premium-card !p-6 !rounded-2xl shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-2">Usage Patterns</h3>
                         <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Intensity of data consumption by Day
                             and
@@ -471,7 +471,7 @@
 
                     <!-- Vendor Distribution (Moved next to Top Consumers) -->
                     <div
-                        class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                        class="premium-card !p-6 !rounded-2xl shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-4">Vendor Distribution
                             (Count)
                         </h3>
@@ -500,7 +500,7 @@
 
                     <!-- Device Types (Count) -->
                     <div
-                        class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                        class="premium-card !p-6 !rounded-2xl shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-2">Device Count by Category
                         </h3>
                         <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Number of devices per type</p>
@@ -533,14 +533,14 @@
                                 <ShieldAlert class="w-5 h-5 text-amber-500" />
                                 Untrusted Devices
                             </h3>
-                            <div class="flex gap-2">
+                            <div class="flex items-center gap-2">
                                 <button @click="changeSecPage('untrusted', -1)" :disabled="secPage.untrusted === 1"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronLeft class="w-4 h-4" />
                                 </button>
-                                <span class="text-xs font-mono self-center">Page {{ secPage.untrusted }} / {{ secTotal.untrusted }}</span>
+                                <span class="text-xs font-semibold px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg">Page {{ secPage.untrusted }} / {{ secTotal.untrusted }}</span>
                                 <button @click="changeSecPage('untrusted', 1)" :disabled="secPage.untrusted >= secTotal.untrusted"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronRight class="w-4 h-4" />
                                 </button>
                             </div>
@@ -573,20 +573,20 @@
                                 <Unlock class="w-5 h-5 text-red-500" />
                                 Risky Open Ports
                             </h3>
-                            <div class="flex gap-2">
+                            <div class="flex items-center gap-2">
                                 <button @click="changeSecPage('riskyPorts', -1)" :disabled="secPage.riskyPorts === 1"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronLeft class="w-4 h-4" />
                                 </button>
-                                <span class="text-xs font-mono self-center">Page {{ secPage.riskyPorts }} / {{ secTotal.riskyPorts }}</span>
+                                <span class="text-xs font-semibold px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg">Page {{ secPage.riskyPorts }} / {{ secTotal.riskyPorts }}</span>
                                 <button @click="changeSecPage('riskyPorts', 1)" :disabled="secPage.riskyPorts >= secTotal.riskyPorts"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronRight class="w-4 h-4" />
                                 </button>
                             </div>
                         </div>
                         <div class="space-y-3 flex-1">
-                            <div v-for="(port, idx) in securityData.risky_ports" :key="idx" class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-100 dark:border-slate-700">
+                            <div v-for="(port, idx) in securityData.risky_ports" :key="idx" class="flex items-center justify-between p-3 !bg-red-500/[0.04] dark:!bg-red-500/[0.08] rounded-xl border border-red-500/10 dark:border-red-500/20 hover:border-red-500/30 transition-all">
                                 <div class="flex items-center gap-3">
                                     <div class="p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
                                         <component :is="getIcon(port.icon)" class="w-5 h-5 text-slate-500" />
@@ -597,7 +597,7 @@
                                     </div>
                                 </div>
                                 <div class="text-right">
-                                    <div class="text-xs font-bold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded">
+                                    <div class="text-xs font-bold text-red-600 dark:text-red-400 border border-red-500/20 dark:border-red-500/30 bg-red-500/10 dark:bg-red-500/20 px-2 py-0.5 rounded-lg">
                                         Port {{ port.port }}
                                     </div>
                                     <div class="text-[10px] text-slate-500 mt-0.5 uppercase">{{ port.service || 'unknown' }}</div>
@@ -616,14 +616,14 @@
                                 <Lock class="w-5 h-5 text-slate-700 dark:text-slate-300" />
                                 Blocked Devices
                             </h3>
-                            <div class="flex gap-2">
+                            <div class="flex items-center gap-2">
                                 <button @click="changeSecPage('blocked', -1)" :disabled="secPage.blocked === 1"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronLeft class="w-4 h-4" />
                                 </button>
-                                <span class="text-xs font-mono self-center">Page {{ secPage.blocked }} / {{ secTotal.blocked }}</span>
+                                <span class="text-xs font-semibold px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg">Page {{ secPage.blocked }} / {{ secTotal.blocked }}</span>
                                 <button @click="changeSecPage('blocked', 1)" :disabled="secPage.blocked >= secTotal.blocked"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronRight class="w-4 h-4" />
                                 </button>
                             </div>
@@ -661,14 +661,14 @@
                                 <Clock class="w-5 h-5 text-blue-500" />
                                 New Devices (Last 7 Days)
                             </h3>
-                            <div class="flex gap-2">
+                            <div class="flex items-center gap-2">
                                 <button @click="changeSecPage('newDevices', -1)" :disabled="secPage.newDevices === 1"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronLeft class="w-4 h-4" />
                                 </button>
-                                <span class="text-xs font-mono self-center">Page {{ secPage.newDevices }} / {{ secTotal.newDevices }}</span>
+                                <span class="text-xs font-semibold px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg">Page {{ secPage.newDevices }} / {{ secTotal.newDevices }}</span>
                                 <button @click="changeSecPage('newDevices', 1)" :disabled="secPage.newDevices >= secTotal.newDevices"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronRight class="w-4 h-4" />
                                 </button>
                             </div>
