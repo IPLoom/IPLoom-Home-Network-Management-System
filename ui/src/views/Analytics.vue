@@ -1,25 +1,23 @@
 <template>
     <div class="space-y-6">
         <!-- Header -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                <div>
-                    <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Network Analytics</h1>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Traffic insights and device distribution
-                    </p>
-                </div>
+        <div class="page-header flex-col lg:flex-row lg:items-center">
+            <div>
+                <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Network Analytics</h1>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    Traffic insights and device distribution
+                </p>
             </div>
 
-            <div class="flex items-center gap-4">
+            <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
                 <!-- Time Range Picker (Standardized) -->
-                <div class="flex p-1 bg-slate-100 dark:bg-slate-700/50 rounded-xl h-11"
+                <div class="flex p-1 bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/30 rounded-xl overflow-x-auto max-w-full custom-scrollbar"
                     v-if="(localConfigured && currentView === 'traffic') || (dnsConfigured && currentView === 'dns')">
                     <button
                         v-for="r in ['24h', 'yesterday', '7d', '30d', '3m', 'mtd', 'last_month', 'ytd', '1y', 'all']"
                         :key="r" @click="timeRange = r"
-                        class="px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all whitespace-nowrap uppercase tracking-wider"
-                        :class="timeRange === r ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'">
+                        class="px-3 py-1.5 text-[10px] font-black rounded-lg transition-all whitespace-nowrap uppercase tracking-wider"
+                        :class="timeRange === r ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-md' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'">
                         {{ {
                             '24h': '24H', 'yesterday': 'Yest', '7d': '7D', '30d': '30D', '3m': '3M', 'mtd': 'MTD',
                             'last_month': 'Last M', 'ytd': 'YTD', '1y': '1Y', 'all': 'All'
@@ -28,24 +26,24 @@
                 </div>
 
                 <!-- View Switcher (Standardized) -->
-                <div class="flex p-1 bg-slate-100 dark:bg-slate-700/50 rounded-xl h-11">
+                <div class="flex p-1 bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/30 rounded-xl">
                     <button @click="currentView = 'traffic'"
-                        class="px-5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2"
-                        :class="currentView === 'traffic' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'">
+                        class="px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2"
+                        :class="currentView === 'traffic' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'">
                         <Activity class="w-4 h-4" />
                         Traffic
                     </button>
                     <button @click="currentView = 'dns'"
-                        class="px-5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2"
-                        :class="currentView === 'dns' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'">
+                        class="px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2"
+                        :class="currentView === 'dns' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'">
                         <ShieldCheck class="w-4 h-4" />
                         DNS Security
                     </button>
                     <button @click="currentView = 'security'"
-                        class="px-5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2"
-                        :class="currentView === 'security' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'">
+                        class="px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2"
+                        :class="currentView === 'security' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'">
                         <ShieldAlert class="w-4 h-4" />
-                        Network Security
+                        Security
                     </button>
                 </div>
             </div>
@@ -58,42 +56,53 @@
                 <!-- DNS KPIs -->
 
                 <!-- DNS KPIs -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="card-base">
-                        <div class="absolute right-0 top-0 p-4 opacity-5">
-                            <Activity class="w-16 h-16" />
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Total Queries -->
+                    <div class="premium-card !p-5 !rounded-2xl group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-2.5 bg-blue-500/10 rounded-xl">
+                                <Activity class="h-4 w-4 text-blue-500" />
+                            </div>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-blue-500/80 bg-blue-500/10 px-2 py-1 rounded-lg">Queries</span>
                         </div>
-                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                            Total Queries</p>
-                        <p class="text-2xl font-bold text-slate-900 dark:text-white">{{
-                            dnsStats.total_queries.toLocaleString() }}</p>
+                        <div class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ dnsStats.total_queries.toLocaleString() }}</div>
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Total Queries</div>
                     </div>
-                    <div class="card-base">
-                        <div class="absolute right-0 top-0 p-4 opacity-5">
-                            <ShieldCheck class="w-16 h-16" />
+
+                    <!-- Blocked -->
+                    <div class="premium-card !p-5 !rounded-2xl group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-2.5 bg-red-500/10 rounded-xl">
+                                <ShieldAlert class="h-4 w-4 text-red-500" />
+                            </div>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-red-500/80 bg-red-500/10 px-2 py-1 rounded-lg">Blocked</span>
                         </div>
-                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                            Blocked</p>
-                        <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{
-                            dnsStats.blocked_queries.toLocaleString() }}</p>
+                        <div class="text-3xl font-black text-red-600 dark:text-red-400 tabular-nums">{{ dnsStats.blocked_queries.toLocaleString() }}</div>
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Blocked Queries</div>
                     </div>
-                    <div class="card-base">
-                        <div class="absolute right-0 top-0 p-4 opacity-5">
-                            <ShieldCheck class="w-16 h-16" />
+
+                    <!-- Block Rate -->
+                    <div class="premium-card !p-5 !rounded-2xl group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-2.5 bg-amber-500/10 rounded-xl">
+                                <ShieldCheck class="h-4 w-4 text-amber-500" />
+                            </div>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-amber-500/80 bg-amber-500/10 px-2 py-1 rounded-lg">Rate</span>
                         </div>
-                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                            Block Rate</p>
-                        <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ dnsStats.block_percentage }}%
-                        </p>
+                        <div class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ dnsStats.block_percentage }}%</div>
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Block Rate</div>
                     </div>
-                    <div class="card-base">
-                        <div class="absolute right-0 top-0 p-4 opacity-5">
-                            <Activity class="w-16 h-16" />
+
+                    <!-- Avg Response -->
+                    <div class="premium-card !p-5 !rounded-2xl group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-2.5 bg-indigo-500/10 rounded-xl">
+                                <Clock class="h-4 w-4 text-indigo-500" />
+                            </div>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-500/80 bg-indigo-500/10 px-2 py-1 rounded-lg">Latency</span>
                         </div>
-                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                            Avg Response</p>
-                        <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ dnsStats.avg_response_time }} ms
-                        </p>
+                        <div class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ dnsStats.avg_response_time }} ms</div>
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Avg Response</div>
                     </div>
                 </div>
 
@@ -344,44 +353,53 @@
 
                 <!-- Key Metrics -->
                 <!-- Active Devices Count Fix -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="card-base">
-                        <div class="absolute right-0 top-0 p-4 opacity-5">
-                            <Download class="w-16 h-16" />
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Total Download -->
+                    <div class="premium-card !p-5 !rounded-2xl group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-2.5 bg-blue-500/10 rounded-xl">
+                                <Download class="h-4 w-4 text-blue-500" />
+                            </div>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-blue-500/80 bg-blue-500/10 px-2 py-1 rounded-lg">Download</span>
                         </div>
-                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                            Total Download</p>
-                        <p class="text-2xl font-bold text-slate-900 dark:text-white">{{
-                            formatBytes(trafficTotals.download)
-                        }}</p>
+                        <div class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ formatBytes(trafficTotals.download) }}</div>
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Total Download</div>
                     </div>
-                    <div class="card-base">
-                        <div class="absolute right-0 top-0 p-4 opacity-5">
-                            <Upload class="w-16 h-16" />
+
+                    <!-- Total Upload -->
+                    <div class="premium-card !p-5 !rounded-2xl group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-2.5 bg-emerald-500/10 rounded-xl">
+                                <Upload class="h-4 w-4 text-emerald-500" />
+                            </div>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-500/80 bg-emerald-500/10 px-2 py-1 rounded-lg">Upload</span>
                         </div>
-                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                            Total Upload</p>
-                        <p class="text-2xl font-bold text-slate-900 dark:text-white">{{
-                            formatBytes(trafficTotals.upload) }}
-                        </p>
+                        <div class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ formatBytes(trafficTotals.upload) }}</div>
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Total Upload</div>
                     </div>
-                    <div class="card-base">
-                        <div class="absolute right-0 top-0 p-4 opacity-5">
-                            <Users class="w-16 h-16" />
+
+                    <!-- Active Devices -->
+                    <div class="premium-card !p-5 !rounded-2xl group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-2.5 bg-indigo-500/10 rounded-xl">
+                                <Users class="h-4 w-4 text-indigo-500" />
+                            </div>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-500/80 bg-indigo-500/10 px-2 py-1 rounded-lg">Active</span>
                         </div>
-                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                            Active Devices</p>
-                        <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ trafficTotals.active_devices }}
-                        </p>
+                        <div class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ trafficTotals.active_devices }}</div>
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Active Devices</div>
                     </div>
-                    <div class="card-base">
-                        <div class="absolute right-0 top-0 p-4 opacity-5">
-                            <Activity class="w-16 h-16" />
+
+                    <!-- Avg Throughput -->
+                    <div class="premium-card !p-5 !rounded-2xl group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-2.5 bg-amber-500/10 rounded-xl">
+                                <Activity class="h-4 w-4 text-amber-500" />
+                            </div>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-amber-500/80 bg-amber-500/10 px-2 py-1 rounded-lg">Throughput</span>
                         </div>
-                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                            Avg
-                            Throughput</p>
-                        <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ calculateAvgThroughput() }}</p>
+                        <div class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ calculateAvgThroughput() }}</div>
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Avg Throughput</div>
                     </div>
                 </div>
 
