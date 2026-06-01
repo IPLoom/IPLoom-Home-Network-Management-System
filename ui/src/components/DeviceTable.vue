@@ -1,8 +1,8 @@
 <template>
   <div class="overflow-x-auto">
-    <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-      <thead class="bg-slate-50 dark:bg-slate-900/50">
-        <tr>
+    <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800/70">
+      <thead class="bg-transparent">
+        <tr class="border-b border-slate-100 dark:border-slate-800/70">
           <!-- Expand Column for Mobile -->
           <th class="md:hidden px-4 py-3 w-8"></th>
           
@@ -28,12 +28,12 @@
           <slot name="extra-headers"></slot>
           
           <th v-if="columns.includes('activity')"
-              class="hidden md:table-cell table-header-cell w-1/6">
+              class="hidden lg:table-cell table-header-cell w-1/6">
             Activity
           </th>
           
           <th v-if="columns.includes('ports')"
-              class="hidden md:table-cell table-header-cell w-1/6">
+              class="hidden lg:table-cell table-header-cell w-1/6">
             Open Ports
           </th>
           
@@ -48,7 +48,7 @@
           
           <th v-if="columns.includes('last_seen')"
               @click="toggleSort('last_seen')"
-              class="hidden md:table-cell table-header-cell cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors w-1/12">
+              class="hidden lg:table-cell table-header-cell cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors w-1/12">
             <div class="flex items-center gap-1">
               Last Seen
               <component :is="getSortIcon('last_seen')" class="h-3 w-3" />
@@ -61,12 +61,12 @@
           </th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+      <tbody class="divide-y divide-slate-100 dark:divide-slate-800/70">
         <template v-for="device in devices" :key="device.id">
           <!-- Main Row -->
           <tr @click="navigateToDetails(device.id)" 
               class="hover-row group cursor-pointer"
-              :class="{ '!bg-red-50/30 dark:!bg-red-900/20': !device.is_trusted }">
+              :class="{ '!bg-red-500/[0.04] dark:!bg-red-500/[0.08]': !device.is_trusted }">
             
             <!-- Mobile Toggle -->
             <td class="md:hidden table-data-cell" @click.stop>
@@ -169,7 +169,7 @@
             </td>
             
             <!-- Network Info Column -->
-            <td v-if="columns.includes('network')" class="px-2 py-2 hidden md:table-cell">
+            <td v-if="columns.includes('network')" class="table-data-cell hidden md:table-cell">
               <div class="text-xs text-slate-600 dark:text-slate-300 font-medium">{{ device.vendor || 'Unknown' }}</div>
               <div class="text-xs text-slate-500 font-mono truncate max-w-[200px]">{{ device.mac || 'N/A' }}</div>
             </td>
@@ -178,7 +178,7 @@
             <slot name="extra-cells" :device="device"></slot>
             
             <!-- Activity Sparkline Column -->
-            <td v-if="columns.includes('activity')" class="px-2 py-2 hidden md:table-cell">
+            <td v-if="columns.includes('activity')" class="table-data-cell hidden lg:table-cell">
               <div class="h-8 w-24 relative" v-if="device.traffic_history && device.traffic_history.length > 1">
                 <TrafficSparkline :data="device.traffic_history" :width="100" :height="32" />
               </div>
@@ -186,7 +186,7 @@
             </td>
             
             <!-- Open Ports Column -->
-            <td v-if="columns.includes('ports')" class="px-2 py-2 hidden md:table-cell">
+            <td v-if="columns.includes('ports')" class="table-data-cell hidden lg:table-cell">
               <div v-if="device.open_ports && device.open_ports.length > 0" class="flex flex-wrap gap-1">
                 <span v-for="port in device.open_ports.slice(0, 3)"
                       :key="typeof port === 'object' ? port.port : port"
@@ -201,19 +201,19 @@
             </td>
             
             <!-- Type Column -->
-            <td v-if="columns.includes('type')" class="px-2 py-2 hidden md:table-cell">
+            <td v-if="columns.includes('type')" class="table-data-cell hidden md:table-cell">
               <span class="inline-flex px-2 py-1 text-xs font-medium rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
                 {{ device.device_type || 'Unknown' }}
               </span>
             </td>
             
             <!-- Last Seen Column -->
-            <td v-if="columns.includes('last_seen')" class="px-3 py-4 text-sm text-slate-600 dark:text-slate-400 hidden md:table-cell">
+            <td v-if="columns.includes('last_seen')" class="table-data-cell hidden lg:table-cell !text-xs font-semibold">
               {{ formatRelativeTime(device.last_seen) }}
             </td>
             
             <!-- Actions Column -->
-            <td v-if="columns.includes('actions')" class="px-2 py-2 text-right hidden md:table-cell w-20" @click.stop>
+            <td v-if="columns.includes('actions')" class="table-data-cell text-right hidden md:table-cell w-20" @click.stop>
               <div class="flex items-center justify-end gap-1">
                 <Button @click="navigateToDetails(device.id)"
                         severity="secondary"

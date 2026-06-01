@@ -106,62 +106,86 @@
       </template>
     </div>
 
-    <!-- Filters & Search -->
-    <div class="glass-panel flex flex-col gap-4">
-      <div class="flex flex-col md:flex-row gap-4 items-center">
-        <IconField class="flex-1 w-full">
-          <InputIcon>
-            <Search class="h-4 w-4 text-slate-400" />
-          </InputIcon>
-          <InputText
+    <!-- Unified Filters & Devices Grid -->
+    <div class="premium-card !rounded-2xl !p-0 overflow-hidden w-full max-w-full">
+      <!-- Filter Bar -->
+      <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 flex flex-col md:flex-row gap-4 items-center">
+        <!-- Search -->
+        <div class="relative flex-1 w-full">
+          <Search class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <input
             v-model="search"
             @input="debounceFetch"
+            type="text"
             placeholder="Search IP, Mac, Vendor or Name..."
-            class="w-full"
-            :pt="{ root: 'pl-11 pr-4 py-2 bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl text-sm' }"
-          />
-        </IconField>
-        <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-          <!-- Status Filter -->
-          <Select
-            v-model="statusFilter"
-            :options="statusOptions"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="All Statuses"
-            @change="fetchDevices()"
-            class="flex-1 md:w-44"
-            :pt="{
-              root: 'bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl',
-              label: 'text-sm font-medium py-2 pl-4 pr-3.5',
-              dropdown: 'w-8',
-              list: 'py-1.5',
-              option: 'text-sm px-4 py-2'
-            }"
-          />
-
-          <!-- Type Filter -->
-          <Select
-            v-model="typeFilter"
-            :options="typeOptions"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="All Types"
-            @change="fetchDevices()"
-            class="flex-1 md:w-44"
-            filter
-            :pt="{
-              root: 'bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl',
-              label: 'text-sm font-medium py-2 pl-4 pr-3.5',
-              dropdown: 'w-8',
-              list: 'py-1.5 max-h-60',
-              option: 'text-sm px-4 py-2'
-            }"
+            class="input-base"
           />
         </div>
+        <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <!-- Status Filter -->
+          <div class="relative flex-1 md:w-44 group" v-click-outside="() => isStatusOpen = false">
+            <button @click="isStatusOpen = !isStatusOpen"
+              class="w-full flex items-center justify-between pl-4 pr-3.5 h-[38px] bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl outline-none hover:ring-2 hover:ring-blue-500/10 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all text-sm font-medium text-slate-700 dark:text-slate-300">
+              <div class="flex items-center gap-2.5">
+                <Filter class="h-3.5 w-3.5" :class="statusFilter ? 'text-blue-500' : 'text-slate-400'" />
+                <span>{{ statusOptions.find(opt => opt.value === statusFilter)?.label || 'All Statuses' }}</span>
+              </div>
+              <ChevronDown class="h-4 w-4 text-slate-400 transition-transform duration-200"
+                :class="{ 'rotate-180': isStatusOpen }" />
+            </button>
+
+            <transition enter-active-class="transition duration-100 ease-out"
+              enter-from-class="transform scale-95 opacity-0"
+              enter-to-class="transform scale-100 opacity-100"
+              leave-active-class="transition duration-75 ease-in"
+              leave-from-class="transform scale-100 opacity-100"
+              leave-to-class="transform scale-95 opacity-0">
+              <div v-if="isStatusOpen"
+                class="absolute z-[60] mt-2 w-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl py-1.5 overflow-hidden">
+                <button v-for="opt in statusOptions" :key="opt.value"
+                  @click="statusFilter = opt.value; isStatusOpen = false; fetchDevices()"
+                  class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-left hover:bg-blue-600 hover:text-white transition-colors whitespace-nowrap"
+                  :class="statusFilter === opt.value ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
+                  {{ opt.label }}
+                </button>
+              </div>
+            </transition>
+          </div>
+
+          <!-- Type Filter -->
+          <div class="relative flex-1 md:w-44 group" v-click-outside="() => isTypeOpen = false">
+            <button @click="isTypeOpen = !isTypeOpen"
+              class="w-full flex items-center justify-between pl-4 pr-3.5 h-[38px] bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl outline-none hover:ring-2 hover:ring-blue-500/10 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all text-sm font-medium text-slate-700 dark:text-slate-300">
+              <div class="flex items-center gap-2.5">
+                <Layers class="h-3.5 w-3.5" :class="typeFilter ? 'text-blue-500' : 'text-slate-400'" />
+                <span class="truncate max-w-[120px]">{{ typeOptions.find(opt => opt.value === typeFilter)?.label || 'All Types' }}</span>
+              </div>
+              <ChevronDown class="h-4 w-4 text-slate-400 transition-transform duration-200"
+                :class="{ 'rotate-180': isTypeOpen }" />
+            </button>
+
+            <transition enter-active-class="transition duration-100 ease-out"
+              enter-from-class="transform scale-95 opacity-0"
+              enter-to-class="transform scale-100 opacity-100"
+              leave-active-class="transition duration-75 ease-in"
+              leave-from-class="transform scale-100 opacity-100"
+              leave-to-class="transform scale-95 opacity-0">
+              <div v-if="isTypeOpen"
+                class="absolute z-[60] mt-2 w-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl py-1.5 overflow-y-auto max-h-60">
+                <button v-for="opt in typeOptions" :key="opt.value"
+                  @click="typeFilter = opt.value; isTypeOpen = false; fetchDevices()"
+                  class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-left hover:bg-blue-600 hover:text-white transition-colors whitespace-nowrap"
+                  :class="typeFilter === opt.value ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
+                  {{ opt.label }}
+                </button>
+              </div>
+            </transition>
+          </div>
+        </div>
       </div>
+      
       <!-- Display Info Line -->
-      <div class="px-2 flex items-center justify-between text-[11px] font-medium text-slate-500 dark:text-slate-400">
+      <div class="px-6 py-2.5 bg-slate-50/50 dark:bg-slate-900/10 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between text-[11px] font-semibold text-slate-500 dark:text-slate-400">
         <div class="flex items-center gap-2">
           <Activity class="h-3.5 w-3.5 text-blue-500" />
           <span>Showing <b>{{ devices.length }}</b> of <b>{{ totalDevices }}</b> devices matching current filters</span>
@@ -170,10 +194,8 @@
           Sorted by {{ sortBy }} ({{ sortOrder }})
         </div>
       </div>
-    </div>
 
-    <!-- Devices Table -->
-    <div class="content-panel">
+      <!-- Devices Table -->
       <DeviceTable
         :devices="devices"
         :columns="['device', 'network', 'activity', 'ports', 'type', 'last_seen', 'actions']"
@@ -187,29 +209,20 @@
         @edit="openEditDialog"
         @delete="confirmDelete"
       />
-    </div>
 
-    <!-- Pagination -->
-    <div v-if="totalPages > 1" class="flex justify-end items-center gap-2 mt-4">
-      <Button
-        @click="changePage(currentPage - 1)"
-        :disabled="currentPage <= 1"
-        severity="secondary"
-        outlined
-        label="Previous"
-        :pt="{ root: 'px-4 py-2 rounded-lg text-sm font-medium' }"
-      />
-      <div class="px-4 py-2 bg-slate-900 dark:bg-white rounded-lg text-sm font-medium text-white dark:text-slate-900">
-        {{ currentPage }} / {{ totalPages }}
+      <!-- Pagination -->
+      <div v-if="totalPages > 1"
+        class="flex justify-end items-center gap-2 p-4 border-t border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/30">
+        <button @click="changePage(currentPage - 1)" :disabled="currentPage <= 1" class="pagination-btn">
+          Previous
+        </button>
+        <div class="px-4 py-2 bg-slate-900 dark:bg-white rounded-lg text-sm font-medium text-white dark:text-slate-900">
+          {{ currentPage }} / {{ totalPages }}
+        </div>
+        <button @click="changePage(currentPage + 1)" :disabled="currentPage >= totalPages" class="pagination-btn">
+          Next
+        </button>
       </div>
-      <Button
-        @click="changePage(currentPage + 1)"
-        :disabled="currentPage >= totalPages"
-        severity="secondary"
-        outlined
-        label="Next"
-        :pt="{ root: 'px-4 py-2 rounded-lg text-sm font-medium' }"
-      />
     </div>
 
     <!-- Edit Modal -->
@@ -314,6 +327,8 @@ const toggleRow = (id) => {
 const search = ref('')
 const statusFilter = ref('')
 const typeFilter = ref('')
+const isStatusOpen = ref(false)
+const isTypeOpen = ref(false)
 const sortBy = ref('ip')
 const sortOrder = ref('asc')
 
