@@ -711,10 +711,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, onMounted, watch, computed } from 'vue'
 import api from '@/utils/api'
 import { DateTime } from 'luxon'
 import { useNotifications } from '@/composables/useNotifications'
+import { useTheme } from '@/composables/useTheme'
 import { parseUTC } from '@/utils/date'
 import { getIcon } from '@/utils/icons'
 import {
@@ -723,6 +724,7 @@ import {
 } from 'lucide-vue-next'
 import { formatBytes } from '@/utils/format'
 
+const { isDark } = useTheme()
 const loading = ref(true)
 const localConfigured = ref(false)
 const dnsConfigured = ref(false)
@@ -1036,99 +1038,136 @@ const fetchTrafficData = async () => {
     }
 }
 
+// Reactive refs for dynamic chart options
+const vendorLabels = ref([])
+const typeCategories = ref([])
+const categoryLabels = ref([])
+const dnsClientNames = ref([])
+const queryTypeLabels = ref([])
+const heatmapRanges = ref([])
+
 // Chart Options
-const commonOptions = {
+const commonOptions = computed(() => ({
     chart: { toolbar: { show: false }, fontFamily: 'inherit', background: 'transparent' },
-    theme: { mode: 'light' },
+    theme: { mode: isDark.value ? 'dark' : 'light' },
     stroke: { curve: 'smooth', width: 2 },
-    xaxis: { type: 'datetime', tooltip: { enabled: false }, axisBorder: { show: false }, axisTicks: { show: false } },
-    grid: { borderColor: '#f1f5f9', strokeDashArray: 4, padding: { top: 0, right: 0, bottom: 0, left: 10 } },
+    xaxis: {
+        type: 'datetime',
+        tooltip: { enabled: false },
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+        labels: {
+            style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px', fontWeight: 500 }
+        }
+    },
+    yaxis: {
+        labels: {
+            style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px', fontWeight: 500 }
+        }
+    },
+    grid: {
+        borderColor: isDark.value ? 'rgba(148, 163, 184, 0.08)' : 'rgba(148, 163, 184, 0.15)',
+        strokeDashArray: 4,
+        padding: { top: 0, right: 0, bottom: 0, left: 10 }
+    },
     colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'],
     dataLabels: { enabled: false },
-    tooltip: { theme: 'dark' },
-    legend: { position: 'top' }
-}
+    tooltip: { theme: isDark.value ? 'dark' : 'light' },
+    legend: {
+        position: 'top',
+        labels: { colors: isDark.value ? '#94a3b8' : '#64748b' }
+    }
+}))
 
-const chartOptions = ref({
-    ...commonOptions,
-    tooltip: { theme: 'dark', x: { format: 'dd MMM HH:mm' } },
+const chartOptions = computed(() => ({
+    ...commonOptions.value,
+    tooltip: { theme: isDark.value ? 'dark' : 'light', x: { format: 'dd MMM HH:mm' } },
     yaxis: {
-        labels: { formatter: (val) => formatBytes(val, 0) }
+        ...commonOptions.value.yaxis,
+        labels: {
+            style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px', fontWeight: 500 },
+            formatter: (val) => formatBytes(val, 0)
+        }
     },
-    fill: { type: 'gradient', gradient: { opacityFrom: 0.5, opacityTo: 0.1 } }
-})
+    fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0.05 } }
+}))
 
-const dnsChartOptions = ref({
-    ...commonOptions,
-    tooltip: { theme: 'dark', x: { format: 'dd MMM HH:mm' } },
+const dnsChartOptions = computed(() => ({
+    ...commonOptions.value,
+    tooltip: { theme: isDark.value ? 'dark' : 'light', x: { format: 'dd MMM HH:mm' } },
     yaxis: {
-        labels: { formatter: (val) => Math.round(val).toLocaleString() }
+        ...commonOptions.value.yaxis,
+        labels: {
+            style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px', fontWeight: 500 },
+            formatter: (val) => Math.round(val).toLocaleString()
+        }
     },
     colors: ['#10b981', '#ef4444'], // Green for Passed, Red for Blocked
-    fill: { type: 'gradient', gradient: { opacityFrom: 0.5, opacityTo: 0.1 } }
-})
+    fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0.05 } }
+}))
 
-const donutOptions = ref({
-    ...commonOptions,
-    chart: { type: 'donut', fontFamily: 'inherit' },
+const donutOptions = computed(() => ({
+    ...commonOptions.value,
+    chart: { type: 'donut', fontFamily: 'inherit', background: 'transparent' },
     plotOptions: { pie: { donut: { size: '65%' } } },
     stroke: { show: false },
-    labels: [],
+    labels: vendorLabels.value,
     dataLabels: { enabled: false },
-    legend: { position: 'bottom' }
-})
+    legend: { position: 'bottom', labels: { colors: isDark.value ? '#94a3b8' : '#64748b' } }
+}))
 
-const categoryOptions = ref({
-    ...commonOptions,
-    chart: { type: 'donut', fontFamily: 'inherit' },
+const categoryOptions = computed(() => ({
+    ...commonOptions.value,
+    chart: { type: 'donut', fontFamily: 'inherit', background: 'transparent' },
     plotOptions: { pie: { donut: { size: '65%' } } },
     stroke: { show: false },
-    labels: [],
+    labels: categoryLabels.value,
     colors: ['#6366f1', '#8b5cf6', '#d946ef', '#f43f5e', '#f97316'],
     dataLabels: { enabled: false },
-    legend: { position: 'bottom' },
+    legend: { position: 'bottom', labels: { colors: isDark.value ? '#94a3b8' : '#64748b' } },
     tooltip: {
-        theme: 'dark',
+        theme: isDark.value ? 'dark' : 'light',
         y: { formatter: (val) => formatBytes(val) }
     }
-})
+}))
 
-const queryTypeOptions = ref({
-    ...commonOptions,
-    chart: { type: 'donut', fontFamily: 'inherit' },
+const queryTypeOptions = computed(() => ({
+    ...commonOptions.value,
+    chart: { type: 'donut', fontFamily: 'inherit', background: 'transparent' },
     plotOptions: { pie: { donut: { size: '65%' } } },
     stroke: { show: false },
-    labels: [],
+    labels: queryTypeLabels.value,
     colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'],
     dataLabels: { enabled: false },
-    legend: { position: 'bottom' },
+    legend: { position: 'bottom', labels: { colors: isDark.value ? '#94a3b8' : '#64748b' } },
     tooltip: {
-        theme: 'dark',
+        theme: isDark.value ? 'dark' : 'light',
         y: { formatter: (val) => val.toLocaleString() }
     }
-})
+}))
 
-const heatmapOptions = ref({
-    ...commonOptions,
-    chart: { type: 'heatmap', fontFamily: 'inherit', toolbar: { show: false } },
+const heatmapOptions = computed(() => ({
+    ...commonOptions.value,
+    chart: { type: 'heatmap', fontFamily: 'inherit', toolbar: { show: false }, background: 'transparent' },
     dataLabels: { enabled: false },
-    legend: { position: 'right', offsetY: 50 }, // Scale beside chart
+    legend: { position: 'right', offsetY: 50, labels: { colors: isDark.value ? '#94a3b8' : '#64748b' } },
     plotOptions: {
         heatmap: {
             shadeIntensity: 0.5,
             radius: 4,
             useFillColorAsStroke: false,
             colorScale: {
-                ranges: [] // Dynamic based on data
+                ranges: heatmapRanges.value
             }
         }
     },
-    stroke: { show: true, width: 1, colors: ['#fff'] },
+    stroke: { show: true, width: 1, colors: [isDark.value ? '#1e293b' : '#fff'] },
     xaxis: {
         type: 'category',
         tooltip: { enabled: false },
         labels: {
             rotate: -45,
+            style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px' },
             formatter: (val) => {
                 // Show label only every 3 hours (00, 03, 06...)
                 if (typeof val === 'string') {
@@ -1139,29 +1178,27 @@ const heatmapOptions = ref({
                 return val
             }
         },
-        axisTicks: { show: false } // Hide ticks for cleaner look
+        axisTicks: { show: false },
+        axisBorder: { show: false }
+    },
+    yaxis: {
+        labels: {
+            style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px' }
+        }
     },
     tooltip: {
         custom: ({ series, seriesIndex, dataPointIndex, w }) => {
             try {
-                // Defensive check to prevent crash
                 if (!w.config.series || !w.config.series[seriesIndex] || !w.config.series[seriesIndex].data[dataPointIndex]) {
                     return ''
                 }
-
                 const data = w.config.series[seriesIndex].data[dataPointIndex]
-
-                // If data is just a number or null (fallback)
                 if (typeof data !== 'object' || data === null) {
                     return `<div class="px-2 py-1 bg-slate-800 text-white text-xs">${data}</div>`
                 }
-
                 const val = formatBytes(data.y || 0)
                 const top = data.top || []
-
-                // Filter out devices with 0 usage
                 const activeTop = Array.isArray(top) ? top.filter(t => (t.value || 0) > 0) : []
-
                 let html = `
                     <div class="px-3 py-2 bg-slate-800 text-white rounded shadow-lg border border-slate-700 text-xs font-sans z-50">
                         <div class="font-bold mb-1 border-b border-slate-600 pb-1 flex justify-between gap-4">
@@ -1169,7 +1206,6 @@ const heatmapOptions = ref({
                             <span class="text-blue-400">${val}</span>
                         </div>
                 `
-
                 if (activeTop.length > 0) {
                     html += `<div class="space-y-1 mt-1">`
                     activeTop.forEach(t => {
@@ -1184,7 +1220,6 @@ const heatmapOptions = ref({
                 } else {
                     html += `<div class="italic text-slate-500 text-[10px]">No activity</div>`
                 }
-
                 html += `</div>`
                 return html
             } catch (e) {
@@ -1193,41 +1228,49 @@ const heatmapOptions = ref({
             }
         }
     }
-})
+}))
 
-const barOptions = ref({
-    // ...
-    ...commonOptions,
-    chart: { type: 'bar', fontFamily: 'inherit', toolbar: { show: false } },
-    xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false } },
+const barOptions = computed(() => ({
+    ...commonOptions.value,
+    chart: { type: 'bar', fontFamily: 'inherit', toolbar: { show: false }, background: 'transparent' },
+    xaxis: {
+        categories: typeCategories.value,
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+        labels: { style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px' } }
+    },
+    yaxis: {
+        labels: {
+            style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px' }
+        }
+    },
     plotOptions: { bar: { borderRadius: 4, columnWidth: '50%' } }
-})
+}))
 
-const dnsBarOptions = ref({
-    ...commonOptions,
-    chart: { type: 'bar', fontFamily: 'inherit', toolbar: { show: false } },
+const dnsBarOptions = computed(() => ({
+    ...commonOptions.value,
+    chart: { type: 'bar', fontFamily: 'inherit', toolbar: { show: false }, background: 'transparent' },
     plotOptions: { bar: { borderRadius: 4, columnWidth: '50%', distributed: true } },
-    xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { fontSize: '10px' } } }, // Smaller labels
-    yaxis: { labels: { formatter: (val) => Math.round(val).toLocaleString() } },
-    legend: { show: false }, // Hide legend for colored bars
-    colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1', '#8b5cf6', '#d946ef', '#f43f5e'] // More colors
-})
+    xaxis: {
+        categories: dnsClientNames.value,
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+        labels: { style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px' } }
+    },
+    yaxis: {
+        labels: {
+            style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px' },
+            formatter: (val) => Math.round(val).toLocaleString()
+        }
+    },
+    legend: { show: false },
+    colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1', '#8b5cf6', '#d946ef', '#f43f5e']
+}))
 
 const updateChartOptions = (distData, topData, catData) => {
-    donutOptions.value = {
-        ...donutOptions.value,
-        labels: distData.vendors.map(v => v.label)
-    }
-
-    barOptions.value = {
-        ...barOptions.value,
-        xaxis: { ...barOptions.value.xaxis, categories: distData.types.map(t => t.label) }
-    }
-
-    categoryOptions.value = {
-        ...categoryOptions.value,
-        labels: catData.map(c => c.label)
-    }
+    vendorLabels.value = distData.vendors.map(v => v.label)
+    typeCategories.value = distData.types.map(t => t.label)
+    categoryLabels.value = catData.map(c => c.label)
 }
 
 const dnsStats = ref({
@@ -1296,18 +1339,12 @@ const fetchDnsData = async () => {
         const clientNames = clientsRes.data.map(c => c.name || c.ip)
         const clientCounts = clientsRes.data.map(c => c.count)
 
-        dnsBarOptions.value = {
-            ...dnsBarOptions.value,
-            xaxis: { ...dnsBarOptions.value.xaxis, categories: clientNames }
-        }
+        dnsClientNames.value = clientNames
         dnsClientsSeries.value = [{ name: 'Queries', data: clientCounts }]
 
         // Query Types
         queryTypeSeries.value = qtypesRes.data.map(q => q.value)
-        queryTypeOptions.value = {
-            ...queryTypeOptions.value,
-            labels: qtypesRes.data.map(q => q.label)
-        }
+        queryTypeLabels.value = qtypesRes.data.map(q => q.label)
 
         riskyDevices.value = riskyRes.data
 
