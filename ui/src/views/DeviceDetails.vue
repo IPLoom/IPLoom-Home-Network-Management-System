@@ -1,6 +1,7 @@
 <template>
   <div v-if="device" class="space-y-6 w-full pb-12">
-    <!-- Header Area -->
+    <Tabs v-model:value="activeTab" class="w-full">
+      <!-- Header Area -->
     <div class="mb-8">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         
@@ -69,8 +70,8 @@
 
                   <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900/50 rounded-lg mt-4">
                     <Search class="w-3.5 h-3.5 text-slate-400" />
-                    <input v-model="iconSearch" type="text" placeholder="Search icons or categories..."
-                      class="bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-200 w-full placeholder:text-slate-400" />
+                    <InputText v-model="iconSearch" type="text" placeholder="Search icons or categories..."
+                      class="bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-200 w-full placeholder:text-slate-400 focus:ring-0 p-0" />
                   </div>
                 </div>
                 <div class="max-h-[360px] overflow-y-auto overflow-x-hidden pr-1 custom-scrollbar">
@@ -118,11 +119,72 @@
                   </template>
                 </div>
                 <div class="flex items-center gap-3">
-                  <input v-model="form.display_name" type="text" 
+                  <InputText v-model="form.display_name"
+                    type="text"
                     @change="updateFields({ display_name: form.display_name }, 'Name updated')"
                     @keyup.enter="$event.target.blur()"
-                    class="bg-transparent border-none p-0 focus:ring-0 text-3xl font-black text-slate-900 dark:text-white flex-1 min-w-0 placeholder:text-slate-200 dark:placeholder:text-slate-800"
-                    placeholder="Untagged Device" />
+                    placeholder="Untagged Device"
+                    class="w-full bg-transparent border-none outline-none text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:ring-0 p-0" />
+                </div>
+                <!-- Inline Action Badge & Controls -->
+                <div class="flex flex-wrap items-center gap-2 mt-2.5">
+                  <!-- Verified / Shield -->
+                  <div v-if="device.is_trusted" 
+                    class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider"
+                    v-tooltip="'Verified Configuration'">
+                    <ShieldCheck class="w-3 h-3"></ShieldCheck>
+                    <span>Verified</span>
+                  </div>
+
+                  <!-- Block / Unblock Toggle -->
+                  <button @click="toggleBlock"
+                    class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:border-red-500 hover:text-red-500 cursor-pointer"
+                    v-tooltip="device.is_blocked ? 'Unblock Device Access' : 'Block Device Access'">
+                    <Ban class="w-3.5 h-3.5" :class="{ 'text-red-500': device.is_blocked }" />
+                    <span>{{ device.is_blocked ? 'Blocked' : 'Block' }}</span>
+                  </button>
+
+                  <!-- Brand Popover Integration -->
+                  <div class="relative">
+                    <button
+                      type="button"
+                      @click="toggleBrandPopover($event)"
+                      v-tooltip="'Update Device Branding'"
+                      class="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-500 transition-all group focus:outline-none cursor-pointer">
+                      <img v-if="form.brand_icon" :src="form.brand_icon" class="w-3.5 h-3.5 object-contain rounded-md" />
+                      <component :is="resolveIcon('shield-question')" v-else class="w-3.5 h-3.5 text-slate-400" />
+                      <span class="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ form.brand || 'Set Brand' }}</span>
+                    </button>
+
+                    <Popover ref="brandPopover" :pt="{ content: 'p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl w-[280px] focus:outline-none' }">
+                      <div class="mb-3 px-1">
+                        <p class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2 px-1">Identity Provider</p>
+                        <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900/50 rounded-lg">
+                          <Search class="w-3.5 h-3.5 text-slate-400" />
+                          <InputText v-model="brandSearch" type="text" placeholder="Search brands..."
+                            class="bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-200 w-full placeholder:text-slate-400 focus:ring-0 p-0" />
+                        </div>
+                      </div>
+                      <div class="max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
+                        <div class="grid grid-cols-2 gap-2">
+                          <button type="button" @click="updateFields({ brand: '', brand_icon: '' }); brandPopover.hide()"
+                            class="flex items-center gap-2 p-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 hover:border-blue-500 transition-all text-left bg-transparent cursor-pointer">
+                            <div class="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+                              <X class="w-4 h-4 text-slate-400" />
+                            </div>
+                            <span class="text-[10px] font-bold text-slate-500">None</span>
+                          </button>
+                          <button v-for="brand in filteredBrands" :key="brand.id" type="button"
+                            @click="updateFields({ brand: brand.name, brand_icon: brand.path }, `Brand updated to ${brand.name}`); brandPopover.hide()"
+                            class="flex items-center gap-2 p-2 rounded-xl border transition-all text-left bg-transparent cursor-pointer"
+                            :class="form.brand === brand.name ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-900/50'">
+                            <img :src="brand.path" class="w-8 h-8 object-contain rounded-lg bg-white p-1" />
+                            <span class="text-[10px] font-black truncate text-slate-700 dark:text-slate-200">{{ brand.name }}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </Popover>
+                  </div>
                 </div>
               </div>
             </div>
@@ -131,98 +193,31 @@
 
         <!-- Right: Meta Info & Trusted Badge -->
         <div class="flex items-center gap-3 shrink-0">
-          <!-- Trusted / Shield -->
-          <div v-if="device.is_trusted" 
-            class="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm"
-            v-tooltip="'Verified Configuration'">
-            <ShieldCheck class="w-3.5 h-3.5"></ShieldCheck>
-            <span>Verified</span>
-          </div>
-
-          <!-- Block / Unblock Toggle -->
-          <button @click="toggleBlock"
-            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm transition-all border-none bg-transparent cursor-pointer"
-            :class="device.is_blocked 
-              ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 hover:bg-red-500/20' 
-              : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-red-500 hover:text-red-500'"
-            v-tooltip="device.is_blocked ? 'Unblock Device Access' : 'Block Device Access'">
-            <Ban class="w-3.5 h-3.5" :class="{ 'text-red-500': device.is_blocked }" />
-            <span>{{ device.is_blocked ? 'Blocked' : 'Block' }}</span>
-          </button>
-
-          <!-- Brand Popover Integration -->
-          <div class="relative">
-            <button
-              type="button"
-              @click="toggleBrandPopover($event)"
-              v-tooltip="'Update Device Branding'"
-              class="p-1 w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:border-blue-500 transition-all group overflow-hidden focus:outline-none flex items-center justify-center relative cursor-pointer">
-              <img v-if="form.brand_icon" :src="form.brand_icon" class="w-7 h-7 object-contain" />
-              <div v-else class="flex flex-col items-center">
-                <component :is="resolveIcon('shield-question')" class="w-5 h-5 text-slate-300 group-hover:text-blue-500" />
-              </div>
-              <div class="absolute inset-0 bg-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Pencil class="w-3 h-3 text-blue-600" />
-              </div>
-            </button>
-
-            <Popover ref="brandPopover" :pt="{ content: 'p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl w-[280px] focus:outline-none' }">
-              <div class="mb-3 px-1">
-                <p class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2 px-1">Identity Provider</p>
-                <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900/50 rounded-lg">
-                  <Search class="w-3.5 h-3.5 text-slate-400" />
-                  <input v-model="brandSearch" type="text" placeholder="Search brands..."
-                    class="bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-200 w-full placeholder:text-slate-400" />
-                </div>
-              </div>
-              <div class="max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
-                <div class="grid grid-cols-2 gap-2">
-                  <button type="button" @click="updateFields({ brand: '', brand_icon: '' }); brandPopover.hide()"
-                    class="flex items-center gap-2 p-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 hover:border-blue-500 transition-all text-left bg-transparent cursor-pointer">
-                    <div class="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
-                      <X class="w-4 h-4 text-slate-400" />
-                    </div>
-                    <span class="text-[10px] font-bold text-slate-500">None</span>
-                  </button>
-                  <button v-for="brand in filteredBrands" :key="brand.id" type="button"
-                    @click="updateFields({ brand: brand.name, brand_icon: brand.path }, `Brand updated to ${brand.name}`); brandPopover.hide()"
-                    class="flex items-center gap-2 p-2 rounded-xl border transition-all text-left bg-transparent cursor-pointer"
-                    :class="form.brand === brand.name ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-900/50'">
-                    <img :src="brand.path" class="w-8 h-8 object-contain rounded-lg bg-white p-1" />
-                    <span class="text-[10px] font-black truncate text-slate-700 dark:text-slate-200">{{ brand.name }}</span>
-                  </button>
-                </div>
-              </div>
-            </Popover>
-          </div>
+          <TabList :pt="{
+            root: { class: 'flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm overflow-x-auto whitespace-nowrap' },
+            content: { class: '!border-none !border-b-0 !shadow-none bg-transparent', style: 'border: none !important; box-shadow: none !important;' },
+            tabList: { class: '!border-none !border-b-0 bg-transparent', style: 'border: none !important; border-bottom: none !important;' },
+            activeBar: { class: 'hidden', style: 'display: none !important;' }
+          }">
+            <Tab v-for="tab in tabs" :key="tab.id" :value="tab.id"
+              :pt="{
+                root: ({ context }) => [
+                  'flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-205 border-none outline-none cursor-pointer',
+                  context.active
+                    ? 'bg-blue-600 text-white shadow-sm' 
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-750 bg-transparent'
+                ]
+              }"
+            >
+              <component :is="tab.icon" class="w-3.5 h-3.5" />
+              <span>{{ tab.name }}</span>
+            </Tab>
+          </TabList>
         </div>
       </div>
     </div>
 
-    <!-- Tabs Navigation -->
-    <Tabs v-model:value="activeTab" class="w-full">
-      <TabList :pt="{
-        root: 'flex items-center gap-2 mb-6 bg-white/50 dark:bg-slate-900/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 w-fit',
-        content: '!border-none bg-transparent',
-        nav: '!border-none bg-transparent',
-        activeBar: 'hidden'
-      }">
-        <Tab v-for="tab in tabs" :key="tab.id" :value="tab.id"
-          :pt="{
-            root: ({ context }) => [
-              'flex items-center gap-2 px-6 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all border-none outline-none cursor-pointer',
-              context.active
-                ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/20' 
-                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 bg-transparent'
-            ]
-          }"
-        >
-          <component :is="tab.icon" class="w-3.5 h-3.5" />
-          <span>{{ tab.name }}</span>
-        </Tab>
-      </TabList>
-
-      <TabPanels :pt="{ root: 'p-0 bg-transparent' }">
+    <TabPanels :pt="{ root: 'p-0 bg-transparent' }">
         <TabPanel value="overview" :pt="{ root: 'p-0' }">
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -317,7 +312,7 @@
                           <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-700/50 mb-2">
                             <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900/50 rounded-lg border border-transparent focus-within:border-blue-500/30 transition-colors">
                               <Search class="w-3.5 h-3.5 text-slate-400" />
-                              <input v-model="categorySearch" type="text" placeholder="Search..." class="bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-200 w-full placeholder:text-slate-400" />
+                              <InputText v-model="categorySearch" type="text" placeholder="Search..." class="bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-200 w-full placeholder:text-slate-400 focus:ring-0 p-0" />
                             </div>
                           </div>
                           <div class="overflow-y-auto max-h-60 custom-scrollbar space-y-1">
@@ -336,7 +331,7 @@
                     <div class="space-y-3">
                       <label class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 ml-1">Network Hostname</label>
                       <div class="relative group">
-                        <input v-model="form.name" type="text" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/5 transition-all rounded-2xl px-5 py-3.5 font-mono text-sm font-bold text-slate-700 dark:text-slate-300" />
+                        <InputText v-model="form.name" type="text" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/5 transition-all rounded-2xl px-5 py-3.5 font-mono text-sm font-bold text-slate-700 dark:text-slate-300" />
                         <div class="absolute right-4 top-1/2 -translate-y-1/2">
                           <div class="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-[8px] font-black uppercase tracking-widest text-slate-500">Local</div>
                         </div>
@@ -394,7 +389,7 @@
                           <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-700/50 mb-2">
                             <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900/50 rounded-lg">
                               <Search class="w-3.5 h-3.5 text-slate-400" />
-                              <input v-model="parentSearch" type="text" placeholder="Search devices..." class="bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-200 w-full placeholder:text-slate-400" />
+                              <InputText v-model="parentSearch" type="text" placeholder="Search devices..." class="bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-200 w-full placeholder:text-slate-400 focus:ring-0 p-0" />
                             </div>
                           </div>
                           <div class="max-h-60 overflow-y-auto custom-scrollbar space-y-1">
@@ -1043,6 +1038,7 @@ import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
 import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
+import InputText from 'primevue/inputtext'
 import { ref, onMounted, onUnmounted, reactive, computed, watch } from 'vue'
 import {
   ArrowLeft, Loader2, ScanSearch, Save, Search, ChevronDown, Activity, Terminal, ExternalLink, ShieldAlert, ShieldCheck,
