@@ -724,7 +724,8 @@ import {
 } from 'lucide-vue-next'
 import { formatBytes } from '@/utils/format'
 
-const { isDark } = useTheme()
+const { theme } = useTheme()
+const isDark = computed(() => theme.value === 'dark')
 const loading = ref(true)
 const localConfigured = ref(false)
 const dnsConfigured = ref(false)
