@@ -632,7 +632,7 @@ const trafficSeries = computed(() => [
 ])
 
 const distributionOptions = computed(() => ({
-  chart: { fontFamily: 'inherit' },
+  chart: { fontFamily: 'inherit', background: 'transparent' },
   theme: {
     mode: isDark.value ? 'dark' : 'light'
   },
