@@ -159,11 +159,8 @@
                             filters</span>
                     </div>
                     <div v-if="currentTab === 'tasks'" class="flex items-center gap-2">
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" v-model="autoRefresh"
-                                class="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-0">
-                            <span class="text-xs font-medium">Auto-refresh (5s)</span>
-                        </label>
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Auto-refresh (5s)</span>
+                        <ToggleSwitch v-model="autoRefresh" />
                     </div>
                 </div>
             </div>
@@ -303,6 +300,7 @@ import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
+import ToggleSwitch from 'primevue/toggleswitch'
 
 const { notifySuccess, notifyError } = useNotifications()
 const { lastNotification } = useWebSockets()

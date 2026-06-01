@@ -16,6 +16,19 @@ import {
 import api from '@/utils/api'
 import ConfirmationModal from '@/components/ConfirmationModal.vue'
 
+// PrimeVue components
+import Select from 'primevue/select'
+import ToggleSwitch from 'primevue/toggleswitch'
+import InputText from 'primevue/inputtext'
+
+const periodOptions = [
+  { value: 1, label: 'Hourly' },
+  { value: 12, label: '12 Hours' },
+  { value: 24, label: 'Daily (24h)' },
+  { value: 168, label: 'Weekly (7d)' },
+  { value: 720, label: 'Monthly (30d)' }
+]
+
 const props = defineProps({
   deviceId: {
     type: String,
@@ -319,7 +332,7 @@ onMounted(fetchQuota)
           <div class="space-y-2">
             <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Limit (MB)</label>
             <div class="relative">
-              <input 
+              <InputText 
                 v-model.number="form.limit_mb" 
                 type="number" 
                 class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl px-5 py-3 text-sm font-black focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all dark:text-white"
@@ -331,25 +344,21 @@ onMounted(fetchQuota)
 
           <div class="space-y-2">
             <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Reset Window</label>
-            <select 
+            <Select 
               v-model.number="form.period_hours"
-              class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl px-5 py-3 text-sm font-black focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all dark:text-white appearance-none"
-            >
-              <option :value="1">Hourly</option>
-              <option :value="12">12 Hours</option>
-              <option :value="24">Daily (24h)</option>
-              <option :value="168">Weekly (7d)</option>
-              <option :value="720">Monthly (30d)</option>
-            </select>
+              :options="periodOptions"
+              optionLabel="label"
+              optionValue="value"
+              class="w-full text-sm"
+              :pt="{
+                root: { class: 'h-[46px] px-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl flex items-center justify-between text-sm font-black outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50' }
+              }"
+            />
           </div>
 
-          <div class="flex flex-col justify-end pb-1">
+          <div class="flex flex-col justify-end pb-2">
             <label class="flex items-center gap-3 cursor-pointer group">
-              <div class="relative">
-                <input type="checkbox" v-model="form.enabled" class="sr-only" />
-                <div class="w-11 h-6 bg-slate-200 dark:bg-slate-800 rounded-full transition-all" :class="form.enabled ? 'bg-indigo-600' : ''"></div>
-                <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200" :class="form.enabled ? 'translate-x-5' : ''"></div>
-              </div>
+              <ToggleSwitch v-model="form.enabled" />
               <span class="text-[10px] font-black uppercase tracking-widest" :class="form.enabled ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'">
                 {{ form.enabled ? 'Enabled' : 'Paused' }}
               </span>

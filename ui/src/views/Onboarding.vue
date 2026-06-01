@@ -48,13 +48,15 @@
                 </div>
                 <div>
                   <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Scan Interval</label>
-                  <select v-model="network.interval" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-sm appearance-none">
-                    <option :value="5">Every 5 minutes</option>
-                    <option :value="10">Every 10 minutes</option>
-                    <option :value="30">Every 30 minutes</option>
-                    <option :value="60">Every hour</option>
-                    <option :value="1440">Once per day</option>
-                  </select>
+                  <Select v-model="network.interval"
+                    :options="scanIntervalOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    class="w-full text-sm"
+                    :pt="{
+                      root: { class: 'h-10 px-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-sm outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500' }
+                    }"
+                  />
                 </div>
               </div>
             
@@ -109,10 +111,7 @@
                 <div class="text-xs font-bold text-slate-800">Use as Wireless Access Point</div>
                 <div class="text-[10px] text-slate-400 font-medium">Query OpenWRT's radios for Wi-Fi clients, RSSI, and bands</div>
               </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" v-model="openwrt.is_access_point" class="sr-only peer">
-                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500"></div>
-              </label>
+              <ToggleSwitch v-model="openwrt.is_access_point" />
             </div>
           </div>
         </div>
@@ -316,6 +315,17 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/utils/api'
+
+import Select from 'primevue/select'
+import ToggleSwitch from 'primevue/toggleswitch'
+
+const scanIntervalOptions = [
+  { value: 5, label: 'Every 5 minutes' },
+  { value: 10, label: 'Every 10 minutes' },
+  { value: 30, label: 'Every 30 minutes' },
+  { value: 60, label: 'Every hour' },
+  { value: 1440, label: 'Once per day' }
+]
 
 const router = useRouter()
 const authStore = useAuthStore()

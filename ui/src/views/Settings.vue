@@ -1013,21 +1013,24 @@
         <div class="space-y-4">
           <div>
             <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Rule Name</label>
-            <input v-model="ruleForm.name" type="text" placeholder="e.g. My Custom Router"
+            <InputText v-model="ruleForm.name" type="text" placeholder="e.g. My Custom Router"
               class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none" />
           </div>
 
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Device Type</label>
-              <select v-model="ruleForm.device_type"
-                class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white outline-none">
-                <option v-for="type in deviceTypes" :key="type" :value="type">{{ type }}</option>
-              </select>
+              <Select v-model="ruleForm.device_type"
+                :options="deviceTypes"
+                class="w-full text-sm"
+                :pt="{
+                    root: { class: 'h-10 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center justify-between text-sm outline-none focus:ring-2 focus:ring-indigo-500' }
+                }"
+              />
             </div>
             <div>
               <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Priority</label>
-              <input v-model.number="ruleForm.priority" type="number"
+              <InputText v-model.number="ruleForm.priority" type="number"
                 class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none" />
             </div>
           </div>
@@ -1035,21 +1038,21 @@
           <div>
             <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Hostname Pattern
               (Regex)</label>
-            <input v-model="ruleForm.pattern_hostname" type="text" placeholder="e.g. asus-.*"
+            <InputText v-model="ruleForm.pattern_hostname" type="text" placeholder="e.g. asus-.*"
               class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white outline-none" />
           </div>
 
           <div>
             <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Vendor Pattern
               (Regex)</label>
-            <input v-model="ruleForm.pattern_vendor" type="text" placeholder="e.g. huawei|zte"
+            <InputText v-model="ruleForm.pattern_vendor" type="text" placeholder="e.g. huawei|zte"
               class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white outline-none" />
           </div>
 
           <div>
             <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Ports (Comma
               separated)</label>
-            <input v-model="portInput" type="text" placeholder="e.g. 80, 443, 8080"
+            <InputText v-model="portInput" type="text" placeholder="e.g. 80, 443, 8080"
               class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white outline-none" />
           </div>
 
