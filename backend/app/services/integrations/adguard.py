@@ -71,6 +71,30 @@ class AdguardClient:
             logger.error(f"Failed to fetch Adguard data: {e}")
             raise e
 
+    def get_protection_status(self):
+        """Fetch current protection status"""
+        try:
+            resp = self.session.get(f"{self.base_url}/control/status", timeout=5)
+            resp.raise_for_status()
+            return resp.json().get("protection_enabled", False)
+        except Exception as e:
+            logger.error(f"Failed to fetch Adguard protection status: {e}")
+            raise e
+
+    def set_protection(self, enabled: bool):
+        """Toggle AdGuard protection"""
+        try:
+            resp = self.session.post(
+                f"{self.base_url}/control/protection",
+                json={"enabled": enabled},
+                timeout=5
+            )
+            resp.raise_for_status()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to set Adguard protection: {e}")
+            raise e
+
     def sync(self, force: bool = False):
         """Fetch data and update both DNS DB and Main DB
         :param force: Force sync even if not enabled

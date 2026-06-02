@@ -20,6 +20,15 @@
       </div>
 
       <div class="flex items-center gap-3">
+        <button v-if="isConfigured && isVerified"
+          @click="toggleProtection"
+          :disabled="togglingProtection"
+          :class="['!px-4 !py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm flex items-center gap-2 border-none', protectionEnabled ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-emerald-500 hover:bg-emerald-600 text-white']"
+        >
+          <ShieldAlert v-if="protectionEnabled" class="h-4 w-4" />
+          <ShieldCheck v-else class="h-4 w-4" />
+          <span>{{ togglingProtection ? 'Updating...' : (protectionEnabled ? 'Disable Protection' : 'Enable Protection') }}</span>
+        </button>
         <button 
           @click="syncAdguard" 
           :disabled="syncing || !isConfigured"
@@ -28,6 +37,17 @@
           <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': syncing }" />
           <span>{{ syncing ? 'Syncing...' : 'Sync Now' }}</span>
         </button>
+      </div>
+    </div>
+
+    <!-- Protection Disabled Warning -->
+    <div v-if="isConfigured && isVerified && !protectionEnabled && !loading" class="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-2xl p-4 text-red-700 dark:text-red-400 text-sm flex items-start gap-3 shadow-sm">
+      <ShieldAlert class="h-5 w-5 mt-0.5 shrink-0 text-red-600 dark:text-red-400" />
+      <div>
+        <h4 class="font-bold text-base">Protection Disabled</h4>
+        <p class="mt-1 text-red-600/80 dark:text-red-400/80">
+          AdGuard protection is currently turned off. Your network devices are not being shielded against ads, trackers, or malicious domains. It is highly recommended to keep protection enabled.
+        </p>
       </div>
     </div>
 
@@ -113,21 +133,21 @@
 
         <div class="bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl overflow-hidden shadow-sm">
           <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-              <thead>
-                <tr class="bg-slate-50/75 dark:bg-slate-900/50 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-700/50">
-                  <th class="px-6 py-4">Timestamp</th>
-                  <th class="px-6 py-4">Domain Name</th>
-                  <th class="px-6 py-4">Client IP</th>
-                  <th class="px-6 py-4 text-center">Type</th>
-                  <th class="px-6 py-4">Filter Reason</th>
+            <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800/70">
+              <thead class="bg-transparent">
+                <tr class="border-b border-slate-100 dark:border-slate-800/70">
+                  <th class="table-header-cell text-left px-6 py-4">Timestamp</th>
+                  <th class="table-header-cell text-left px-6 py-4">Domain Name</th>
+                  <th class="table-header-cell text-left px-6 py-4">Client IP</th>
+                  <th class="table-header-cell text-center px-6 py-4">Type</th>
+                  <th class="table-header-cell text-left px-6 py-4">Filter Reason</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-100 dark:divide-slate-700/40 text-sm">
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-800/70">
                 <tr 
-                  v-for="(log, idx) in recentBlocked" 
+                  v-for="(log, idx) in paginatedBlocked" 
                   :key="idx"
-                  class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors"
+                  class="hover-row group"
                 >
                   <td class="px-6 py-4 text-xs font-mono text-slate-400 truncate max-w-[150px]">
                     {{ formatDate(log.timestamp) }}
@@ -159,6 +179,19 @@
             </table>
           </div>
         </div>
+
+        <!-- Pagination -->
+        <div v-if="totalPages > 1" class="flex justify-end items-center gap-2 p-4 border-t border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/30 rounded-b-2xl">
+          <button @click="changePage(currentPage - 1)" :disabled="currentPage <= 1" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+            Previous
+          </button>
+          <div class="px-4 py-1.5 bg-slate-900 dark:bg-white rounded-lg text-sm font-medium text-white dark:text-slate-900">
+            {{ currentPage }} / {{ totalPages }}
+          </div>
+          <button @click="changePage(currentPage + 1)" :disabled="currentPage >= totalPages" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+            Next
+          </button>
+        </div>
       </div>
     </template>
 
@@ -187,7 +220,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import api from '@/utils/api'
 import { useNotifications } from '@/composables/useNotifications'
 
@@ -197,6 +230,7 @@ import Button from 'primevue/button'
 import {
   RefreshCw,
   ShieldAlert,
+  ShieldCheck,
   Search,
   Activity,
   Clock,
@@ -215,6 +249,23 @@ const url = ref('')
 const stats = ref(null)
 const recentBlocked = ref([])
 
+const protectionEnabled = ref(false)
+const togglingProtection = ref(false)
+
+// Pagination
+const currentPage = ref(1)
+const itemsPerPage = 10
+const totalPages = computed(() => Math.ceil(recentBlocked.value.length / itemsPerPage) || 1)
+const paginatedBlocked = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  return recentBlocked.value.slice(start, start + itemsPerPage)
+})
+const changePage = (p) => {
+  if (p >= 1 && p <= totalPages.value) {
+    currentPage.value = p
+  }
+}
+
 const fetchAdguardData = async () => {
   loading.value = true
   error.value = null
@@ -224,6 +275,7 @@ const fetchAdguardData = async () => {
     isVerified.value = res.data.verified
     url.value = res.data.url || ''
     stats.value = res.data.stats
+    protectionEnabled.value = res.data.protection_enabled || false
     recentBlocked.value = res.data.recent_blocked || []
   } catch (err) {
     console.error('Error fetching adguard data:', err)
@@ -244,6 +296,21 @@ const syncAdguard = async () => {
     notifyError(err.response?.data?.detail || 'Failed to start AdGuard synchronization.')
   } finally {
     syncing.value = false
+  }
+}
+
+const toggleProtection = async () => {
+  togglingProtection.value = true
+  try {
+    const newState = !protectionEnabled.value
+    await api.post('/integrations/adguard/protection', { enabled: newState })
+    protectionEnabled.value = newState
+    notifySuccess(newState ? 'AdGuard protection enabled' : 'AdGuard protection disabled')
+  } catch (err) {
+    console.error('Failed to toggle Adguard protection:', err)
+    notifyError(err.response?.data?.detail || 'Failed to toggle protection state.')
+  } finally {
+    togglingProtection.value = false
   }
 }
 
