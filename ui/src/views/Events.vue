@@ -20,7 +20,7 @@
     <!-- Summary Stats -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <!-- Total Events -->
-      <div class="premium-card !p-5 !rounded-2xl group">
+      <div class="card-base !p-5 !rounded-2xl group">
         <div class="flex items-start justify-between mb-4">
           <div class="p-2.5 bg-blue-500/10 rounded-xl">
             <Activity class="h-4 w-4 text-blue-500" />
@@ -32,7 +32,7 @@
       </div>
 
       <!-- Online Events -->
-      <div class="premium-card !p-5 !rounded-2xl group">
+      <div class="card-base !p-5 !rounded-2xl group">
         <div class="flex items-start justify-between mb-4">
           <div class="p-2.5 bg-emerald-500/10 rounded-xl">
             <Wifi class="h-4 w-4 text-emerald-500" />
@@ -44,7 +44,7 @@
       </div>
 
       <!-- Offline Events -->
-      <div class="premium-card !p-5 !rounded-2xl group">
+      <div class="card-base !p-5 !rounded-2xl group">
         <div class="flex items-start justify-between mb-4">
           <div class="p-2.5 bg-red-500/10 rounded-xl">
             <WifiOff class="h-4 w-4 text-red-500" />
@@ -56,7 +56,7 @@
       </div>
 
       <!-- Online Now -->
-      <div class="premium-card !p-5 !rounded-2xl group">
+      <div class="card-base !p-5 !rounded-2xl group">
         <div class="flex items-start justify-between mb-4">
           <div class="p-2.5 bg-indigo-500/10 rounded-xl">
             <Network class="h-4 w-4 text-indigo-500" />
@@ -72,7 +72,7 @@
     </div>
 
     <!-- Trend Chart -->
-    <div class="premium-card !rounded-2xl">
+    <div class="card-base !rounded-2xl">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div class="flex items-center gap-3">
           <div class="p-2.5 bg-blue-500/10 rounded-xl">
@@ -106,7 +106,7 @@
     </div>
 
     <!-- Filters & Events Table -->
-    <div class="premium-card !rounded-2xl !p-0 overflow-hidden">
+    <div class="card-base !rounded-2xl !p-0 overflow-hidden">
       <!-- Filter Bar -->
       <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 flex flex-col md:flex-row gap-3 items-center">
         <!-- Search -->
@@ -138,19 +138,19 @@
 
       <!-- Table -->
       <div class="overflow-x-auto">
-        <table class="min-w-full">
-          <thead>
-            <tr class="border-b border-slate-100 dark:border-slate-800">
-              <th class="py-3 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Device</th>
-              <th class="py-3 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left hidden md:table-cell">Status</th>
-              <th class="py-3 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left hidden md:table-cell">Activity</th>
-              <th class="py-3 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left hidden md:table-cell">Time</th>
-              <th class="py-3 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
+        <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800/70">
+          <thead class="bg-transparent">
+            <tr class="border-b border-slate-100 dark:border-slate-800/70">
+              <th class="table-header-cell px-6 py-4 w-1/4">Device</th>
+              <th class="table-header-cell hidden md:table-cell px-6 py-4 w-1/4">Status</th>
+              <th class="table-header-cell hidden md:table-cell px-6 py-4 w-1/4">Activity</th>
+              <th class="table-header-cell hidden md:table-cell px-6 py-4 w-1/4">Time</th>
+              <th class="table-header-cell text-right px-6 py-4 w-1/4">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-800/70">
             <template v-for="event in events" :key="event.id">
-              <tr class="group hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+              <tr class="hover-row group">
                 <!-- Device -->
                 <td class="py-4 px-6">
                   <div class="flex items-center gap-3">
@@ -259,7 +259,7 @@
             </template>
 
             <!-- Empty state -->
-            <tr v-if="events.length === 0 && !loading">
+            <tr v-if="events.length === 0 && !loading" class="hover-row">
               <td colspan="5" class="py-20 text-center">
                 <div class="flex flex-col items-center gap-3 text-slate-400">
                   <div class="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
@@ -272,7 +272,7 @@
             </tr>
 
             <!-- Loading state -->
-            <tr v-if="loading">
+            <tr v-if="loading" class="hover-row">
               <td colspan="5" class="py-20 text-center">
                 <Loader2 class="h-8 w-8 animate-spin text-blue-500/30 mx-auto" />
               </td>

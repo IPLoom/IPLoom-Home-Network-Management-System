@@ -140,20 +140,20 @@
             <!-- Logs Table -->
             <div class="content-panel">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-                        <thead class="bg-slate-50 dark:bg-slate-900/50">
-                            <tr>
-                                <th scope="col" class="table-header-cell w-48">Timestamp</th>
-                                <th scope="col" class="table-header-cell w-24">
+                    <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800/70">
+                        <thead class="bg-transparent">
+                            <tr class="border-b border-slate-100 dark:border-slate-800/70">
+                                <th scope="col" class="table-header-cell w-48 text-left px-6 py-4">Timestamp</th>
+                                <th scope="col" class="table-header-cell w-24 text-left px-6 py-4">
                                     {{ currentTab === 'tasks' ? 'Type' : 'Level' }}
                                 </th>
-                                <th scope="col" class="table-header-cell w-48">
+                                <th scope="col" class="table-header-cell w-48 text-left px-6 py-4">
                                     {{ currentTab === 'tasks' ? 'Target' : 'Module' }}
                                 </th>
-                                <th scope="col" class="table-header-cell">Message</th>
+                                <th scope="col" class="table-header-cell text-left px-6 py-4">Message</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800/70">
                             <tr v-if="loading && logs.length === 0">
                                 <td colspan="4" class="px-6 py-20 text-center">
                                     <RefreshCw class="h-8 w-8 mx-auto animate-spin mb-2 text-slate-400" />
