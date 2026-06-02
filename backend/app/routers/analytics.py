@@ -569,6 +569,16 @@ def get_date_range(range_str: str, now: Optional[datetime] = None):
 
     return start, end, bucket, trunc
 
+@router.get("/dns/debug-logs")
+def debug_dns_logs():
+    """Temporary unauthenticated endpoint to dump raw DNS logs"""
+    conn = get_dns_connection()
+    try:
+        rows = conn.execute("SELECT timestamp, domain_id, status, is_blocked, query_type FROM dns_logs ORDER BY timestamp DESC LIMIT 5").fetchall()
+        return [{"timestamp": str(r[0]), "domain_id": r[1], "status": r[2], "is_blocked": r[3], "query_type": r[4]} for r in rows]
+    except Exception as e:
+        return {"error": str(e)}
+
 @router.get("/dns/stats/{device_id}")
 def get_device_dns_stats(device_id: str, range: str = "24h"):
     """
