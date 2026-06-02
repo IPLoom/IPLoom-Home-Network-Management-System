@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
     <!-- Header/Summary Card -->
-    <div class="premium-card overflow-hidden relative">
+    <div class="card-base overflow-hidden relative">
       <div class="absolute -top-12 -right-12 w-64 h-64 bg-rose-500/10 dark:bg-rose-400/5 rounded-full blur-3xl"></div>
       
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
@@ -47,7 +47,7 @@
     </div>
 
     <!-- 7-Day Heatmap Visualization -->
-    <div class="premium-card">
+    <div class="card-base">
       <div class="flex items-center justify-between mb-8">
         <h3 class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Weekly Access Heatmap</h3>
         <div class="flex items-center gap-4">
@@ -96,7 +96,7 @@
     <div class="space-y-4">
       <h3 class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Active Rules</h3>
       
-      <div v-if="schedules.length === 0" class="premium-card !py-12 flex flex-col items-center justify-center text-center">
+      <div v-if="schedules.length === 0" class="card-base !py-12 flex flex-col items-center justify-center text-center">
         <div class="p-6 bg-slate-50 dark:bg-slate-900/50 rounded-full mb-4">
           <Clock class="w-12 h-12 text-slate-300 dark:text-slate-600" />
         </div>
@@ -106,7 +106,7 @@
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div v-for="s in schedules" :key="s.id" 
-          class="premium-card group hover:border-rose-500/30 transition-all !p-5">
+          class="card-base group hover:border-rose-500/30 transition-all !p-5">
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center gap-3">
               <div class="p-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl">

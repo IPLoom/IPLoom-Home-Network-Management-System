@@ -83,7 +83,7 @@
 
         <!-- Summary Stats -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div v-for="stat in summaryStats" :key="stat.label" class="premium-card !p-5 !rounded-2xl flex flex-col justify-between relative overflow-hidden min-h-[110px] group">
+            <div v-for="stat in summaryStats" :key="stat.label" class="card-base flex flex-col justify-between relative overflow-hidden min-h-[110px] group">
 
                 <!-- Sparkline Background -->
                 <Sparkline :data="stat.trend" :color="stat.color" class="opacity-15" />
@@ -114,7 +114,7 @@
         </div>
 
         <!-- IP Grid -->
-        <div class="premium-card !p-6 !rounded-2xl !overflow-visible">
+        <div class="card-base !p-6 !rounded-2xl !overflow-visible">
             <div class="space-y-6">
                 <div v-for="rowIndex in 8" :key="rowIndex">
                     <div class="flex items-center gap-3 mb-3">

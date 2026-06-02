@@ -257,7 +257,7 @@
               </div>
 
               <!-- Device Info Card -->
-              <div class="premium-card group !overflow-visible z-30">
+              <div class="card-base group !overflow-visible z-30">
                 <div
                   class="absolute top-0 right-0 p-8 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity pointer-events-none select-none">
                   <img v-if="(form.icon || device.icon) && (form.icon || device.icon).startsWith('/static/')" :src="form.icon || device.icon" class="w-32 h-32 object-contain" />
@@ -407,7 +407,7 @@
               </div>
 
       <!-- Slim & Compact Network Insights Bar -->
-      <div class="premium-card !p-4 group">
+      <div class="card-base !p-4 group">
         <!-- First Row: General Insights -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 lg:divide-x divide-slate-100 dark:divide-slate-800">
           
@@ -551,7 +551,7 @@
       </div>
 
       <!-- Signal Strength & Mesh Node History -->
-      <div v-if="form.attributes?.connection_type === 'wireless' && signalHistory.length > 0" class="premium-card">
+      <div v-if="form.attributes?.connection_type === 'wireless' && signalHistory.length > 0" class="card-base">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <div class="w-1.5 h-6 bg-teal-500 rounded-full"></div>
@@ -602,7 +602,7 @@
       </div>
 
         <!-- Availability Trend Chart -->
-        <div class="premium-card">
+        <div class="card-base">
           <div class="flex items-center justify-between mb-8">
             <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <div class="w-1.5 h-6 bg-blue-500 rounded-full"></div>
@@ -685,7 +685,7 @@
       <!-- Overview Sidebar -->
       <div class="space-y-6">
         <!-- Availability Metrics -->
-        <div class="premium-card">
+        <div class="card-base">
           <div class="flex items-center justify-between mb-8">
             <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <div class="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
@@ -706,7 +706,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Column 1 & 2: Performance & Security -->
       <div class="lg:col-span-2 space-y-6">
-        <div class="premium-card">
+        <div class="card-base">
           <div class="flex items-center justify-between mb-8">
             <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <div class="w-1.5 h-6 bg-purple-500 rounded-full"></div>
@@ -739,7 +739,7 @@
 
 
         <!-- DNS Insights Card -->
-        <div class="premium-card relative overflow-hidden">
+        <div class="card-base relative overflow-hidden">
           <!-- Background Decor -->
           <div class="absolute -top-12 -right-12 w-64 h-64 bg-purple-500/10 dark:bg-purple-400/5 rounded-full blur-3xl">
           </div>
@@ -922,7 +922,7 @@
           </div>
         </div>
 
-        <div class="premium-card">
+        <div class="card-base">
           <!-- Background Decoration -->
           <div class="absolute -bottom-12 -right-12 w-48 h-48 bg-blue-500/10 dark:bg-blue-400/5 rounded-full blur-3xl pointer-events-none">
           </div>

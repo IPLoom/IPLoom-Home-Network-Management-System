@@ -58,7 +58,7 @@
                 <!-- DNS KPIs -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <!-- Total Queries -->
-                    <div class="premium-card !p-5 !rounded-2xl group">
+                    <div class="card-base group">
                         <div class="flex items-start justify-between mb-4">
                             <div class="p-2.5 bg-blue-500/10 rounded-xl">
                                 <Activity class="h-4 w-4 text-blue-500" />
@@ -70,7 +70,7 @@
                     </div>
 
                     <!-- Blocked -->
-                    <div class="premium-card !p-5 !rounded-2xl group">
+                    <div class="card-base group">
                         <div class="flex items-start justify-between mb-4">
                             <div class="p-2.5 bg-red-500/10 rounded-xl">
                                 <ShieldAlert class="h-4 w-4 text-red-500" />
@@ -82,7 +82,7 @@
                     </div>
 
                     <!-- Block Rate -->
-                    <div class="premium-card !p-5 !rounded-2xl group">
+                    <div class="card-base group">
                         <div class="flex items-start justify-between mb-4">
                             <div class="p-2.5 bg-amber-500/10 rounded-xl">
                                 <ShieldCheck class="h-4 w-4 text-amber-500" />
@@ -94,7 +94,7 @@
                     </div>
 
                     <!-- Avg Response -->
-                    <div class="premium-card !p-5 !rounded-2xl group">
+                    <div class="card-base group">
                         <div class="flex items-start justify-between mb-4">
                             <div class="p-2.5 bg-indigo-500/10 rounded-xl">
                                 <Clock class="h-4 w-4 text-indigo-500" />
@@ -109,7 +109,7 @@
                 <!-- DNS Traffic Chart -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div
-                        class="lg:col-span-3 premium-card !p-6 !rounded-2xl shadow-sm">
+                        class="lg:col-span-3 card-base !p-6 shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-6">DNS Traffic</h3>
                         <div class="h-[350px]">
                             <apexchart type="area" height="100%" :options="dnsChartOptions"
@@ -121,7 +121,7 @@
                 <!-- Top Lists -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Top Blocked Domains -->
-                    <div class="premium-card !p-0 shadow-sm flex flex-col">
+                    <div class="card-base !p-0 shadow-sm flex flex-col">
                         <div
                             class="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
                             <h3 class="text-base font-semibold text-slate-900 dark:text-white">Top Blocked Domains</h3>
@@ -167,7 +167,7 @@
                     </div>
 
                     <!-- Top Allowed Domains -->
-                    <div class="premium-card !p-0 shadow-sm flex flex-col">
+                    <div class="card-base !p-0 shadow-sm flex flex-col">
                         <div
                             class="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
                             <h3 class="text-base font-semibold text-slate-900 dark:text-white">Top Queried Domains</h3>
@@ -217,7 +217,7 @@
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <!-- Query Type Distribution -->
                     <div
-                        class="premium-card !p-6 !rounded-2xl shadow-sm">
+                        class="card-base !p-6 shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-4">Query Types</h3>
                         <div class="h-[300px] flex items-center justify-center">
                             <div v-if="queryTypeSeries.length === 0" class="text-sm text-slate-400">No data</div>
@@ -227,7 +227,7 @@
                     </div>
 
                     <!-- Risky Devices (High Block Rate) -->
-                    <div class="lg:col-span-2 premium-card !p-0 shadow-sm flex flex-col">
+                    <div class="lg:col-span-2 card-base !p-0 shadow-sm flex flex-col">
                         <div
                             class="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
                             <div>
@@ -274,7 +274,7 @@
                 <!-- Top Clients (Chart) - Full Width -->
                 <div class="grid grid-cols-1 gap-6">
                     <div
-                        class="premium-card !p-6 !rounded-2xl shadow-sm">
+                        class="card-base !p-6 shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-4">Top Clients (DNS
                             Queries)
                         </h3>
@@ -355,7 +355,7 @@
                 <!-- Active Devices Count Fix -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <!-- Total Download -->
-                    <div class="premium-card !p-5 !rounded-2xl group">
+                    <div class="card-base group">
                         <div class="flex items-start justify-between mb-4">
                             <div class="p-2.5 bg-blue-500/10 rounded-xl">
                                 <Download class="h-4 w-4 text-blue-500" />
@@ -367,7 +367,7 @@
                     </div>
 
                     <!-- Total Upload -->
-                    <div class="premium-card !p-5 !rounded-2xl group">
+                    <div class="card-base group">
                         <div class="flex items-start justify-between mb-4">
                             <div class="p-2.5 bg-emerald-500/10 rounded-xl">
                                 <Upload class="h-4 w-4 text-emerald-500" />
@@ -379,7 +379,7 @@
                     </div>
 
                     <!-- Active Devices -->
-                    <div class="premium-card !p-5 !rounded-2xl group">
+                    <div class="card-base group">
                         <div class="flex items-start justify-between mb-4">
                             <div class="p-2.5 bg-indigo-500/10 rounded-xl">
                                 <Users class="h-4 w-4 text-indigo-500" />
@@ -391,7 +391,7 @@
                     </div>
 
                     <!-- Avg Throughput -->
-                    <div class="premium-card !p-5 !rounded-2xl group">
+                    <div class="card-base group">
                         <div class="flex items-start justify-between mb-4">
                             <div class="p-2.5 bg-amber-500/10 rounded-xl">
                                 <Activity class="h-4 w-4 text-amber-500" />
@@ -406,7 +406,7 @@
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <!-- Main Traffic Chart -->
                     <div
-                        class="lg:col-span-3 premium-card !p-6 !rounded-2xl shadow-sm">
+                        class="lg:col-span-3 card-base !p-6 shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-6">Traffic Overview</h3>
                         <div class="h-[350px]">
                             <apexchart type="area" height="100%" :options="chartOptions" :series="chartSeries" />
@@ -415,7 +415,7 @@
 
                     <!-- Usage Heatmap -->
                     <div
-                        class="lg:col-span-3 premium-card !p-6 !rounded-2xl shadow-sm">
+                        class="lg:col-span-3 card-base !p-6 shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-2">Usage Patterns</h3>
                         <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Intensity of data consumption by Day
                             and
@@ -437,7 +437,7 @@
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Top Consumers List (Moved here, resized) -->
-                    <div class="premium-card !p-0 shadow-sm flex flex-col">
+                    <div class="card-base !p-0 shadow-sm flex flex-col">
                         <div class="p-6 border-b border-slate-100 dark:border-slate-700">
                             <h3 class="text-base font-semibold text-slate-900 dark:text-white">Top Consumers</h3>
                         </div>
@@ -471,7 +471,7 @@
 
                     <!-- Vendor Distribution (Moved next to Top Consumers) -->
                     <div
-                        class="premium-card !p-6 !rounded-2xl shadow-sm">
+                        class="card-base !p-6 shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-4">Vendor Distribution
                             (Count)
                         </h3>
@@ -484,7 +484,7 @@
                 <!-- Bottom Row: Category Usage & Device Types -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Usage by Category (Traffic) -->
-                    <div class="premium-card !p-6 shadow-sm flex flex-col">
+                    <div class="card-base !p-6 shadow-sm flex flex-col">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-2">Traffic Volume by
                             Category
                         </h3>
@@ -500,7 +500,7 @@
 
                     <!-- Device Types (Count) -->
                     <div
-                        class="premium-card !p-6 !rounded-2xl shadow-sm">
+                        class="card-base !p-6 shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-2">Device Count by Category
                         </h3>
                         <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Number of devices per type</p>
@@ -527,7 +527,7 @@
             <div v-else class="space-y-6">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Untrusted Devices -->
-                    <div class="premium-card shadow-sm flex flex-col">
+                    <div class="card-base shadow-sm flex flex-col">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                                 <ShieldAlert class="w-5 h-5 text-amber-500" />
@@ -567,7 +567,7 @@
                     </div>
 
                     <!-- Risky Open Ports -->
-                    <div class="premium-card shadow-sm flex flex-col">
+                    <div class="card-base shadow-sm flex flex-col">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Unlock class="w-5 h-5 text-red-500" />
@@ -610,7 +610,7 @@
                     </div>
 
                     <!-- Blocked Devices -->
-                    <div class="premium-card shadow-sm flex flex-col">
+                    <div class="card-base shadow-sm flex flex-col">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Lock class="w-5 h-5 text-slate-700 dark:text-slate-300" />
@@ -655,7 +655,7 @@
                     </div>
 
                     <!-- New Devices (7 Days) -->
-                    <div class="premium-card shadow-sm flex flex-col">
+                    <div class="card-base shadow-sm flex flex-col">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Clock class="w-5 h-5 text-blue-500" />

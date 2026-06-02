@@ -161,7 +161,7 @@ onMounted(fetchQuota)
 
 <template>
   <div class="space-y-8">
-    <div class="premium-card overflow-hidden relative !p-0">
+    <div class="card-base overflow-hidden relative !p-0">
       <!-- Hero Background Effect -->
       <div class="absolute -top-12 -right-12 w-64 h-64 bg-indigo-500/10 dark:bg-indigo-400/5 rounded-full blur-3xl pointer-events-none"></div>
       

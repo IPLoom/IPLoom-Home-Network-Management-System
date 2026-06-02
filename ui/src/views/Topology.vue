@@ -131,7 +131,7 @@
         </div>
 
         <!-- Main Content Area: Graph Canvas inside Premium Card -->
-        <div class="premium-card !p-0 flex-1 relative overflow-hidden">
+        <div class="card-base !p-0 flex-1 relative overflow-hidden">
             <!-- Floating Legend -->
             <div class="absolute top-4 left-4 flex flex-col gap-2.5 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-3.5 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 z-10 select-none">
                 <div class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500 mb-0.5">Node Status</div>
