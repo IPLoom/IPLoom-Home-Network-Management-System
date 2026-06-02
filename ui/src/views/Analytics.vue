@@ -26,23 +26,23 @@
                 </div>
 
                 <!-- View Switcher (Standardized) -->
-                <div class="flex p-1 bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/30 rounded-xl">
+                <div class="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm overflow-x-auto whitespace-nowrap">
                     <button @click="currentView = 'traffic'"
-                        class="px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2"
-                        :class="currentView === 'traffic' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'">
-                        <Activity class="w-4 h-4" />
+                        class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-205 border-none outline-none cursor-pointer"
+                        :class="currentView === 'traffic' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 bg-transparent'">
+                        <Activity class="w-3.5 h-3.5" />
                         Traffic
                     </button>
                     <button @click="currentView = 'dns'"
-                        class="px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2"
-                        :class="currentView === 'dns' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'">
-                        <ShieldCheck class="w-4 h-4" />
+                        class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-205 border-none outline-none cursor-pointer"
+                        :class="currentView === 'dns' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 bg-transparent'">
+                        <ShieldCheck class="w-3.5 h-3.5" />
                         DNS Security
                     </button>
                     <button @click="currentView = 'security'"
-                        class="px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2"
-                        :class="currentView === 'security' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'">
-                        <ShieldAlert class="w-4 h-4" />
+                        class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-205 border-none outline-none cursor-pointer"
+                        :class="currentView === 'security' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 bg-transparent'">
+                        <ShieldAlert class="w-3.5 h-3.5" />
                         Security
                     </button>
                 </div>

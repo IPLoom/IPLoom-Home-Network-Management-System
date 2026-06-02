@@ -1,6 +1,6 @@
 <template>
   <div v-if="device" class="space-y-6 w-full pb-12">
-    <Tabs v-model:value="activeTab" class="w-full">
+    <div class="w-full">
       <!-- Header Area -->
     <div class="mb-8">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -193,32 +193,20 @@
 
         <!-- Right: Meta Info & Trusted Badge -->
         <div class="flex items-center gap-3 shrink-0">
-          <TabList :pt="{
-            root: { class: 'flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm overflow-x-auto whitespace-nowrap' },
-            content: { class: '!border-none !border-b-0 !shadow-none bg-transparent', style: 'border: none !important; box-shadow: none !important;' },
-            tabList: { class: '!border-none !border-b-0 bg-transparent', style: 'border: none !important; border-bottom: none !important;' },
-            activeBar: { class: 'hidden', style: 'display: none !important;' }
-          }">
-            <Tab v-for="tab in tabs" :key="tab.id" :value="tab.id"
-              :pt="{
-                root: ({ context }) => [
-                  'flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-205 border-none outline-none cursor-pointer',
-                  context.active
-                    ? 'bg-blue-600 text-white shadow-sm' 
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-750 bg-transparent'
-                ]
-              }"
-            >
-              <component :is="tab.icon" class="w-3.5 h-3.5" />
-              <span>{{ tab.name }}</span>
-            </Tab>
-          </TabList>
+        <div class="flex items-center gap-1.5 p-1 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/50 dark:border-slate-700/30 overflow-x-auto whitespace-nowrap shrink-0">
+            <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
+                class="px-3 h-9 rounded-lg flex items-center gap-2 text-xs font-semibold transition-all border-none outline-none cursor-pointer"
+                :class="activeTab === tab.id ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white bg-transparent'">
+                <component :is="tab.icon" class="w-3.5 h-3.5" />
+                <span>{{ tab.name }}</span>
+            </button>
+        </div>
         </div>
       </div>
     </div>
 
-    <TabPanels :pt="{ root: 'p-0 bg-transparent' }">
-        <TabPanel value="overview" :pt="{ root: 'p-0' }">
+    <div class="mt-4">
+        <div v-if="activeTab === 'overview'">
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             <!-- Column 1 & 2: Main Info -->
@@ -713,9 +701,8 @@
         </div>
       </div>
     </div>
-  </TabPanel>
-
-      <TabPanel value="network" :pt="{ root: 'p-0' }">
+        </div>
+        <div v-if="activeTab === 'network'">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Column 1 & 2: Performance & Security -->
       <div class="lg:col-span-2 space-y-6">
@@ -1002,10 +989,8 @@
         </div>
       </div>
     </div>
-  </div>
-  </TabPanel>
-
-      <TabPanel value="access" :pt="{ root: 'p-0' }">
+        </div>
+        <div v-if="activeTab === 'access'">
         <div class="space-y-12">
       <InternetSchedules :device="device" />
       
@@ -1013,9 +998,9 @@
         <DeviceQuotaManager :deviceId="device.id" />
       </div>
     </div>
-  </TabPanel>
-    </TabPanels>
-  </Tabs>
+        </div>
+    </div>
+  </div>
 
   <TerminalModal v-if="showTerminal" :device="device" :port="sshPort" @close="showTerminal = false" />
     
@@ -1029,15 +1014,11 @@
       @confirm="saveVendorLookup"
     />
   </div>
+  </div>
 </template>
 
 <script setup>
 import Popover from 'primevue/popover'
-import Tabs from 'primevue/tabs'
-import TabList from 'primevue/tablist'
-import Tab from 'primevue/tab'
-import TabPanels from 'primevue/tabpanels'
-import TabPanel from 'primevue/tabpanel'
 import InputText from 'primevue/inputtext'
 import { ref, onMounted, onUnmounted, reactive, computed, watch } from 'vue'
 import {

@@ -175,7 +175,7 @@
 
   /* Interactive Tooltips/Popovers */
   .hover-popover {
-    @apply pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute z-50 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-[10px] p-3 rounded-lg shadow-xl;
+    @apply pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-200 absolute z-50 bg-slate-900/90 dark:bg-slate-800/90 backdrop-blur-md text-white text-[10px] p-2.5 rounded-lg shadow-xl border border-white/10 dark:border-slate-700/50;
   }
 
   /* Utility Containers */

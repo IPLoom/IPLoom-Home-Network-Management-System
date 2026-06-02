@@ -107,7 +107,7 @@
     </div>
 
     <!-- Unified Filters & Devices Grid -->
-    <div class="premium-card !rounded-2xl !p-0 overflow-hidden w-full max-w-full">
+    <div class="card-base shadow-xl border-none !rounded-2xl !p-0 overflow-hidden w-full max-w-full">
       <!-- Filter Bar -->
       <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 flex flex-col md:flex-row gap-4 items-center">
         <!-- Search -->

@@ -89,12 +89,12 @@
                                 :class="getIntegrationPulse(integration)"></div>
                             
                             <!-- Tooltip -->
-                            <div class="pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-200 absolute -bottom-12 left-1/2 -translate-x-1/2 z-50 bg-slate-900 dark:bg-slate-800 text-white text-[10px] py-2 px-3 rounded-xl shadow-2xl border border-slate-700 flex flex-col gap-0.5">
+                            <div class="hover-popover -bottom-14 left-1/2 -translate-x-1/2 flex flex-col gap-0.5 whitespace-nowrap">
                                 <div class="flex items-center gap-1.5">
                                     <div class="w-1.5 h-1.5 rounded-full" :class="getIntegrationStatus(integration) ? 'bg-emerald-500' : 'bg-red-500'"></div>
                                     <span class="font-bold">{{ integration.toUpperCase() }} {{ getIntegrationStatus(integration) ? 'Active' : 'Offline' }}</span>
                                 </div>
-                                <span class="text-slate-400 italic whitespace-nowrap">Manage in Settings</span>
+                                <span class="text-slate-400 italic">Manage in Settings</span>
                             </div>
                         </div>
                     </div>

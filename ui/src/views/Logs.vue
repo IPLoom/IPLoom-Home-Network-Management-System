@@ -8,55 +8,27 @@
                     {{ currentTab === 'scans' ? 'Discovery activity log and network scans.' : 'View backend system events and monitoring.' }}
                 </p>
             </div>
-            <!-- Tab Switcher (PrimeVue Tabs) -->
-            <Tabs v-model:value="currentTab" class="h-11">
-                <TabList :pt="{
-                  root: { class: 'flex items-center gap-1 bg-slate-100 dark:bg-slate-700/50 p-1 rounded-xl shadow-sm border-none' },
-                  content: { class: '!border-none !border-b-0 !shadow-none bg-transparent', style: 'border: none !important; box-shadow: none !important;' },
-                  tabList: { class: '!border-none !border-b-0 bg-transparent', style: 'border: none !important; border-bottom: none !important;' },
-                  activeBar: { class: 'hidden', style: 'display: none !important;' }
-                }">
-                    <Tab value="all"
-                        :pt="{
-                          root: ({ context }) => [
-                            'flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 border-none outline-none cursor-pointer',
-                            context.active
-                              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' 
-                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-750 bg-transparent'
-                          ]
-                        }"
-                    >
-                        <Activity class="w-4 h-4" />
-                        <span>System</span>
-                    </Tab>
-                    <Tab value="tasks"
-                        :pt="{
-                          root: ({ context }) => [
-                            'flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 border-none outline-none cursor-pointer',
-                            context.active
-                              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' 
-                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-750 bg-transparent'
-                          ]
-                        }"
-                    >
-                        <Cog class="w-4 h-4" />
-                        <span>Tasks</span>
-                    </Tab>
-                    <Tab value="scans"
-                        :pt="{
-                          root: ({ context }) => [
-                            'flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 border-none outline-none cursor-pointer',
-                            context.active
-                              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' 
-                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-750 bg-transparent'
-                          ]
-                        }"
-                    >
-                        <Radar class="w-4 h-4" />
-                        <span>Scans</span>
-                    </Tab>
-                </TabList>
-            </Tabs>
+            <!-- Tab Switcher (Custom) -->
+            <div class="flex items-center gap-1.5 p-1 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/50 dark:border-slate-700/30 overflow-x-auto whitespace-nowrap shrink-0">
+                <button @click="currentTab = 'all'"
+                    class="px-3 h-9 rounded-lg flex items-center gap-2 text-xs font-semibold transition-all border-none outline-none cursor-pointer"
+                    :class="currentTab === 'all' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white bg-transparent'">
+                    <Activity class="w-3.5 h-3.5" />
+                    <span>System</span>
+                </button>
+                <button @click="currentTab = 'tasks'"
+                    class="px-3 h-9 rounded-lg flex items-center gap-2 text-xs font-semibold transition-all border-none outline-none cursor-pointer"
+                    :class="currentTab === 'tasks' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white bg-transparent'">
+                    <Cog class="w-3.5 h-3.5" />
+                    <span>Tasks</span>
+                </button>
+                <button @click="currentTab = 'scans'"
+                    class="px-3 h-9 rounded-lg flex items-center gap-2 text-xs font-semibold transition-all border-none outline-none cursor-pointer"
+                    :class="currentTab === 'scans' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white bg-transparent'">
+                    <Radar class="w-3.5 h-3.5" />
+                    <span>Scans</span>
+                </button>
+            </div>
         </div>
 
         <template v-if="currentTab === 'scans'">
@@ -293,9 +265,6 @@ import { useWebSockets } from '@/composables/useWebSockets'
 import { formatDate } from '@/utils/date'
 
 // PrimeVue components
-import Tabs from 'primevue/tabs'
-import TabList from 'primevue/tablist'
-import Tab from 'primevue/tab'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import IconField from 'primevue/iconfield'
