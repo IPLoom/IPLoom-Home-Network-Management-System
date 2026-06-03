@@ -22,6 +22,12 @@
                     <Cog class="w-3.5 h-3.5" />
                     <span>Tasks</span>
                 </button>
+                <button @click="currentTab = 'dns'"
+                    class="px-3 h-9 rounded-lg flex items-center gap-2 text-xs font-semibold transition-all border-none outline-none cursor-pointer"
+                    :class="currentTab === 'dns' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white bg-transparent'">
+                    <ShieldCheck class="w-3.5 h-3.5" />
+                    <span>DNS Queries</span>
+                </button>
                 <button @click="currentTab = 'scans'"
                     class="px-3 h-9 rounded-lg flex items-center gap-2 text-xs font-semibold transition-all border-none outline-none cursor-pointer"
                     :class="currentTab === 'scans' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white bg-transparent'">
@@ -63,7 +69,7 @@
                             <InputIcon class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
                                 <Search class="h-4 w-4" />
                             </InputIcon>
-                            <InputText v-model="search" @input="debounceSearch" type="text" placeholder="Search logs..."
+                            <InputText v-model="search" @input="debounceSearch" type="text" :placeholder="currentTab === 'dns' ? 'Search domains...' : 'Search logs...'"
                                 class="w-full !pl-10 h-10 border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" />
                         </IconField>
                     </div>
@@ -77,6 +83,20 @@
                             @change="fetchLogs"
                             placeholder="All Types"
                             class="w-full md:w-56"
+                            :pt="{
+                                root: { class: 'h-10 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-xl flex items-center justify-between text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500' }
+                            }"
+                        />
+
+                        <!-- DNS Block Filter -->
+                        <Select v-else-if="currentTab === 'dns'"
+                            v-model="dnsBlockedFilter"
+                            :options="dnsBlockedOptions"
+                            optionLabel="label"
+                            optionValue="value"
+                            @change="fetchLogs"
+                            placeholder="All Queries"
+                            class="w-full md:w-44"
                             :pt="{
                                 root: { class: 'h-10 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-xl flex items-center justify-between text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500' }
                             }"
@@ -113,7 +133,7 @@
                             <button @click="fetchLogs" class="btn-action h-10" v-tooltip="'Refresh Logs'">
                                 <RefreshCw class="w-4 h-4" :class="{ 'animate-spin': loading }" />
                             </button>
-                            <button @click.stop="promptClearLogs"
+                            <button v-if="currentTab !== 'dns'" @click.stop="promptClearLogs"
                                 class="btn-action h-10 hover:!text-red-500 hover:!bg-red-50 dark:hover:!bg-red-900/20"
                                 v-tooltip="'Clear All Logs'">
                                 <Trash2 class="w-4 h-4" />
@@ -130,7 +150,7 @@
                         <span>Showing <b>{{ displayedLogs.length }}</b> of <b>{{ displayTotal }}</b> logs matching current
                             filters</span>
                     </div>
-                    <div v-if="currentTab === 'tasks'" class="flex items-center gap-2">
+                    <div v-if="['tasks', 'dns'].includes(currentTab)" class="flex items-center gap-2">
                         <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Auto-refresh (5s)</span>
                         <ToggleSwitch v-model="autoRefresh" />
                     </div>
@@ -144,87 +164,138 @@
                         <thead class="bg-transparent">
                             <tr class="border-b border-slate-100 dark:border-slate-800/70">
                                 <th scope="col" class="table-header-cell w-48 text-left px-6 py-4">Timestamp</th>
-                                <th scope="col" class="table-header-cell w-24 text-left px-6 py-4">
-                                    {{ currentTab === 'tasks' ? 'Type' : 'Level' }}
-                                </th>
-                                <th scope="col" class="table-header-cell w-48 text-left px-6 py-4">
-                                    {{ currentTab === 'tasks' ? 'Target' : 'Module' }}
-                                </th>
-                                <th scope="col" class="table-header-cell text-left px-6 py-4">Message</th>
+                                <template v-if="currentTab === 'dns'">
+                                    <th scope="col" class="table-header-cell w-24 text-left px-6 py-4">Status</th>
+                                    <th scope="col" class="table-header-cell w-48 text-left px-6 py-4">Domain</th>
+                                    <th scope="col" class="table-header-cell w-48 text-left px-6 py-4">Client</th>
+                                    <th scope="col" class="table-header-cell w-24 text-left px-6 py-4">Latency</th>
+                                    <th scope="col" class="table-header-cell text-right px-6 py-4">Actions</th>
+                                </template>
+                                <template v-else>
+                                    <th scope="col" class="table-header-cell w-24 text-left px-6 py-4">
+                                        {{ currentTab === 'tasks' ? 'Type' : 'Level' }}
+                                    </th>
+                                    <th scope="col" class="table-header-cell w-48 text-left px-6 py-4">
+                                        {{ currentTab === 'tasks' ? 'Target' : 'Module' }}
+                                    </th>
+                                    <th scope="col" class="table-header-cell text-left px-6 py-4">Message</th>
+                                </template>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 dark:divide-slate-800/70">
                             <tr v-if="loading && logs.length === 0">
-                                <td colspan="4" class="px-6 py-20 text-center">
+                                <td :colspan="currentTab === 'dns' ? 6 : 4" class="px-6 py-20 text-center">
                                     <RefreshCw class="h-8 w-8 mx-auto animate-spin mb-2 text-slate-400" />
                                     <p class="text-slate-500 dark:text-slate-400">Loading logs...</p>
                                 </td>
                             </tr>
                             <tr v-else-if="logs.length === 0">
-                                <td colspan="4" class="px-6 py-20 text-center">
+                                <td :colspan="currentTab === 'dns' ? 6 : 4" class="px-6 py-20 text-center">
                                     <p class="text-slate-500 dark:text-slate-400 italic">No logs found matching your
                                         criteria.</p>
                                 </td>
                             </tr>
-                            <tr v-for="(log, idx) in displayedLogs" :key="idx" class="hover-row">
-                                <td class="table-data-cell font-mono text-xs opacity-70">
-                                    {{ formatTime(log.timestamp) }}
-                                </td>
-
-                                <!-- Task Type or Level -->
-                                <td class="table-data-cell">
-                                    <span v-if="currentTab === 'tasks'" :class="[
-                                        'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider',
-                                        getTaskColor(log.task_type)
-                                    ]">
-                                        <component :is="getTaskIcon(log.task_type)" class="w-3 h-3" />
-                                        {{ getTaskLabel(log.task_type) }}
-                                    </span>
-                                    <span v-else :class="[
-                                        'inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider',
-                                        levelColors[log.level] || 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'
-                                    ]">
-                                        {{ log.level }}
-                                    </span>
-                                </td>
-
-                                <!-- Target or Module -->
-                                <td class="table-data-cell font-mono text-xs opacity-70">
-                                    <div v-if="currentTab === 'tasks'" class="flex flex-col">
-                                        <span class="font-bold text-slate-700 dark:text-slate-300">{{ log.target || '-'
-                                        }}</span>
-                                        <span v-if="log.event_type" class="text-[10px] uppercase tracking-wide"
-                                            :class="{ 'text-green-600': log.event_type === 'completed', 'text-blue-600': log.event_type === 'started', 'text-red-600': log.event_type === 'failed' }">
-                                            {{ log.event_type }}
+                            <template v-else-if="currentTab === 'dns'">
+                                <tr v-for="(log, idx) in displayedLogs" :key="idx" class="hover-row">
+                                    <td class="table-data-cell font-mono text-xs opacity-70">
+                                        {{ formatTime(log.timestamp) }}
+                                    </td>
+                                    <td class="table-data-cell">
+                                        <span v-if="log.is_blocked"
+                                            class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                                            Blocked
                                         </span>
-                                    </div>
-                                    <span v-else :title="log.path">{{ log.module }}:{{ log.line }}</span>
-                                </td>
+                                        <span v-else
+                                            class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                            Allowed
+                                        </span>
+                                    </td>
+                                    <td class="table-data-cell font-mono text-sm break-all font-bold text-slate-700 dark:text-slate-200">
+                                        <div>{{ log.domain }}</div>
+                                        <div v-if="log.category" class="text-[9px] uppercase tracking-wider text-slate-400 dark:text-slate-500">{{ log.category }}</div>
+                                    </td>
+                                    <td class="table-data-cell font-mono text-xs opacity-80">
+                                        <div class="font-bold">{{ log.device_name || 'Unknown' }}</div>
+                                        <div class="text-[10px] text-slate-400">{{ log.client_ip }}</div>
+                                    </td>
+                                    <td class="table-data-cell font-mono text-xs opacity-70">
+                                        {{ log.response_time }}ms
+                                    </td>
+                                    <td class="table-data-cell text-right">
+                                        <button v-if="log.is_blocked" @click="toggleAdGuardRule(log.domain, 'allow')"
+                                            class="h-8 px-3 inline-flex items-center justify-center gap-1.5 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border-none cursor-pointer">
+                                            <ShieldCheck class="w-3.5 h-3.5" />
+                                            Allow
+                                        </button>
+                                        <button v-else @click="toggleAdGuardRule(log.domain, 'block')"
+                                            class="h-8 px-3 inline-flex items-center justify-center gap-1.5 bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border-none cursor-pointer">
+                                            <X class="w-3.5 h-3.5" />
+                                            Block
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                            <template v-else>
+                                <tr v-for="(log, idx) in displayedLogs" :key="idx" class="hover-row">
+                                    <td class="table-data-cell font-mono text-xs opacity-70">
+                                        {{ formatTime(log.timestamp) }}
+                                    </td>
 
-                                <!-- Message and Details -->
-                                <td class="table-data-cell font-mono text-sm break-all">
-                                    {{ log.message }}
+                                    <!-- Task Type or Level -->
+                                    <td class="table-data-cell">
+                                        <span v-if="currentTab === 'tasks'" :class="[
+                                            'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider',
+                                            getTaskColor(log.task_type)
+                                        ]">
+                                            <component :is="getTaskIcon(log.task_type)" class="w-3 h-3" />
+                                            {{ getTaskLabel(log.task_type) }}
+                                        </span>
+                                        <span v-else :class="[
+                                            'inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider',
+                                            levelColors[log.level] || 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'
+                                        ]">
+                                            {{ log.level }}
+                                        </span>
+                                    </td>
 
-                                    <!-- Task Duration Badge -->
-                                    <span v-if="log.duration_ms"
-                                        class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                                        ⏱ {{ log.duration_ms }}ms
-                                    </span>
-
-                                    <!-- Task Details JSON -->
-                                    <div v-if="log.details" class="mt-2 text-xs text-slate-500 font-mono">
-                                        <span v-for="(val, key) in log.details" :key="key" class="mr-3 inline-block">
-                                            <span class="opacity-70">{{ key }}:</span> <span class="font-medium">{{ val
+                                    <!-- Target or Module -->
+                                    <td class="table-data-cell font-mono text-xs opacity-70">
+                                        <div v-if="currentTab === 'tasks'" class="flex flex-col">
+                                            <span class="font-bold text-slate-700 dark:text-slate-300">{{ log.target || '-'
                                             }}</span>
-                                        </span>
-                                    </div>
+                                            <span v-if="log.event_type" class="text-[10px] uppercase tracking-wide"
+                                                :class="{ 'text-green-600': log.event_type === 'completed', 'text-blue-600': log.event_type === 'started', 'text-red-600': log.event_type === 'failed' }">
+                                                {{ log.event_type }}
+                                            </span>
+                                        </div>
+                                        <span v-else :title="log.path">{{ log.module }}:{{ log.line }}</span>
+                                    </td>
 
-                                    <div v-if="log.exception"
-                                        class="mt-2 p-3 bg-red-50/50 dark:bg-red-900/10 rounded-lg border border-red-100 dark:border-red-900/30 text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap font-mono overflow-x-auto">
-                                        {{ log.exception }}
-                                    </div>
-                                </td>
-                            </tr>
+                                    <!-- Message and Details -->
+                                    <td class="table-data-cell font-mono text-sm break-all">
+                                        {{ log.message }}
+
+                                        <!-- Task Duration Badge -->
+                                        <span v-if="log.duration_ms"
+                                            class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                                            ⏱ {{ log.duration_ms }}ms
+                                        </span>
+
+                                        <!-- Task Details JSON -->
+                                        <div v-if="log.details" class="mt-2 text-xs text-slate-500 font-mono">
+                                            <span v-for="(val, key) in log.details" :key="key" class="mr-3 inline-block">
+                                                <span class="opacity-70">{{ key }}:</span> <span class="font-medium">{{ val
+                                                }}</span>
+                                            </span>
+                                        </div>
+
+                                        <div v-if="log.exception"
+                                            class="mt-2 p-3 bg-red-50/50 dark:bg-red-950/10 rounded-lg border border-red-100 dark:border-red-900/30 text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap font-mono overflow-x-auto">
+                                            {{ log.exception }}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
                         </tbody>
                     </table>
                 </div>
@@ -254,12 +325,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, watch, computed, onUnmounted } from 'vue'
 import api from '@/utils/api'
 import * as LucideIcons from 'lucide-vue-next'
 import ConfirmationModal from '@/components/ConfirmationModal.vue'
 import ScanHistoryTab from '@/components/ScanHistoryTab.vue'
-const { RefreshCw, Search, Filter, ChevronDown, Activity, Trash2, Cog, ShieldCheck, Router, Network, Radar } = LucideIcons
+const { RefreshCw, Search, Filter, ChevronDown, Activity, Trash2, Cog, ShieldCheck, Router, Network, Radar, X } = LucideIcons
 import { useNotifications } from '@/composables/useNotifications'
 import { useWebSockets } from '@/composables/useWebSockets'
 import { formatDate } from '@/utils/date'
@@ -302,6 +373,15 @@ interface LogRecord {
     target?: string
     duration_ms?: number
     details?: Record<string, any>
+    // DNS Fields
+    domain?: string
+    status?: string
+    response_time?: number
+    is_blocked?: boolean
+    category?: string
+    client_ip?: string
+    device_id?: string
+    device_name?: string
 }
 
 const logs = ref<LogRecord[]>([])
@@ -313,6 +393,8 @@ const totalPages = ref(1)
 const search = ref('')
 const levelFilter = ref('WARNING')
 const taskTypeFilter = ref('')
+const dnsBlockedFilter = ref<any>(null)
+
 const levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
 
 const levelOptions = [
@@ -337,10 +419,16 @@ const taskTypeOptions = [
     { value: 'openwrt_sync', label: 'OpenWRT Sync' }
 ]
 
+const dnsBlockedOptions = [
+    { value: null, label: 'All Queries' },
+    { value: true, label: 'Blocked Only' },
+    { value: false, label: 'Allowed Only' }
+]
+
 // Tab and Auto-refresh State
 const currentTab = ref('all')
 const autoRefresh = ref(false)
-let autoRefreshInterval = null
+let autoRefreshInterval: any = null
 
 // Confirmation Modal State
 const showClearConfirm = ref(false)
@@ -406,7 +494,13 @@ const fetchLogs = async () => {
     if (currentTab.value === 'scans') return
     loading.value = true
     try {
-        const endpoint = currentTab.value === 'tasks' ? '/task-events/' : '/logs/'
+        let endpoint = '/logs/'
+        if (currentTab.value === 'tasks') {
+            endpoint = '/task-events/'
+        } else if (currentTab.value === 'dns') {
+            endpoint = '/analytics/dns/logs'
+        }
+
         const params: any = {
             limit: limit.value,
             page: page.value
@@ -415,9 +509,11 @@ const fetchLogs = async () => {
         if (currentTab.value === 'all') {
             if (search.value) params.search = search.value
             if (levelFilter.value) params.level = levelFilter.value
-        } else {
-            // Task filtering
+        } else if (currentTab.value === 'tasks') {
             if (taskTypeFilter.value) params.task_type = taskTypeFilter.value
+        } else if (currentTab.value === 'dns') {
+            if (search.value) params.search = search.value
+            if (dnsBlockedFilter.value !== null) params.is_blocked = dnsBlockedFilter.value
         }
 
         const res = await api.get(endpoint, { params })
@@ -431,6 +527,21 @@ const fetchLogs = async () => {
         console.error('Error fetching logs:', e)
     } finally {
         loading.value = false
+    }
+}
+
+const toggleAdGuardRule = async (domain: string, action: 'block' | 'allow') => {
+    try {
+        await api.post('/integrations/adguard/rules', { domain, action })
+        notifySuccess(`Domain ${domain} enqueued for ${action} rule list sync.`)
+        // Optimistic toggle locally
+        logs.value.forEach(l => {
+            if (l.domain === domain) {
+                l.is_blocked = action === 'block'
+            }
+        })
+    } catch (e: any) {
+        notifyError(`Failed to update rules: ${e.message}`)
     }
 }
 
@@ -462,6 +573,10 @@ onMounted(() => {
     fetchLogs()
 })
 
+onUnmounted(() => {
+    if (autoRefreshInterval) clearInterval(autoRefreshInterval)
+})
+
 // Computed property for filtered logs based on current tab
 // Since API handles filtering, we just return logs
 const displayedLogs = computed(() => logs.value)
@@ -473,7 +588,7 @@ watch(autoRefresh, (enabled) => {
     if (enabled) {
         // Start auto-refresh
         autoRefreshInterval = setInterval(() => {
-            if (currentTab.value === 'tasks') {
+            if (['tasks', 'dns'].includes(currentTab.value)) {
                 fetchLogs()
             }
         }, 5000)
@@ -488,7 +603,7 @@ watch(autoRefresh, (enabled) => {
 
 // Stop auto-refresh when switching away from tasks tab
 watch(currentTab, (newTab, oldTab) => {
-    if (newTab !== 'tasks' && autoRefresh.value) {
+    if (!['tasks', 'dns'].includes(newTab) && autoRefresh.value) {
         autoRefresh.value = false
     }
 
@@ -496,8 +611,11 @@ watch(currentTab, (newTab, oldTab) => {
 
     // Reset page and filters when switching tabs
     page.value = 1
+    search.value = ''
     if (newTab === 'tasks') {
         taskTypeFilter.value = ''
+    } else if (newTab === 'dns') {
+        dnsBlockedFilter.value = null
     } else {
         levelFilter.value = 'WARNING'
     }

@@ -398,7 +398,29 @@ class AdguardClient:
         finally:
             if 'conn_main' in locals():
                 conn_main.close()
-            # conn_dns closed? No, we use shared connection but we should probably leave it open or handle properly.
-            # The get_dns_connection uses shared, so we don't 'close' it per se, just release cursor? 
-            # The helper doesn't really close valid cursors but that's fine for duckdb.
+
+    def get_custom_rules(self):
+        """Fetch custom filtering rules"""
+        try:
+            resp = self.session.get(f"{self.base_url}/control/filtering/status", timeout=5)
+            resp.raise_for_status()
+            return resp.json().get("user_rules", [])
+        except Exception as e:
+            logger.error(f"Failed to fetch Adguard custom rules: {e}")
+            raise e
+
+    def set_custom_rules(self, rules: list[str]):
+        """Overwrite custom filtering rules"""
+        try:
+            resp = self.session.post(
+                f"{self.base_url}/control/filtering/set_rules",
+                json={"rules": rules},
+                timeout=5
+            )
+            resp.raise_for_status()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to set Adguard custom rules: {e}")
+            raise e
+
 

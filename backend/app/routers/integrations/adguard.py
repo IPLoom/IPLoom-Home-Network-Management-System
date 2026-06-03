@@ -241,3 +241,39 @@ def get_adguard_data():
     finally:
         conn.close()
 
+class DomainRuleRequest(BaseModel):
+    domain: str
+    action: str # "block", "allow", "remove"
+
+@router.post("/rules")
+def update_domain_rule(request: DomainRuleRequest):
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT config FROM integrations WHERE name = 'adguard'").fetchone()
+        if not row:
+            raise HTTPException(status_code=400, detail="Adguard not configured")
+        
+        conf = json.loads(row[0])
+        client = AdguardClient(conf["url"], conf.get("username"), conf.get("password"))
+        
+        # Get existing rules
+        rules = client.get_custom_rules()
+        domain = request.domain.strip().lower()
+        
+        # Clean existing rules for this domain
+        rules = [r for r in rules if domain not in r.lower()]
+        
+        if request.action == "block":
+            rules.append(f"||{domain}^")
+        elif request.action == "allow":
+            rules.append(f"@@||{domain}^")
+        
+        client.set_custom_rules(rules)
+        return {"status": "success", "domain": domain, "action": request.action}
+    except Exception as e:
+        logger.error(f"Failed to update Adguard rules: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
