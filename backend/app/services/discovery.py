@@ -116,6 +116,145 @@ class DiscoveryService:
         logger.info(f"Rapid Scan complete. Found {len(enriched)} devices.")
         return sorted(enriched, key=lambda x: (x["status"] != "NEW", x["ip"]))
 
+    @staticmethod
+    async def stream_rapid_discovery():
+        """
+        Ultra-fast network scanner that streams results as they are found.
+        Identifies NEW devices vs known ones.
+        """
+        logger.info("Starting Modular Streaming Rapid Discovery Scan...")
+        
+        # 1. Detect Subnet
+        from app.services.scans import resolve_hostname
+        interfaces = psutil.net_if_addrs()
+        target_network = None
+        for iface, addrs in interfaces.items():
+            for addr in addrs:
+                if addr.family == socket.AF_INET and not addr.address.startswith("127."):
+                    ip = addr.address
+                    mask = addr.netmask
+                    if ip and mask:
+                        if ip.startswith(("192.168.", "10.", "172.16.", "172.31.")):
+                            target_network = ipaddress.IPv4Network(f"{ip}/{mask}", strict=False)
+                            break
+            if target_network: break
+        
+        target_str = str(target_network) if target_network else "192.168.1.0/24"
+        
+        yield json.dumps({"event": "start", "subnet": target_str}) + "\n"
+
+        # 2. Fetch Known Devices
+        def get_known():
+            conn = get_connection()
+            try:
+                rows = conn.execute("SELECT mac, ip, display_name FROM devices").fetchall()
+                return {r[0].lower(): {"ip": r[1], "name": r[2]} for r in rows if r[0]}
+            finally:
+                conn.close()
+        
+        known_devices = await asyncio.to_thread(get_known)
+
+        # 3. Modular Discovery
+        from app.services.scanners import ARPScanner
+        from app.services.scanners.ping_scanner import get_mac_from_cache
+        from app.services.classification import classify_device, get_vendor_locally, get_custom_assets
+        
+        arp_scanner = ARPScanner()
+        arp_res = await arp_scanner.scan(target_str)
+        
+        yielded_ips = set()
+        custom_assets = get_custom_assets()
+        
+        async def enrich_and_format(ip, mac):
+            status = "NEW"
+            mac_lower = mac.lower() if mac else "unknown"
+            known_info = known_devices.get(mac_lower) if mac_lower != "unknown" else None
+            if known_info:
+                status = "KNOWN" if known_info["ip"] == ip else "MOVED"
+            
+            hostname = await resolve_hostname(ip)
+            vendor = get_vendor_locally(mac) or "Unknown"
+            classification = classify_device(hostname, vendor, [])
+            
+            brand_icon = None
+            if classification.get("brand"):
+                brand_asset = custom_assets.get(classification["brand"].lower())
+                brand_icon = brand_asset["path"] if brand_asset else None
+
+            return {
+                "ip": ip,
+                "mac": mac,
+                "hostname": hostname or (known_info["name"] if known_info else "unknown"),
+                "status": status,
+                "is_new": status == "NEW",
+                "vendor": vendor,
+                "device_type": classification["type"],
+                "icon": classification["icon"],
+                "brand": classification.get("brand"),
+                "brand_icon": brand_icon
+            }
+
+        # Send ARP results first
+        for dev in arp_res:
+            ip = dev["ip"]
+            mac = dev.get("mac", "unknown")
+            if ip in yielded_ips:
+                continue
+            yielded_ips.add(ip)
+            
+            try:
+                enriched = await enrich_and_format(ip, mac)
+                yield json.dumps({"event": "device", "device": enriched}) + "\n"
+            except Exception as e:
+                logger.error(f"Error enriching scanned IP {ip}: {e}")
+                
+            await asyncio.sleep(0.01)
+
+        # Get all IPs in network for ping sweep
+        try:
+            net = ipaddress.ip_network(target_str, strict=False)
+            all_ips = [str(ip) for ip in list(net.hosts())]
+        except:
+            all_ips = []
+            
+        remaining_ips = [ip for ip in all_ips if ip not in yielded_ips]
+        
+        if remaining_ips:
+            # Check remaining IPs with a semaphore
+            semaphore = asyncio.Semaphore(50)
+            
+            async def ping_ip(ip_str):
+                async with semaphore:
+                    def check():
+                        try:
+                            cmd = ["ping", "-n", "1", "-w", "400", ip_str] if sys.platform == "win32" else ["ping", "-c", "1", "-W", "1", ip_str]
+                            result = subprocess.run(cmd, capture_output=True, timeout=2)
+                            if result.returncode == 0:
+                                mac = get_mac_from_cache(ip_str)
+                                return mac if mac else "unknown"
+                        except:
+                            pass
+                        return None
+
+                    mac = await asyncio.to_thread(check)
+                    if mac:
+                        return ip_str, mac
+                    return None
+
+            tasks = [ping_ip(ip) for ip in remaining_ips]
+            for fut in asyncio.as_completed(tasks):
+                res = await fut
+                if res:
+                    ip, mac = res
+                    if ip not in yielded_ips:
+                        yielded_ips.add(ip)
+                        try:
+                            enriched = await enrich_and_format(ip, mac)
+                            yield json.dumps({"event": "device", "device": enriched}) + "\n"
+                        except Exception as e:
+                            logger.error(f"Error enriching ping response {ip}: {e}")
+
+        yield json.dumps({"event": "complete"}) + "\n"
 
     @staticmethod
     async def _async_verify_http(url, service_type, timeout=3.0):
