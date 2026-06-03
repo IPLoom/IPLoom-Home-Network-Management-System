@@ -599,6 +599,7 @@ const trafficChartOptions = computed(() => ({
   xaxis: {
     type: 'datetime',
     labels: {
+      datetimeUTC: false,
       style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '9px', fontWeight: 600 },
       datetimeFormatter: { hour: 'HH:mm' }
     },

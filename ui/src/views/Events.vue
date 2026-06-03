@@ -611,6 +611,7 @@ const chartOptions = computed(() => ({
   xaxis: {
     type: 'datetime',
     labels: {
+      datetimeUTC: false,
       style: { colors: '#94a3b8', fontSize: '9px', fontWeight: 600 },
       formatter: function (val, timestamp) {
         const ts = timestamp || val
@@ -668,7 +669,7 @@ const deviceChartOptions = computed(() => ({
   },
   xaxis: {
     type: 'datetime',
-    labels: { show: false },
+    labels: { show: false, datetimeUTC: false },
     axisBorder: { show: false },
     axisTicks: { show: false }
   },

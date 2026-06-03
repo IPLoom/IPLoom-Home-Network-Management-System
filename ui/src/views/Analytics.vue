@@ -1025,6 +1025,7 @@ const commonOptions = computed(() => ({
         axisBorder: { show: false },
         axisTicks: { show: false },
         labels: {
+            datetimeUTC: false,
             style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px', fontWeight: 500 }
         }
     },

@@ -1673,6 +1673,7 @@ const chartOptions = computed(() => ({
   xaxis: {
     type: 'datetime',
     labels: {
+      datetimeUTC: false,
       style: { colors: '#94a3b8', fontSize: '9px', fontWeight: 600 },
       datetimeFormatter: {
         year: 'yyyy',
@@ -1791,6 +1792,7 @@ const trafficChartOptions = computed(() => ({
   xaxis: {
     type: 'datetime',
     labels: {
+      datetimeUTC: false,
       style: { colors: '#94a3b8', fontSize: '9px', fontWeight: 600 },
       datetimeFormatter: { year: 'yyyy', month: 'MMM', day: 'dd MMM', hour: 'HH:mm' }
     },
