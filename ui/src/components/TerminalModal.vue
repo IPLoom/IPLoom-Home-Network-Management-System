@@ -1,14 +1,9 @@
 <template>
-    <Dialog 
-        v-model:visible="visible" 
-        modal 
-        :draggable="false"
-        :pt="{
-            root: 'rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl p-0 overflow-hidden max-w-[90vw] w-[800px] h-[550px] flex flex-col',
-            header: 'flex items-center justify-between px-6 py-4 bg-slate-950 border-b border-slate-800 shrink-0',
-            content: 'flex-1 p-0 bg-black flex flex-col min-h-0'
-        }"
-    >
+    <Dialog v-model:visible="visible" modal :draggable="false" :pt="{
+        root: 'rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl p-0 overflow-hidden max-w-[90vw] w-[800px] h-[550px] flex flex-col',
+        header: 'flex items-center justify-between px-6 py-4 bg-slate-950 border-b border-slate-800 shrink-0',
+        content: 'flex-1 p-0 bg-black flex flex-col min-h-0'
+    }">
         <template #header>
             <div class="flex items-center space-x-2">
                 <div class="h-3 w-3 rounded-full bg-red-500"></div>
@@ -19,21 +14,23 @@
         </template>
 
         <!-- Auth Form -->
-        <div v-if="!connected && !terminalActive" class="flex-1 flex items-center justify-center p-6 min-h-0 bg-slate-900">
+        <div v-if="!connected && !terminalActive"
+            class="flex-1 flex items-center justify-center p-6 min-h-0 bg-slate-900">
             <div class="w-full max-w-xs space-y-4">
                 <h3 class="text-white text-base font-bold text-center">SSH Credentials</h3>
                 <div>
                     <label class="block text-xs font-mono text-gray-400 mb-1">Username</label>
-                    <InputText v-model="username" type="text" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:border-blue-500 outline-none" placeholder="pi" />
+                    <InputText v-model="username" type="text"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:border-blue-500 outline-none"
+                        placeholder="pi" />
                 </div>
                 <div>
                     <label class="block text-xs font-mono text-gray-400 mb-1">Password</label>
-                    <InputText v-model="password" type="password" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:border-blue-500 outline-none" />
+                    <InputText v-model="password" type="password"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:border-blue-500 outline-none" />
                 </div>
-                <Button @click="connect" :disabled="connecting" :loading="connecting"
-                    label="Connect"
-                    :pt="{ root: 'w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 rounded-lg border-none flex items-center justify-center cursor-pointer' }"
-                />
+                <Button @click="connect" :disabled="connecting" :loading="connecting" label="Connect"
+                    :pt="{ root: 'w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 rounded-lg border-none flex items-center justify-center cursor-pointer' }" />
                 <p v-if="error" class="text-red-400 text-xs text-center font-semibold">{{ error }}</p>
             </div>
         </div>
@@ -100,8 +97,9 @@ const connect = async () => {
 
     term.write(`\r\nConnecting to ${props.device.ip}:${props.port}...\r\n`)
 
+    const token = localStorage.getItem('token')
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${protocol}//${window.location.host}/api/v1/ssh/ws/${props.device.ip}`
+    const wsUrl = `${protocol}//${window.location.host}/api/v1/ssh/ws/${props.device.ip}?token=${token}`
 
     ws = new WebSocket(wsUrl)
 

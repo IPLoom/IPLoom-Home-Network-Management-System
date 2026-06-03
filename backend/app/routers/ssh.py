@@ -1,9 +1,11 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Query, status
 import asyncio
 import paramiko
 import logging
 import json
 from typing import Optional
+from jose import jwt, JWTError
+from app.core.auth import settings
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -26,7 +28,9 @@ class SSHSession:
                 port=self.port,
                 username=self.username,
                 password=self.password,
-                timeout=10
+                timeout=10,
+                allow_agent=False,
+                look_for_keys=False
             )
             self.shell = self.client.invoke_shell(term='xterm')
             self.shell.setblocking(0)
@@ -53,9 +57,26 @@ class SSHSession:
     def close(self):
         self.client.close()
 
+async def get_token_from_query(token: str = Query(None)):
+    if token is None:
+        return None
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        return payload.get("sub")
+    except JWTError:
+        return None
+
 @router.websocket("/ws/{ip}")
-async def ssh_websocket_endpoint(websocket: WebSocket, ip: str):
+async def ssh_websocket_endpoint(websocket: WebSocket, ip: str, token: str = Query(None)):
     logger.info(f"SSH WebSocket connection attempt for {ip}")
+    
+    # Verify token
+    username_jwt = await get_token_from_query(token)
+    if not username_jwt:
+        logger.warning("SSH WebSocket connection rejected: Invalid or missing token")
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
     await websocket.accept()
     session: Optional[SSHSession] = None
     

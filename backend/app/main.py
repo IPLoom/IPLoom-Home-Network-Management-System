@@ -158,7 +158,7 @@ app.include_router(devices_router, prefix="/api/v1/devices", tags=["devices"], d
 app.include_router(discovery_router, prefix="/api/v1/discovery", tags=["discovery"], dependencies=[Depends(get_current_user)])
 app.include_router(internet_schedules_router, prefix="/api/v1/internet-schedules", tags=["internet-schedules"], dependencies=[Depends(get_current_user)])
 app.include_router(internet_quotas_router, prefix="/api/v1/internet-quotas", tags=["internet-quotas"], dependencies=[Depends(get_current_user)])
-app.include_router(ssh_router, prefix="/api/v1/ssh", tags=["ssh"], dependencies=[Depends(get_current_user)])
+app.include_router(ssh_router, prefix="/api/v1/ssh", tags=["ssh"])
 app.include_router(events_router, prefix="/api/v1/events", tags=["events"], dependencies=[Depends(get_current_user)])
 app.include_router(mqtt_router, prefix="/api/v1/mqtt", tags=["mqtt"], dependencies=[Depends(get_current_user)])
 app.include_router(classification_router, prefix="/api/v1/classification", tags=["classification"], dependencies=[Depends(get_current_user)])
