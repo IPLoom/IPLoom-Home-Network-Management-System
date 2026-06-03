@@ -44,7 +44,7 @@
                         leave-from-class="transform scale-100 opacity-100"
                         leave-to-class="transform scale-95 opacity-0">
                         <div v-if="showResults && (searchStore.results.length > 0 || searchStore.isLoading || (searchStore.searchQuery.length >= 2 && !searchStore.isLoading))"
-                            class="absolute mt-2 w-full bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden z-50">
+                            class="absolute mt-2 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden z-50">
                             <div v-if="searchStore.isLoading" class="p-6 flex items-center justify-center">
                                 <Loader2Icon class="h-5 w-5 text-blue-500 animate-spin" />
                             </div>

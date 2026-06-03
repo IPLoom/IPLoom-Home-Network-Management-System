@@ -24,7 +24,7 @@
             </Button>
 
             <!-- Icon Picker Popover -->
-            <Popover ref="iconPopover" :pt="{ content: 'p-4 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl w-[320px] overflow-hidden' }">
+            <Popover ref="iconPopover" :pt="{ content: 'p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl w-[320px] overflow-hidden' }">
                 <div class="mb-3">
                     <IconField class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900/50 rounded-lg">
                         <InputIcon><Search class="w-3.5 h-3.5 text-slate-400" /></InputIcon>
@@ -67,7 +67,7 @@
             </Button>
 
             <!-- Brand Logo Popover -->
-            <Popover ref="brandIconPopover" :pt="{ content: 'p-4 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl w-[280px]' }">
+            <Popover ref="brandIconPopover" :pt="{ content: 'p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl w-[280px]' }">
                 <div class="mb-3 px-1">
                     <p class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2 px-1">Assign Brand</p>
                     <IconField class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900/50 rounded-lg">
@@ -127,7 +127,7 @@
                     <ChevronDown class="w-4 h-4 text-slate-400 transition-transform duration-200" />
                 </Button>
 
-                <Popover ref="categoryPopover" :pt="{ content: 'w-[320px] bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden focus:outline-none p-2' }">
+                <Popover ref="categoryPopover" :pt="{ content: 'w-[320px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden focus:outline-none p-2' }">
                     <div class="p-1 border-b border-slate-100 dark:border-slate-700/50 mb-2">
                         <IconField class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900/50 rounded-lg">
                             <InputIcon><Search class="w-3.5 h-3.5 text-slate-400" /></InputIcon>
@@ -165,7 +165,7 @@
                     <ChevronDown class="w-4 h-4 text-slate-400 transition-transform duration-200" />
                 </Button>
 
-                <Popover ref="brandPopover" :pt="{ content: 'w-[320px] bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden focus:outline-none p-2' }">
+                <Popover ref="brandPopover" :pt="{ content: 'w-[320px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden focus:outline-none p-2' }">
                     <div class="p-1 border-b border-slate-100 dark:border-slate-700/50 mb-2">
                         <IconField class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900/50 rounded-lg">
                             <InputIcon><Search class="w-3.5 h-3.5 text-slate-400" /></InputIcon>
@@ -205,7 +205,7 @@
                     <ChevronDown class="w-4 h-4 text-slate-400 transition-transform duration-200" />
                 </Button>
 
-                <Popover ref="parentPopover" :pt="{ content: 'w-[320px] bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden focus:outline-none p-2' }">
+                <Popover ref="parentPopover" :pt="{ content: 'w-[320px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden focus:outline-none p-2' }">
                     <div class="p-1 border-b border-slate-100 dark:border-slate-700/50 mb-2">
                         <IconField class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900/50 rounded-lg">
                             <InputIcon><Search class="w-3.5 h-3.5 text-slate-400" /></InputIcon>
