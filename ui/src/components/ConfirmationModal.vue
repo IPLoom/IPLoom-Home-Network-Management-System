@@ -1,52 +1,60 @@
 <template>
-    <Teleport to="body">
-        <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="transform scale-95 opacity-0"
-            enter-to-class="transform scale-100 opacity-100" leave-active-class="transition duration-150 ease-in"
-            leave-from-class="transform scale-100 opacity-100" leave-to-class="transform scale-95 opacity-0">
-            <div v-if="isOpen"
-                class="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
-                <div class="modal-container-sm" v-click-outside="close">
-                    <div class="flex flex-col gap-4">
-                        <div class="flex items-start gap-4">
-                            <div :class="[
-                                'p-3 rounded-full flex-shrink-0',
-                                type === 'danger' ? 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400' : 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                            ]">
-                                <component :is="type === 'danger' ? AlertTriangle : Info" class="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-semibold text-slate-900 dark:text-white">
-                                    {{ title }}
-                                </h3>
-                                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                                    {{ message }}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-end gap-3 mt-2">
-                            <button @click="close"
-                                class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                                Cancel
-                            </button>
-                            <button @click="confirm" :disabled="loading" :class="[
-                                'px-4 py-2 text-sm font-medium text-white rounded-lg shadow-sm transition-colors flex items-center gap-2',
-                                type === 'danger' ? 'bg-red-600 hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2' : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
-                                loading ? 'opacity-75 cursor-not-allowed' : ''
-                            ]">
-                                <Loader2 v-if="loading" class="w-4 h-4 animate-spin" />
-                                {{ confirmText }}
-                            </button>
-                        </div>
-                    </div>
+    <Dialog 
+        v-model:visible="visible" 
+        modal 
+        :closable="!loading"
+        :draggable="false"
+        :pt="{
+            root: 'rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-2xl p-6 overflow-hidden max-w-[90vw] w-[450px]',
+            header: 'flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700/50',
+            content: 'py-4 text-sm text-slate-500 dark:text-slate-400',
+            footer: 'flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 mt-2'
+        }"
+    >
+        <template #header>
+            <div class="flex items-center gap-3">
+                <div :class="[
+                    'p-2 rounded-xl flex-shrink-0',
+                    type === 'danger' ? 'bg-red-500/10 text-red-600 dark:text-red-400' : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                ]">
+                    <component :is="type === 'danger' ? AlertTriangle : Info" class="w-5 h-5" />
                 </div>
+                <span class="text-base font-bold text-slate-900 dark:text-white">{{ title }}</span>
             </div>
-        </Transition>
-    </Teleport>
+        </template>
+
+        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+            {{ message }}
+        </p>
+
+        <template #footer>
+            <Button 
+                label="Cancel" 
+                severity="secondary" 
+                text 
+                @click="close"
+                :disabled="loading"
+                :pt="{ root: 'px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-700/50 border-none' }"
+            />
+            <Button 
+                :label="confirmText" 
+                :severity="type === 'danger' ? 'danger' : 'primary'" 
+                :loading="loading" 
+                @click="confirm"
+                :pt="{ 
+                    root: 'px-4 py-2 rounded-lg text-sm font-semibold shadow-sm flex items-center gap-2 border-none ' + 
+                    (type === 'danger' ? 'bg-red-600 hover:bg-red-750 text-white' : 'bg-blue-600 hover:bg-blue-750 text-white')
+                }"
+            />
+        </template>
+    </Dialog>
 </template>
 
 <script setup>
-import { AlertTriangle, Info, Loader2 } from 'lucide-vue-next'
+import { computed } from 'vue'
+import Dialog from 'primevue/dialog'
+import Button from 'primevue/button'
+import { AlertTriangle, Info } from 'lucide-vue-next'
 
 const props = defineProps({
     isOpen: Boolean,
@@ -74,6 +82,15 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'confirm'])
+
+const visible = computed({
+    get: () => props.isOpen,
+    set: (value) => {
+        if (!value) {
+            close()
+        }
+    }
+})
 
 const close = () => {
     if (!props.loading) {

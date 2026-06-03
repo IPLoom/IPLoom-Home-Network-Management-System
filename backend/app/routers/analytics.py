@@ -823,6 +823,112 @@ def get_analytics_summary():
         }
     except Exception as e:
         logger.error(f"Summary Error: {e}")
+        return {}
+    finally:
+        conn_dns.close()
+        conn_main.close()
+
+@router.get("/dns/logs")
+def get_global_dns_logs(limit: int = 50, page: int = 1, search: Optional[str] = None, is_blocked: Optional[bool] = None):
+    """
+    Returns paginated global DNS query logs.
+    """
+    conn_dns = get_dns_connection()
+    conn_main = get_connection()
+    try:
+        offset = (page - 1) * limit
+        where_clauses = []
+        params = []
+
+        if search:
+            where_clauses.append("d.domain LIKE ?")
+            params.append(f"%{search.lower()}%")
+
+        if is_blocked is not None:
+            where_clauses.append("l.is_blocked = ?")
+            params.append(is_blocked)
+
+        where_str = ""
+        if where_clauses:
+            where_str = "WHERE " + " AND ".join(where_clauses)
+
+        # Get total count
+        count_sql = f"""
+            SELECT COUNT(*) 
+            FROM dns_logs l
+            JOIN dns_domains d ON l.domain_id = d.id
+            {where_str}
+        """
+        total_count = conn_dns.execute(count_sql, params).fetchone()[0]
+        total_pages = (total_count + limit - 1) // limit
+
+        # Get paginated data
+        data_sql = f"""
+            SELECT 
+                l.timestamp,
+                d.domain,
+                l.status,
+                l.response_time,
+                l.is_blocked,
+                d.category,
+                l.client_ip,
+                l.device_id
+            FROM dns_logs l
+            JOIN dns_domains d ON l.domain_id = d.id
+            {where_str}
+            ORDER BY l.timestamp DESC
+            LIMIT ? OFFSET ?
+        """
+        rows = conn_dns.execute(data_sql, params + [limit, offset]).fetchall()
+
+        # Cache device mapping for names
+        device_ids = list(set(r[7] for r in rows if r[7]))
+        device_map = {}
+        if device_ids:
+            dev_rows = conn_main.execute(
+                f"SELECT id, name, display_name FROM devices WHERE id IN ({','.join(['?']*len(device_ids))})", 
+                device_ids
+            ).fetchall()
+            for dr in dev_rows:
+                device_map[dr[0]] = dr[2] or dr[1]
+
+        items = []
+        for r in rows:
+            items.append({
+                "timestamp": r[0].isoformat() if r[0] else None,
+                "domain": r[1],
+                "status": r[2],
+                "response_time": r[3],
+                "is_blocked": bool(r[4]),
+                "category": r[5],
+                "client_ip": r[6],
+                "device_id": r[7],
+                "device_name": device_map.get(r[7]) if r[7] else None
+            })
+
+        return {
+            "items": items,
+            "total": total_count,
+            "page": page,
+            "total_pages": total_pages
+        }
+    except Exception as e:
+        logger.error(f"Global DNS Logs Error: {e}")
+        return {
+            "items": [],
+            "total": 0,
+            "page": page,
+            "total_pages": 1
+        }
+    finally:
+        conn_dns.close()
+        conn_main.close()
+
+@router.get("/dns/logs/{device_id}/count")
+def get_device_dns_logs_count(device_id: str):
+    """
+    Returns total count of DNS logs for a specific device.
+    """
     conn = get_dns_connection()
     conn_main = get_connection()
     dev_row = conn_main.execute("SELECT ip FROM devices WHERE id = ?", [device_id]).fetchone()

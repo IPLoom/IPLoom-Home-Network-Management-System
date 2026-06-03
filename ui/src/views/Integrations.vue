@@ -1,48 +1,28 @@
 <template>
   <div class="space-y-6">
-    <!-- Page Title and Description -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <!-- Page Title, Description & Tabs Header row -->
+    <div class="page-header items-start sm:items-center">
       <div>
-        <h1 class="text-3xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight">Integrations</h1>
+        <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Integrations</h1>
         <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Monitor status, synced clients, and performance metrics for all connected system integrations.
+          Monitor status, synced clients, and performance metrics for connected systems
         </p>
       </div>
-    </div>
 
-    <!-- Navigation Tabs -->
-    <div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm inline-flex w-full overflow-x-auto whitespace-nowrap scrollbar-hide">
-      <nav class="flex space-x-1 w-full" aria-label="Tabs">
-        <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          @click="activeTab = tab.id"
-          :class="[
-            activeTab === tab.id
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50',
-            'flex-1 flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200'
-          ]"
-        >
-          <component :is="tab.icon" class="h-5 w-5" />
-          <span>{{ tab.name }}</span>
+      <!-- Tab Switcher (Custom) -->
+      <div class="flex items-center gap-1.5 p-1 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/50 dark:border-slate-700/30 overflow-x-auto whitespace-nowrap shrink-0">
+        <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
+            class="px-3 h-9 rounded-lg flex items-center gap-2 text-xs font-semibold transition-all border-none outline-none cursor-pointer"
+            :class="activeTab === tab.id ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white bg-transparent'">
+            <component :is="tab.icon" class="w-3.5 h-3.5" />
+            <span>{{ tab.name }}</span>
         </button>
-      </nav>
+      </div>
     </div>
 
     <!-- Tab View Panel -->
     <div class="transition-all duration-300">
-      <Transition
-        mode="out-in"
-        enter-active-class="transition duration-200 ease-out"
-        enter-from-class="transform translate-y-2 opacity-0"
-        enter-to-class="transform translate-y-0 opacity-100"
-        leave-active-class="transition duration-150 ease-in"
-        leave-from-class="transform translate-y-0 opacity-100"
-        leave-to-class="transform translate-y-2 opacity-0"
-      >
-        <component :is="activeTabComponent" />
-      </Transition>
+      <component :is="activeTabComponent" />
     </div>
   </div>
 </template>
@@ -54,21 +34,16 @@ import AdguardTab from '@/components/integrations/AdguardTab.vue'
 import OpenWrtTab from '@/components/integrations/OpenWrtTab.vue'
 import TailscaleTab from '@/components/integrations/TailscaleTab.vue'
 
+// PrimeVue components
+
 import {
-  WifiIcon,
-  ShieldCheckIcon,
-  CpuChipIcon,
-  CloudIcon
-} from '@heroicons/vue/24/outline'
+  Wifi,
+  ShieldCheck,
+  Cpu,
+  Cloud
+} from 'lucide-vue-next'
 
 const activeTab = ref('deco')
-
-const tabs = [
-  { id: 'deco', name: 'TP-Link Deco', icon: WifiIcon },
-  { id: 'adguard', name: 'AdGuard Home', icon: ShieldCheckIcon },
-  { id: 'openwrt', name: 'OpenWrt Router', icon: CpuChipIcon },
-  { id: 'tailscale', name: 'Tailscale VPN', icon: CloudIcon }
-]
 
 const activeTabComponent = computed(() => {
   switch (activeTab.value) {
@@ -84,16 +59,14 @@ const activeTabComponent = computed(() => {
       return DecoTab
   }
 })
+
+const tabs = [
+  { id: 'deco', name: 'TP-Link Deco', icon: Wifi },
+  { id: 'adguard', name: 'AdGuard Home', icon: ShieldCheck },
+  { id: 'openwrt', name: 'OpenWrt Router', icon: Cpu },
+  { id: 'tailscale', name: 'Tailscale VPN', icon: Cloud }
+]
 </script>
 
 <style scoped>
-/* Hide scrollbar for Chrome, Safari and Opera */
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-/* Hide scrollbar for IE, Edge and Firefox */
-.scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
-}
 </style>

@@ -1,25 +1,23 @@
 <template>
     <div class="space-y-6">
         <!-- Header -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                <div>
-                    <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Network Analytics</h1>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Traffic insights and device distribution
-                    </p>
-                </div>
+        <div class="page-header flex-col lg:flex-row lg:items-center">
+            <div>
+                <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Network Analytics</h1>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    Traffic insights and device distribution
+                </p>
             </div>
 
-            <div class="flex items-center gap-4">
+            <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
                 <!-- Time Range Picker (Standardized) -->
-                <div class="flex p-1 bg-slate-100 dark:bg-slate-700/50 rounded-xl h-11"
+                <div class="flex p-1 bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/30 rounded-xl overflow-x-auto max-w-full custom-scrollbar"
                     v-if="(localConfigured && currentView === 'traffic') || (dnsConfigured && currentView === 'dns')">
                     <button
                         v-for="r in ['24h', 'yesterday', '7d', '30d', '3m', 'mtd', 'last_month', 'ytd', '1y', 'all']"
                         :key="r" @click="timeRange = r"
-                        class="px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all whitespace-nowrap uppercase tracking-wider"
-                        :class="timeRange === r ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'">
+                        class="px-3 py-1.5 text-[10px] font-black rounded-lg transition-all whitespace-nowrap uppercase tracking-wider"
+                        :class="timeRange === r ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-md' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'">
                         {{ {
                             '24h': '24H', 'yesterday': 'Yest', '7d': '7D', '30d': '30D', '3m': '3M', 'mtd': 'MTD',
                             'last_month': 'Last M', 'ytd': 'YTD', '1y': '1Y', 'all': 'All'
@@ -28,24 +26,24 @@
                 </div>
 
                 <!-- View Switcher (Standardized) -->
-                <div class="flex p-1 bg-slate-100 dark:bg-slate-700/50 rounded-xl h-11">
+                <div class="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm overflow-x-auto whitespace-nowrap">
                     <button @click="currentView = 'traffic'"
-                        class="px-5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2"
-                        :class="currentView === 'traffic' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'">
-                        <Activity class="w-4 h-4" />
+                        class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-205 border-none outline-none cursor-pointer"
+                        :class="currentView === 'traffic' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 bg-transparent'">
+                        <Activity class="w-3.5 h-3.5" />
                         Traffic
                     </button>
                     <button @click="currentView = 'dns'"
-                        class="px-5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2"
-                        :class="currentView === 'dns' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'">
-                        <ShieldCheck class="w-4 h-4" />
+                        class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-205 border-none outline-none cursor-pointer"
+                        :class="currentView === 'dns' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 bg-transparent'">
+                        <ShieldCheck class="w-3.5 h-3.5" />
                         DNS Security
                     </button>
                     <button @click="currentView = 'security'"
-                        class="px-5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2"
-                        :class="currentView === 'security' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'">
-                        <ShieldAlert class="w-4 h-4" />
-                        Network Security
+                        class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-205 border-none outline-none cursor-pointer"
+                        :class="currentView === 'security' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 bg-transparent'">
+                        <ShieldAlert class="w-3.5 h-3.5" />
+                        Security
                     </button>
                 </div>
             </div>
@@ -58,49 +56,60 @@
                 <!-- DNS KPIs -->
 
                 <!-- DNS KPIs -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="card-base">
-                        <div class="absolute right-0 top-0 p-4 opacity-5">
-                            <Activity class="w-16 h-16" />
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Total Queries -->
+                    <div class="card-base group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-2.5 bg-blue-500/10 rounded-xl">
+                                <Activity class="h-4 w-4 text-blue-500" />
+                            </div>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-blue-500/80 bg-blue-500/10 px-2 py-1 rounded-lg">Queries</span>
                         </div>
-                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                            Total Queries</p>
-                        <p class="text-2xl font-bold text-slate-900 dark:text-white">{{
-                            dnsStats.total_queries.toLocaleString() }}</p>
+                        <div class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ dnsStats.total_queries.toLocaleString() }}</div>
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Total Queries</div>
                     </div>
-                    <div class="card-base">
-                        <div class="absolute right-0 top-0 p-4 opacity-5">
-                            <ShieldCheck class="w-16 h-16" />
+
+                    <!-- Blocked -->
+                    <div class="card-base group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-2.5 bg-red-500/10 rounded-xl">
+                                <ShieldAlert class="h-4 w-4 text-red-500" />
+                            </div>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-red-500/80 bg-red-500/10 px-2 py-1 rounded-lg">Blocked</span>
                         </div>
-                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                            Blocked</p>
-                        <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{
-                            dnsStats.blocked_queries.toLocaleString() }}</p>
+                        <div class="text-3xl font-black text-red-600 dark:text-red-400 tabular-nums">{{ dnsStats.blocked_queries.toLocaleString() }}</div>
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Blocked Queries</div>
                     </div>
-                    <div class="card-base">
-                        <div class="absolute right-0 top-0 p-4 opacity-5">
-                            <ShieldCheck class="w-16 h-16" />
+
+                    <!-- Block Rate -->
+                    <div class="card-base group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-2.5 bg-amber-500/10 rounded-xl">
+                                <ShieldCheck class="h-4 w-4 text-amber-500" />
+                            </div>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-amber-500/80 bg-amber-500/10 px-2 py-1 rounded-lg">Rate</span>
                         </div>
-                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                            Block Rate</p>
-                        <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ dnsStats.block_percentage }}%
-                        </p>
+                        <div class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ dnsStats.block_percentage }}%</div>
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Block Rate</div>
                     </div>
-                    <div class="card-base">
-                        <div class="absolute right-0 top-0 p-4 opacity-5">
-                            <Activity class="w-16 h-16" />
+
+                    <!-- Avg Response -->
+                    <div class="card-base group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-2.5 bg-indigo-500/10 rounded-xl">
+                                <Clock class="h-4 w-4 text-indigo-500" />
+                            </div>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-500/80 bg-indigo-500/10 px-2 py-1 rounded-lg">Latency</span>
                         </div>
-                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                            Avg Response</p>
-                        <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ dnsStats.avg_response_time }} ms
-                        </p>
+                        <div class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ dnsStats.avg_response_time }} ms</div>
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Avg Response</div>
                     </div>
                 </div>
 
                 <!-- DNS Traffic Chart -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div
-                        class="lg:col-span-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                        class="lg:col-span-3 card-base !p-6 shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-6">DNS Traffic</h3>
                         <div class="h-[350px]">
                             <apexchart type="area" height="100%" :options="dnsChartOptions"
@@ -112,19 +121,19 @@
                 <!-- Top Lists -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Top Blocked Domains -->
-                    <div class="premium-card !p-0 shadow-sm flex flex-col">
+                    <div class="card-base !p-0 shadow-sm flex flex-col">
                         <div
                             class="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
                             <h3 class="text-base font-semibold text-slate-900 dark:text-white">Top Blocked Domains</h3>
-                            <div class="flex gap-2">
+                            <div class="flex items-center gap-2">
                                 <button @click="changeDnsPage('blocked', -1)" :disabled="dnsPage.blocked === 1"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronLeft class="w-4 h-4" />
                                 </button>
-                                <span class="text-xs font-mono self-center">Page {{ dnsPage.blocked }}</span>
+                                <span class="text-xs font-semibold px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg">Page {{ dnsPage.blocked }}</span>
                                 <button @click="changeDnsPage('blocked', 1)"
                                     :disabled="topBlockedDomains.length < dnsLimit"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronRight class="w-4 h-4" />
                                 </button>
                             </div>
@@ -158,19 +167,19 @@
                     </div>
 
                     <!-- Top Allowed Domains -->
-                    <div class="premium-card !p-0 shadow-sm flex flex-col">
+                    <div class="card-base !p-0 shadow-sm flex flex-col">
                         <div
                             class="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
                             <h3 class="text-base font-semibold text-slate-900 dark:text-white">Top Queried Domains</h3>
-                            <div class="flex gap-2">
+                            <div class="flex items-center gap-2">
                                 <button @click="changeDnsPage('allowed', -1)" :disabled="dnsPage.allowed === 1"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronLeft class="w-4 h-4" />
                                 </button>
-                                <span class="text-xs font-mono self-center">Page {{ dnsPage.allowed }}</span>
+                                <span class="text-xs font-semibold px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg">Page {{ dnsPage.allowed }}</span>
                                 <button @click="changeDnsPage('allowed', 1)"
                                     :disabled="topAllowedDomains.length < dnsLimit"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronRight class="w-4 h-4" />
                                 </button>
                             </div>
@@ -208,7 +217,7 @@
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <!-- Query Type Distribution -->
                     <div
-                        class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                        class="card-base !p-6 shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-4">Query Types</h3>
                         <div class="h-[300px] flex items-center justify-center">
                             <div v-if="queryTypeSeries.length === 0" class="text-sm text-slate-400">No data</div>
@@ -218,7 +227,7 @@
                     </div>
 
                     <!-- Risky Devices (High Block Rate) -->
-                    <div class="lg:col-span-2 premium-card !p-0 shadow-sm flex flex-col">
+                    <div class="lg:col-span-2 card-base !p-0 shadow-sm flex flex-col">
                         <div
                             class="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
                             <div>
@@ -265,7 +274,7 @@
                 <!-- Top Clients (Chart) - Full Width -->
                 <div class="grid grid-cols-1 gap-6">
                     <div
-                        class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                        class="card-base !p-6 shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-4">Top Clients (DNS
                             Queries)
                         </h3>
@@ -276,7 +285,7 @@
                 </div>
             </div>
             <div v-else
-                class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-8 text-center max-w-2xl mx-auto mt-12">
+                class="premium-card !p-8 !rounded-2xl text-center max-w-2xl mx-auto mt-12">
                 <div
                     class="w-16 h-16 bg-slate-50 dark:bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
                     <ShieldCheck class="w-8 h-8 text-slate-400" />
@@ -304,7 +313,7 @@
 
             <!-- Not Configured State -->
             <div v-if="!loading && !localConfigured"
-                class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-8 text-center max-w-2xl mx-auto mt-12">
+                class="premium-card !p-8 !rounded-2xl text-center max-w-2xl mx-auto mt-12">
                 <div
                     class="w-16 h-16 bg-slate-50 dark:bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Router class="w-8 h-8 text-slate-400" />
@@ -344,51 +353,60 @@
 
                 <!-- Key Metrics -->
                 <!-- Active Devices Count Fix -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="card-base">
-                        <div class="absolute right-0 top-0 p-4 opacity-5">
-                            <Download class="w-16 h-16" />
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Total Download -->
+                    <div class="card-base group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-2.5 bg-blue-500/10 rounded-xl">
+                                <Download class="h-4 w-4 text-blue-500" />
+                            </div>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-blue-500/80 bg-blue-500/10 px-2 py-1 rounded-lg">Download</span>
                         </div>
-                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                            Total Download</p>
-                        <p class="text-2xl font-bold text-slate-900 dark:text-white">{{
-                            formatBytes(trafficTotals.download)
-                        }}</p>
+                        <div class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ formatBytes(trafficTotals.download) }}</div>
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Total Download</div>
                     </div>
-                    <div class="card-base">
-                        <div class="absolute right-0 top-0 p-4 opacity-5">
-                            <Upload class="w-16 h-16" />
+
+                    <!-- Total Upload -->
+                    <div class="card-base group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-2.5 bg-emerald-500/10 rounded-xl">
+                                <Upload class="h-4 w-4 text-emerald-500" />
+                            </div>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-500/80 bg-emerald-500/10 px-2 py-1 rounded-lg">Upload</span>
                         </div>
-                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                            Total Upload</p>
-                        <p class="text-2xl font-bold text-slate-900 dark:text-white">{{
-                            formatBytes(trafficTotals.upload) }}
-                        </p>
+                        <div class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ formatBytes(trafficTotals.upload) }}</div>
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Total Upload</div>
                     </div>
-                    <div class="card-base">
-                        <div class="absolute right-0 top-0 p-4 opacity-5">
-                            <Users class="w-16 h-16" />
+
+                    <!-- Active Devices -->
+                    <div class="card-base group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-2.5 bg-indigo-500/10 rounded-xl">
+                                <Users class="h-4 w-4 text-indigo-500" />
+                            </div>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-500/80 bg-indigo-500/10 px-2 py-1 rounded-lg">Active</span>
                         </div>
-                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                            Active Devices</p>
-                        <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ trafficTotals.active_devices }}
-                        </p>
+                        <div class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ trafficTotals.active_devices }}</div>
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Active Devices</div>
                     </div>
-                    <div class="card-base">
-                        <div class="absolute right-0 top-0 p-4 opacity-5">
-                            <Activity class="w-16 h-16" />
+
+                    <!-- Avg Throughput -->
+                    <div class="card-base group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-2.5 bg-amber-500/10 rounded-xl">
+                                <Activity class="h-4 w-4 text-amber-500" />
+                            </div>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-amber-500/80 bg-amber-500/10 px-2 py-1 rounded-lg">Throughput</span>
                         </div>
-                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                            Avg
-                            Throughput</p>
-                        <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ calculateAvgThroughput() }}</p>
+                        <div class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ calculateAvgThroughput() }}</div>
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Avg Throughput</div>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <!-- Main Traffic Chart -->
                     <div
-                        class="lg:col-span-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                        class="lg:col-span-3 card-base !p-6 shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-6">Traffic Overview</h3>
                         <div class="h-[350px]">
                             <apexchart type="area" height="100%" :options="chartOptions" :series="chartSeries" />
@@ -397,7 +415,7 @@
 
                     <!-- Usage Heatmap -->
                     <div
-                        class="lg:col-span-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                        class="lg:col-span-3 card-base !p-6 shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-2">Usage Patterns</h3>
                         <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Intensity of data consumption by Day
                             and
@@ -419,7 +437,7 @@
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Top Consumers List (Moved here, resized) -->
-                    <div class="premium-card !p-0 shadow-sm flex flex-col">
+                    <div class="card-base !p-0 shadow-sm flex flex-col">
                         <div class="p-6 border-b border-slate-100 dark:border-slate-700">
                             <h3 class="text-base font-semibold text-slate-900 dark:text-white">Top Consumers</h3>
                         </div>
@@ -453,7 +471,7 @@
 
                     <!-- Vendor Distribution (Moved next to Top Consumers) -->
                     <div
-                        class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                        class="card-base !p-6 shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-4">Vendor Distribution
                             (Count)
                         </h3>
@@ -466,7 +484,7 @@
                 <!-- Bottom Row: Category Usage & Device Types -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Usage by Category (Traffic) -->
-                    <div class="premium-card !p-6 shadow-sm flex flex-col">
+                    <div class="card-base !p-6 shadow-sm flex flex-col">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-2">Traffic Volume by
                             Category
                         </h3>
@@ -482,7 +500,7 @@
 
                     <!-- Device Types (Count) -->
                     <div
-                        class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                        class="card-base !p-6 shadow-sm">
                         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-2">Device Count by Category
                         </h3>
                         <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Number of devices per type</p>
@@ -509,20 +527,20 @@
             <div v-else class="space-y-6">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Untrusted Devices -->
-                    <div class="premium-card shadow-sm flex flex-col">
+                    <div class="card-base shadow-sm flex flex-col">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                                 <ShieldAlert class="w-5 h-5 text-amber-500" />
                                 Untrusted Devices
                             </h3>
-                            <div class="flex gap-2">
+                            <div class="flex items-center gap-2">
                                 <button @click="changeSecPage('untrusted', -1)" :disabled="secPage.untrusted === 1"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronLeft class="w-4 h-4" />
                                 </button>
-                                <span class="text-xs font-mono self-center">Page {{ secPage.untrusted }} / {{ secTotal.untrusted }}</span>
+                                <span class="text-xs font-semibold px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg">Page {{ secPage.untrusted }} / {{ secTotal.untrusted }}</span>
                                 <button @click="changeSecPage('untrusted', 1)" :disabled="secPage.untrusted >= secTotal.untrusted"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronRight class="w-4 h-4" />
                                 </button>
                             </div>
@@ -549,26 +567,26 @@
                     </div>
 
                     <!-- Risky Open Ports -->
-                    <div class="premium-card shadow-sm flex flex-col">
+                    <div class="card-base shadow-sm flex flex-col">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Unlock class="w-5 h-5 text-red-500" />
                                 Risky Open Ports
                             </h3>
-                            <div class="flex gap-2">
+                            <div class="flex items-center gap-2">
                                 <button @click="changeSecPage('riskyPorts', -1)" :disabled="secPage.riskyPorts === 1"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronLeft class="w-4 h-4" />
                                 </button>
-                                <span class="text-xs font-mono self-center">Page {{ secPage.riskyPorts }} / {{ secTotal.riskyPorts }}</span>
+                                <span class="text-xs font-semibold px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg">Page {{ secPage.riskyPorts }} / {{ secTotal.riskyPorts }}</span>
                                 <button @click="changeSecPage('riskyPorts', 1)" :disabled="secPage.riskyPorts >= secTotal.riskyPorts"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronRight class="w-4 h-4" />
                                 </button>
                             </div>
                         </div>
                         <div class="space-y-3 flex-1">
-                            <div v-for="(port, idx) in securityData.risky_ports" :key="idx" class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-100 dark:border-slate-700">
+                            <div v-for="(port, idx) in securityData.risky_ports" :key="idx" class="flex items-center justify-between p-3 !bg-red-500/[0.04] dark:!bg-red-500/[0.08] rounded-xl border border-red-500/10 dark:border-red-500/20 hover:border-red-500/30 transition-all">
                                 <div class="flex items-center gap-3">
                                     <div class="p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
                                         <component :is="getIcon(port.icon)" class="w-5 h-5 text-slate-500" />
@@ -579,7 +597,7 @@
                                     </div>
                                 </div>
                                 <div class="text-right">
-                                    <div class="text-xs font-bold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded">
+                                    <div class="text-xs font-bold text-red-600 dark:text-red-400 border border-red-500/20 dark:border-red-500/30 bg-red-500/10 dark:bg-red-500/20 px-2 py-0.5 rounded-lg">
                                         Port {{ port.port }}
                                     </div>
                                     <div class="text-[10px] text-slate-500 mt-0.5 uppercase">{{ port.service || 'unknown' }}</div>
@@ -592,20 +610,20 @@
                     </div>
 
                     <!-- Blocked Devices -->
-                    <div class="premium-card shadow-sm flex flex-col">
+                    <div class="card-base shadow-sm flex flex-col">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Lock class="w-5 h-5 text-slate-700 dark:text-slate-300" />
                                 Blocked Devices
                             </h3>
-                            <div class="flex gap-2">
+                            <div class="flex items-center gap-2">
                                 <button @click="changeSecPage('blocked', -1)" :disabled="secPage.blocked === 1"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronLeft class="w-4 h-4" />
                                 </button>
-                                <span class="text-xs font-mono self-center">Page {{ secPage.blocked }} / {{ secTotal.blocked }}</span>
+                                <span class="text-xs font-semibold px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg">Page {{ secPage.blocked }} / {{ secTotal.blocked }}</span>
                                 <button @click="changeSecPage('blocked', 1)" :disabled="secPage.blocked >= secTotal.blocked"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronRight class="w-4 h-4" />
                                 </button>
                             </div>
@@ -637,20 +655,20 @@
                     </div>
 
                     <!-- New Devices (7 Days) -->
-                    <div class="premium-card shadow-sm flex flex-col">
+                    <div class="card-base shadow-sm flex flex-col">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Clock class="w-5 h-5 text-blue-500" />
                                 New Devices (Last 7 Days)
                             </h3>
-                            <div class="flex gap-2">
+                            <div class="flex items-center gap-2">
                                 <button @click="changeSecPage('newDevices', -1)" :disabled="secPage.newDevices === 1"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronLeft class="w-4 h-4" />
                                 </button>
-                                <span class="text-xs font-mono self-center">Page {{ secPage.newDevices }} / {{ secTotal.newDevices }}</span>
+                                <span class="text-xs font-semibold px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg">Page {{ secPage.newDevices }} / {{ secTotal.newDevices }}</span>
                                 <button @click="changeSecPage('newDevices', 1)" :disabled="secPage.newDevices >= secTotal.newDevices"
-                                    class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30">
+                                    class="pagination-btn !p-1.5">
                                     <ChevronRight class="w-4 h-4" />
                                 </button>
                             </div>
@@ -693,10 +711,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, onMounted, watch, computed } from 'vue'
 import api from '@/utils/api'
 import { DateTime } from 'luxon'
 import { useNotifications } from '@/composables/useNotifications'
+import { useTheme } from '@/composables/useTheme'
 import { parseUTC } from '@/utils/date'
 import { getIcon } from '@/utils/icons'
 import {
@@ -705,6 +724,8 @@ import {
 } from 'lucide-vue-next'
 import { formatBytes } from '@/utils/format'
 
+const { theme } = useTheme()
+const isDark = computed(() => theme.value === 'dark')
 const loading = ref(true)
 const localConfigured = ref(false)
 const dnsConfigured = ref(false)
@@ -723,6 +744,7 @@ const vendorSeries = ref([])
 const categorySeries = ref([])
 const typeSeries = ref([])
 const heatmapSeries = ref([])
+const maxTrafficVal = ref(0)
 
 const securityData = reactive({
     untrusted_devices: [],
@@ -930,8 +952,14 @@ const fetchTrafficData = async () => {
         const offsetHours = Math.round(DateTime.now().offset / 60)
         const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
-        // matrix[day][hour]
-        const localizedMatrix = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => null))
+        // matrix[day][hour] - Initialize with default values to avoid null cells mapping to black
+        const localizedMatrix = Array.from({ length: 7 }, () => 
+            Array.from({ length: 24 }, (v, i) => ({
+                x: `${String(i).padStart(2, '0')}:00`,
+                y: 0,
+                top: []
+            }))
+        )
 
         heatRes.data.forEach((daySeries, dayIdx) => {
             daySeries.data.forEach((point, hourIdx) => {
@@ -964,46 +992,7 @@ const fetchTrafficData = async () => {
                 if (p.y > maxVal) maxVal = p.y
             })
         })
-
-        if (maxVal > 0) {
-            // Gradient Scale: 10 steps from Green -> Yellow -> Orange -> Red
-            // Plus specific 0 handling
-            const colors = [
-                '#10b981', '#34d399', '#6ee7b7', // Greens
-                '#a3e635', '#facc15', '#f59e0b', // Yellows/Oranges
-                '#fb923c', '#f87171', '#ef4444', '#dc2626' // Reds
-            ]
-
-            const ranges = []
-
-            // Zero value (light/transparent)
-            ranges.push({ from: 0, to: 0, color: '#f1f5f9', name: '0 B' })
-
-            // Positive values divided into 10 buckets
-            const step = maxVal / 10
-            for (let i = 0; i < 10; i++) {
-                ranges.push({
-                    from: (i * step) + (i === 0 ? 0.000001 : 0), // Start just above 0
-                    to: (i + 1) * step,
-                    color: colors[i],
-                    name: i < 3 ? 'Low' : (i < 7 ? 'Med' : 'High')
-                })
-            }
-
-            heatmapOptions.value = {
-                ...heatmapOptions.value,
-                legend: { show: false }, // Hide default messy legend
-                plotOptions: {
-                    ...heatmapOptions.value.plotOptions,
-                    heatmap: {
-                        ...heatmapOptions.value.plotOptions.heatmap,
-                        colorScale: {
-                            ranges: ranges
-                        }
-                    }
-                }
-            }
-        }
+        maxTrafficVal.value = maxVal
 
         // Update Options
         updateChartOptions(distRes.data, topRes.data, catRes.data)
@@ -1018,198 +1007,267 @@ const fetchTrafficData = async () => {
     }
 }
 
+// Reactive refs for dynamic chart options
+const vendorLabels = ref([])
+const typeCategories = ref([])
+const categoryLabels = ref([])
+const dnsClientNames = ref([])
+const queryTypeLabels = ref([])
+
 // Chart Options
-const commonOptions = {
+const commonOptions = computed(() => ({
     chart: { toolbar: { show: false }, fontFamily: 'inherit', background: 'transparent' },
-    theme: { mode: 'light' },
+    theme: { mode: isDark.value ? 'dark' : 'light' },
     stroke: { curve: 'smooth', width: 2 },
-    xaxis: { type: 'datetime', tooltip: { enabled: false }, axisBorder: { show: false }, axisTicks: { show: false } },
-    grid: { borderColor: '#f1f5f9', strokeDashArray: 4, padding: { top: 0, right: 0, bottom: 0, left: 10 } },
+    xaxis: {
+        type: 'datetime',
+        tooltip: { enabled: false },
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+        labels: {
+            style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px', fontWeight: 500 }
+        }
+    },
+    yaxis: {
+        labels: {
+            style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px', fontWeight: 500 }
+        }
+    },
+    grid: {
+        borderColor: isDark.value ? 'rgba(148, 163, 184, 0.08)' : 'rgba(148, 163, 184, 0.15)',
+        strokeDashArray: 4,
+        padding: { top: 0, right: 0, bottom: 0, left: 10 }
+    },
     colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'],
     dataLabels: { enabled: false },
-    tooltip: { theme: 'dark' },
-    legend: { position: 'top' }
-}
+    tooltip: { theme: isDark.value ? 'dark' : 'light' },
+    legend: {
+        position: 'top',
+        labels: { colors: isDark.value ? '#94a3b8' : '#64748b' }
+    }
+}))
 
-const chartOptions = ref({
-    ...commonOptions,
-    tooltip: { theme: 'dark', x: { format: 'dd MMM HH:mm' } },
+const chartOptions = computed(() => ({
+    ...commonOptions.value,
+    tooltip: { theme: isDark.value ? 'dark' : 'light', x: { format: 'dd MMM HH:mm' } },
     yaxis: {
-        labels: { formatter: (val) => formatBytes(val, 0) }
+        ...commonOptions.value.yaxis,
+        labels: {
+            style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px', fontWeight: 500 },
+            formatter: (val) => formatBytes(val, 0)
+        }
     },
-    fill: { type: 'gradient', gradient: { opacityFrom: 0.5, opacityTo: 0.1 } }
-})
+    fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0.05 } }
+}))
 
-const dnsChartOptions = ref({
-    ...commonOptions,
-    tooltip: { theme: 'dark', x: { format: 'dd MMM HH:mm' } },
+const dnsChartOptions = computed(() => ({
+    ...commonOptions.value,
+    tooltip: { theme: isDark.value ? 'dark' : 'light', x: { format: 'dd MMM HH:mm' } },
     yaxis: {
-        labels: { formatter: (val) => Math.round(val).toLocaleString() }
+        ...commonOptions.value.yaxis,
+        labels: {
+            style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px', fontWeight: 500 },
+            formatter: (val) => Math.round(val).toLocaleString()
+        }
     },
     colors: ['#10b981', '#ef4444'], // Green for Passed, Red for Blocked
-    fill: { type: 'gradient', gradient: { opacityFrom: 0.5, opacityTo: 0.1 } }
-})
+    fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0.05 } }
+}))
 
-const donutOptions = ref({
-    ...commonOptions,
-    chart: { type: 'donut', fontFamily: 'inherit' },
+const donutOptions = computed(() => ({
+    ...commonOptions.value,
+    chart: { type: 'donut', fontFamily: 'inherit', background: 'transparent' },
     plotOptions: { pie: { donut: { size: '65%' } } },
     stroke: { show: false },
-    labels: [],
+    labels: vendorLabels.value,
     dataLabels: { enabled: false },
-    legend: { position: 'bottom' }
-})
+    legend: { position: 'bottom', labels: { colors: isDark.value ? '#94a3b8' : '#64748b' } }
+}))
 
-const categoryOptions = ref({
-    ...commonOptions,
-    chart: { type: 'donut', fontFamily: 'inherit' },
+const categoryOptions = computed(() => ({
+    ...commonOptions.value,
+    chart: { type: 'donut', fontFamily: 'inherit', background: 'transparent' },
     plotOptions: { pie: { donut: { size: '65%' } } },
     stroke: { show: false },
-    labels: [],
+    labels: categoryLabels.value,
     colors: ['#6366f1', '#8b5cf6', '#d946ef', '#f43f5e', '#f97316'],
     dataLabels: { enabled: false },
-    legend: { position: 'bottom' },
+    legend: { position: 'bottom', labels: { colors: isDark.value ? '#94a3b8' : '#64748b' } },
     tooltip: {
-        theme: 'dark',
+        theme: isDark.value ? 'dark' : 'light',
         y: { formatter: (val) => formatBytes(val) }
     }
-})
+}))
 
-const queryTypeOptions = ref({
-    ...commonOptions,
-    chart: { type: 'donut', fontFamily: 'inherit' },
+const queryTypeOptions = computed(() => ({
+    ...commonOptions.value,
+    chart: { type: 'donut', fontFamily: 'inherit', background: 'transparent' },
     plotOptions: { pie: { donut: { size: '65%' } } },
     stroke: { show: false },
-    labels: [],
+    labels: queryTypeLabels.value,
     colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'],
     dataLabels: { enabled: false },
-    legend: { position: 'bottom' },
+    legend: { position: 'bottom', labels: { colors: isDark.value ? '#94a3b8' : '#64748b' } },
     tooltip: {
-        theme: 'dark',
+        theme: isDark.value ? 'dark' : 'light',
         y: { formatter: (val) => val.toLocaleString() }
     }
-})
+}))
 
-const heatmapOptions = ref({
-    ...commonOptions,
-    chart: { type: 'heatmap', fontFamily: 'inherit', toolbar: { show: false } },
-    dataLabels: { enabled: false },
-    legend: { position: 'right', offsetY: 50 }, // Scale beside chart
-    plotOptions: {
-        heatmap: {
-            shadeIntensity: 0.5,
-            radius: 4,
-            useFillColorAsStroke: false,
-            colorScale: {
-                ranges: [] // Dynamic based on data
-            }
+const heatmapOptions = computed(() => {
+    const ranges = []
+    const zeroColor = isDark.value ? '#1e293b' : '#f1f5f9'
+    ranges.push({ from: 0, to: 0, color: zeroColor, name: '0 B' })
+
+    if (maxTrafficVal.value > 0) {
+        // Smooth color progression for dark mode (deeper richer tones) vs light mode
+        const colors = isDark.value ? [
+            '#064e3b', '#065f46', '#0f766e', 
+            '#115e59', '#78350f', '#9a3412', 
+            '#991b1b', '#c2410c', '#991b1b', '#7f1d1d'
+        ] : [
+            '#a7f3d0', '#6ee7b7', '#34d399', 
+            '#059669', '#fef08a', '#fde047', 
+            '#facc15', '#f87171', '#ef4444', '#b91c1c'
+        ]
+        
+        const step = maxTrafficVal.value / 10
+        for (let i = 0; i < 10; i++) {
+            ranges.push({
+                from: (i * step) + (i === 0 ? 0.000001 : 0),
+                to: (i + 1) * step,
+                color: colors[i],
+                name: i < 3 ? 'Low' : (i < 7 ? 'Med' : 'High')
+            })
         }
-    },
-    stroke: { show: true, width: 1, colors: ['#fff'] },
-    xaxis: {
-        type: 'category',
-        tooltip: { enabled: false },
-        labels: {
-            rotate: -45,
-            formatter: (val) => {
-                // Show label only every 3 hours (00, 03, 06...)
-                if (typeof val === 'string') {
-                    const h = parseInt(val.split(':')[0])
-                    if (!isNaN(h) && h % 3 === 0) return val
-                    return ''
+    }
+
+    return {
+        ...commonOptions.value,
+        chart: { type: 'heatmap', fontFamily: 'inherit', toolbar: { show: false }, background: 'transparent' },
+        dataLabels: { enabled: false },
+        legend: { position: 'right', offsetY: 50, labels: { colors: isDark.value ? '#94a3b8' : '#64748b' } },
+        plotOptions: {
+            heatmap: {
+                shadeIntensity: 0.5,
+                radius: 4,
+                useFillColorAsStroke: false,
+                colorScale: {
+                    ranges: ranges
                 }
-                return val
             }
         },
-        axisTicks: { show: false } // Hide ticks for cleaner look
-    },
-    tooltip: {
-        custom: ({ series, seriesIndex, dataPointIndex, w }) => {
-            try {
-                // Defensive check to prevent crash
-                if (!w.config.series || !w.config.series[seriesIndex] || !w.config.series[seriesIndex].data[dataPointIndex]) {
+        stroke: { show: true, width: 1, colors: [isDark.value ? '#1e293b' : '#fff'] },
+        xaxis: {
+            type: 'category',
+            tooltip: { enabled: false },
+            labels: {
+                rotate: -45,
+                style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px' },
+                formatter: (val) => {
+                    // Show label only every 3 hours (00, 03, 06...)
+                    if (typeof val === 'string') {
+                        const h = parseInt(val.split(':')[0])
+                        if (!isNaN(h) && h % 3 === 0) return val
+                        return ''
+                    }
+                    return val
+                }
+            },
+            axisTicks: { show: false },
+            axisBorder: { show: false }
+        },
+        yaxis: {
+            labels: {
+                style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px' }
+            }
+        },
+        tooltip: {
+            custom: ({ series, seriesIndex, dataPointIndex, w }) => {
+                try {
+                    if (!w.config.series || !w.config.series[seriesIndex] || !w.config.series[seriesIndex].data[dataPointIndex]) {
+                        return ''
+                    }
+                    const data = w.config.series[seriesIndex].data[dataPointIndex]
+                    if (typeof data !== 'object' || data === null) {
+                        return `<div class="px-2 py-1 bg-slate-800 text-white text-xs">${data}</div>`
+                    }
+                    const val = formatBytes(data.y || 0)
+                    const top = data.top || []
+                    const activeTop = Array.isArray(top) ? top.filter(t => (t.value || 0) > 0) : []
+                    let html = `
+                        <div class="px-3 py-2 bg-slate-800 text-white rounded shadow-lg border border-slate-700 text-xs font-sans z-50">
+                            <div class="font-bold mb-1 border-b border-slate-600 pb-1 flex justify-between gap-4">
+                                <span>${w.globals.seriesNames[seriesIndex]} ${data.x}</span>
+                                <span class="text-blue-400">${val}</span>
+                            </div>
+                    `
+                    if (activeTop.length > 0) {
+                        html += `<div class="space-y-1 mt-1">`
+                        activeTop.forEach(t => {
+                            html += `
+                                <div class="flex justify-between gap-3 text-[10px] text-slate-300">
+                                    <span class="truncate max-w-[100px]">${t.name || 'Unknown'}</span>
+                                    <span class="font-mono">${formatBytes(t.value || 0)}</span>
+                                </div>
+                            `
+                        })
+                        html += `</div>`
+                    } else {
+                        html += `<div class="italic text-slate-500 text-[10px]">No activity</div>`
+                    }
+                    html += `</div>`
+                    return html
+                } catch (e) {
+                    console.error("Tooltip error", e)
                     return ''
                 }
-
-                const data = w.config.series[seriesIndex].data[dataPointIndex]
-
-                // If data is just a number or null (fallback)
-                if (typeof data !== 'object' || data === null) {
-                    return `<div class="px-2 py-1 bg-slate-800 text-white text-xs">${data}</div>`
-                }
-
-                const val = formatBytes(data.y || 0)
-                const top = data.top || []
-
-                // Filter out devices with 0 usage
-                const activeTop = Array.isArray(top) ? top.filter(t => (t.value || 0) > 0) : []
-
-                let html = `
-                    <div class="px-3 py-2 bg-slate-800 text-white rounded shadow-lg border border-slate-700 text-xs font-sans z-50">
-                        <div class="font-bold mb-1 border-b border-slate-600 pb-1 flex justify-between gap-4">
-                            <span>${w.globals.seriesNames[seriesIndex]} ${data.x}</span>
-                            <span class="text-blue-400">${val}</span>
-                        </div>
-                `
-
-                if (activeTop.length > 0) {
-                    html += `<div class="space-y-1 mt-1">`
-                    activeTop.forEach(t => {
-                        html += `
-                            <div class="flex justify-between gap-3 text-[10px] text-slate-300">
-                                <span class="truncate max-w-[100px]">${t.name || 'Unknown'}</span>
-                                <span class="font-mono">${formatBytes(t.value || 0)}</span>
-                            </div>
-                        `
-                    })
-                    html += `</div>`
-                } else {
-                    html += `<div class="italic text-slate-500 text-[10px]">No activity</div>`
-                }
-
-                html += `</div>`
-                return html
-            } catch (e) {
-                console.error("Tooltip error", e)
-                return ''
             }
         }
     }
 })
 
-const barOptions = ref({
-    // ...
-    ...commonOptions,
-    chart: { type: 'bar', fontFamily: 'inherit', toolbar: { show: false } },
-    xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false } },
+const barOptions = computed(() => ({
+    ...commonOptions.value,
+    chart: { type: 'bar', fontFamily: 'inherit', toolbar: { show: false }, background: 'transparent' },
+    xaxis: {
+        categories: typeCategories.value,
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+        labels: { style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px' } }
+    },
+    yaxis: {
+        labels: {
+            style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px' }
+        }
+    },
     plotOptions: { bar: { borderRadius: 4, columnWidth: '50%' } }
-})
+}))
 
-const dnsBarOptions = ref({
-    ...commonOptions,
-    chart: { type: 'bar', fontFamily: 'inherit', toolbar: { show: false } },
+const dnsBarOptions = computed(() => ({
+    ...commonOptions.value,
+    chart: { type: 'bar', fontFamily: 'inherit', toolbar: { show: false }, background: 'transparent' },
     plotOptions: { bar: { borderRadius: 4, columnWidth: '50%', distributed: true } },
-    xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { fontSize: '10px' } } }, // Smaller labels
-    yaxis: { labels: { formatter: (val) => Math.round(val).toLocaleString() } },
-    legend: { show: false }, // Hide legend for colored bars
-    colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1', '#8b5cf6', '#d946ef', '#f43f5e'] // More colors
-})
+    xaxis: {
+        categories: dnsClientNames.value,
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+        labels: { style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px' } }
+    },
+    yaxis: {
+        labels: {
+            style: { colors: isDark.value ? '#94a3b8' : '#64748b', fontSize: '10px' },
+            formatter: (val) => Math.round(val).toLocaleString()
+        }
+    },
+    legend: { show: false },
+    colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1', '#8b5cf6', '#d946ef', '#f43f5e']
+}))
 
 const updateChartOptions = (distData, topData, catData) => {
-    donutOptions.value = {
-        ...donutOptions.value,
-        labels: distData.vendors.map(v => v.label)
-    }
-
-    barOptions.value = {
-        ...barOptions.value,
-        xaxis: { ...barOptions.value.xaxis, categories: distData.types.map(t => t.label) }
-    }
-
-    categoryOptions.value = {
-        ...categoryOptions.value,
-        labels: catData.map(c => c.label)
-    }
+    vendorLabels.value = distData.vendors.map(v => v.label)
+    typeCategories.value = distData.types.map(t => t.label)
+    categoryLabels.value = catData.map(c => c.label)
 }
 
 const dnsStats = ref({
@@ -1278,18 +1336,12 @@ const fetchDnsData = async () => {
         const clientNames = clientsRes.data.map(c => c.name || c.ip)
         const clientCounts = clientsRes.data.map(c => c.count)
 
-        dnsBarOptions.value = {
-            ...dnsBarOptions.value,
-            xaxis: { ...dnsBarOptions.value.xaxis, categories: clientNames }
-        }
+        dnsClientNames.value = clientNames
         dnsClientsSeries.value = [{ name: 'Queries', data: clientCounts }]
 
         // Query Types
         queryTypeSeries.value = qtypesRes.data.map(q => q.value)
-        queryTypeOptions.value = {
-            ...queryTypeOptions.value,
-            labels: qtypesRes.data.map(q => q.label)
-        }
+        queryTypeLabels.value = qtypesRes.data.map(q => q.label)
 
         riskyDevices.value = riskyRes.data
 

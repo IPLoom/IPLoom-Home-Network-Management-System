@@ -64,11 +64,35 @@ class AdguardClient:
             # We want to fetch everything since last sync ideally. 
             # But the API uses 'older_than' (pagination backwards). 
             # So we fetch the LATEST X entries and filter by time > last_sync.
-            resp = self.session.get(f"{self.base_url}/control/querylog?limit=1000", timeout=10)
+            resp = self.session.get(f"{self.base_url}/control/querylog?limit=5000", timeout=10)
             resp.raise_for_status()
             return {"stats": stats, "logs": resp.json().get("data", [])}
         except Exception as e:
             logger.error(f"Failed to fetch Adguard data: {e}")
+            raise e
+
+    def get_protection_status(self):
+        """Fetch current protection status"""
+        try:
+            resp = self.session.get(f"{self.base_url}/control/status", timeout=5)
+            resp.raise_for_status()
+            return resp.json().get("protection_enabled", False)
+        except Exception as e:
+            logger.error(f"Failed to fetch Adguard protection status: {e}")
+            raise e
+
+    def set_protection(self, enabled: bool):
+        """Toggle AdGuard protection"""
+        try:
+            resp = self.session.post(
+                f"{self.base_url}/control/protection",
+                json={"enabled": enabled},
+                timeout=5
+            )
+            resp.raise_for_status()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to set Adguard protection: {e}")
             raise e
 
     def sync(self, force: bool = False):
@@ -178,18 +202,35 @@ class AdguardClient:
                     reason = item.get("reason", "")
                     query_type = item.get("question", {}).get("type", "A") # e.g. 'A', 'AAAA', 'PTR'
                     
+                    # AdGuard API response can contain a `result` object with:
+                    #   - IsFiltered / is_filtered (bool): authoritative blocked flag
+                    #   - Reason (int/str): reason code for filtering
+                    #   - Rule / Rules: the filter rule(s) that triggered
+                    result_obj = item.get("result", {}) or {}
+                    
                     # Broaden blocked check:
-                    # 1. Standard statuses
-                    # 2. 'Filtered' status generic
-                    # 3. Presence of filterId/rule if status is ambiguous (AdGuard versions vary)
+                    # 1. Check result.IsFiltered (newer AdGuard Home versions)
+                    # 2. Standard status strings
+                    # 3. 'Filtered' status prefix (generic)
+                    # 4. Presence of filterId/rule if status is ambiguous
+                    # 5. Check result.Reason for known block reason codes
+                    is_filtered_flag = result_obj.get("IsFiltered") or result_obj.get("is_filtered", False)
+                    result_reason = str(result_obj.get("Reason", result_obj.get("reason", "")))
+                    has_rules = bool(result_obj.get("Rules") or result_obj.get("Rule") or result_obj.get("rules") or item.get("rule") or item.get("rules"))
+                    
                     is_blocked = (
-                        status in ["FilteredBlackList", "SafeBrowsing", "ParentalControl", "Blocked"] or
+                        bool(is_filtered_flag) or
+                        status in ["FilteredBlackList", "SafeBrowsing", "ParentalControl", "Blocked", "FilteredBlockedService"] or
                         (status.startswith("Filtered") and status != "FilteredSafeSearch") or
-                        (bool(item.get("filterId")) and "Filtered" in status)
+                        reason in ["FilteredBlackList", "SafeBrowsing", "ParentalControl", "Blocked", "FilteredBlockedService"] or
+                        (reason.startswith("Filtered") and reason != "FilteredSafeSearch") or
+                        (bool(item.get("filterId")) and ("Filtered" in status or "Filtered" in reason)) or
+                        (result_reason in ["FilteredBlackList", "FilteredBlockedService", "3", "10"]) or
+                        (has_rules and result_reason not in ["0", "NotFilteredNotFound", ""] and reason not in ["0", "NotFilteredNotFound", "", "NotFilteredWhiteList"])
                     )
                     elapsed = item.get("elapsedMs", 0)
                     
-                    category = item.get("reason", "") # sometimes reason gives list name
+                    category = reason or result_reason  # use reason as category hint
                     
                     # Resolve Domain ID
                     if domain not in domain_cache:
@@ -273,7 +314,7 @@ class AdguardClient:
                     SELECT 
                         device_id, 
                         COUNT(*) as total, 
-                        COUNT(CASE WHEN status IN ('FilteredBlackList', 'SafeBrowsing', 'ParentalControl') THEN 1 END) as blocked,
+                        COUNT(CASE WHEN is_blocked = TRUE THEN 1 END) as blocked,
                         arg_max(timestamp, timestamp) as last_activity
                     FROM dns_logs 
                     WHERE timestamp > ? AND device_id IS NOT NULL
@@ -357,7 +398,29 @@ class AdguardClient:
         finally:
             if 'conn_main' in locals():
                 conn_main.close()
-            # conn_dns closed? No, we use shared connection but we should probably leave it open or handle properly.
-            # The get_dns_connection uses shared, so we don't 'close' it per se, just release cursor? 
-            # The helper doesn't really close valid cursors but that's fine for duckdb.
+
+    def get_custom_rules(self):
+        """Fetch custom filtering rules"""
+        try:
+            resp = self.session.get(f"{self.base_url}/control/filtering/status", timeout=5)
+            resp.raise_for_status()
+            return resp.json().get("user_rules", [])
+        except Exception as e:
+            logger.error(f"Failed to fetch Adguard custom rules: {e}")
+            raise e
+
+    def set_custom_rules(self, rules: list[str]):
+        """Overwrite custom filtering rules"""
+        try:
+            resp = self.session.post(
+                f"{self.base_url}/control/filtering/set_rules",
+                json={"rules": rules},
+                timeout=5
+            )
+            resp.raise_for_status()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to set Adguard custom rules: {e}")
+            raise e
+
 

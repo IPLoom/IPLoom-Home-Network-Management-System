@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
     <!-- Header/Summary Card -->
-    <div class="premium-card overflow-hidden relative">
+    <div class="card-base overflow-hidden relative">
       <div class="absolute -top-12 -right-12 w-64 h-64 bg-rose-500/10 dark:bg-rose-400/5 rounded-full blur-3xl"></div>
       
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
@@ -29,9 +29,10 @@
         <div class="p-4 bg-rose-50 dark:bg-rose-900/20 rounded-2xl border border-rose-100 dark:border-rose-800/30">
           <div class="text-[10px] font-black uppercase text-rose-600 dark:text-rose-400 mb-1">Current Status</div>
           <div class="flex items-center gap-2">
-            <div :class="(device.is_blocked || isCurrentlyBlockedBySchedule) ? 'bg-rose-500' : 'bg-emerald-500'" class="w-2.5 h-2.5 rounded-full"></div>
+            <div :class="(device.is_blocked || (isCurrentlyBlockedBySchedule && !device.is_manual_unblock)) ? 'bg-rose-500' : 'bg-emerald-500'" class="w-2.5 h-2.5 rounded-full"></div>
             <div class="text-lg font-bold text-slate-900 dark:text-white">
-              <span v-if="device.is_manual_block">Manually Blocked</span>
+              <span v-if="device.is_manual_unblock">Allowed (Override)</span>
+              <span v-else-if="device.is_manual_block">Manually Blocked</span>
               <span v-else-if="device.is_quota_exceeded">Blocked by Quota</span>
               <span v-else-if="isCurrentlyBlockedBySchedule">Blocked by Schedule</span>
               <span v-else-if="device.is_blocked">Blocked</span>
@@ -47,7 +48,7 @@
     </div>
 
     <!-- 7-Day Heatmap Visualization -->
-    <div class="premium-card">
+    <div class="card-base">
       <div class="flex items-center justify-between mb-8">
         <h3 class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Weekly Access Heatmap</h3>
         <div class="flex items-center gap-4">
@@ -96,7 +97,7 @@
     <div class="space-y-4">
       <h3 class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Active Rules</h3>
       
-      <div v-if="schedules.length === 0" class="premium-card !py-12 flex flex-col items-center justify-center text-center">
+      <div v-if="schedules.length === 0" class="card-base !py-12 flex flex-col items-center justify-center text-center">
         <div class="p-6 bg-slate-50 dark:bg-slate-900/50 rounded-full mb-4">
           <Clock class="w-12 h-12 text-slate-300 dark:text-slate-600" />
         </div>
@@ -106,7 +107,7 @@
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div v-for="s in schedules" :key="s.id" 
-          class="premium-card group hover:border-rose-500/30 transition-all !p-5">
+          class="card-base group hover:border-rose-500/30 transition-all !p-5">
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center gap-3">
               <div class="p-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl">
@@ -141,8 +142,8 @@
             </div>
           </div>
 
-          <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
-            <div class="flex items-center gap-4">
+          <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden gap-3">
+            <div class="flex items-center gap-4 min-w-0">
               <div>
                 <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-0.5">Start</span>
                 <span class="text-sm font-black text-slate-700 dark:text-slate-200">{{ s.start_time }}</span>
@@ -153,13 +154,8 @@
                 <span class="text-sm font-black text-slate-700 dark:text-slate-200">{{ s.end_time }}</span>
               </div>
             </div>
-            <div class="text-right">
-              <Switch v-model="s.enabled" @change="toggleSchedule(s)"
-                :class="s.enabled ? 'bg-rose-500' : 'bg-slate-200 dark:bg-slate-700'"
-                class="relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75">
-                <span aria-hidden="true" :class="s.enabled ? 'translate-x-5' : 'translate-x-0'"
-                  class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out" />
-              </Switch>
+            <div class="flex items-center justify-end shrink-0">
+              <ToggleSwitch v-model="s.enabled" @change="toggleSchedule(s)" />
             </div>
           </div>
         </div>
@@ -167,77 +163,75 @@
     </div>
 
     <!-- Add/Edit Modal -->
-    <TransitionRoot appear :show="isModalOpen" as="template">
-      <Dialog as="div" @close="closeModal" class="relative z-[100]">
-        <TransitionChild as="template" enter="duration-300 ease-out" enter-from="opacity-0" enter-to="opacity-100" leave="duration-200 ease-in" leave-from="opacity-100" leave-to="opacity-0">
-          <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" />
-        </TransitionChild>
+    <Dialog 
+      v-model:visible="isModalOpen" 
+      modal 
+      :draggable="false"
+      :pt="{
+        root: 'w-full max-w-md transform overflow-hidden rounded-3xl bg-white dark:bg-slate-900 p-8 text-left align-middle shadow-2xl transition-all border border-slate-200 dark:border-slate-800',
+        header: 'hidden',
+        content: 'p-0 flex flex-col'
+      }"
+    >
+      <div class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-3 mb-6">
+        <div class="p-2 bg-rose-500/10 text-rose-500 rounded-xl">
+          <Clock class="w-5 h-5" />
+        </div>
+        {{ editingSchedule ? 'Edit Schedule Window' : 'New Schedule Window' }}
+      </div>
 
-        <div class="fixed inset-0 overflow-y-auto">
-          <div class="flex min-h-full items-center justify-center p-4 text-center">
-            <TransitionChild as="template" enter="duration-300 ease-out" enter-from="opacity-0 scale-95" enter-to="opacity-100 scale-100" leave="duration-200 ease-in" leave-from="opacity-100 scale-100" leave-to="opacity-0 scale-95">
-              <DialogPanel class="w-full max-w-md transform overflow-hidden rounded-3xl bg-white dark:bg-slate-900 p-8 text-left align-middle shadow-2xl transition-all border border-slate-200 dark:border-slate-800">
-                <DialogTitle as="h3" class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-3 mb-6">
-                  <div class="p-2 bg-rose-500/10 text-rose-500 rounded-xl">
-                    <Clock class="w-5 h-5" />
-                  </div>
-                  {{ editingSchedule ? 'Edit Schedule Window' : 'New Schedule Window' }}
-                </DialogTitle>
+      <div class="space-y-6">
+        <!-- Name -->
+        <div class="space-y-2">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Schedule Name</label>
+          <InputText v-model="form.name" type="text" placeholder="e.g. Night Time Block"
+            class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm font-bold focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500/50 transition-all dark:text-white" />
+        </div>
 
-                <div class="space-y-6">
-                  <!-- Name -->
-                  <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Schedule Name</label>
-                    <input v-model="form.name" type="text" placeholder="e.g. Night Time Block"
-                      class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm font-bold focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500/50 transition-all dark:text-white" />
-                  </div>
-
-                  <!-- Time Range -->
-                  <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-2">
-                      <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Start Time</label>
-                      <input v-model="form.start_time" type="time"
-                        class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm font-black focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500/50 transition-all dark:text-white" />
-                    </div>
-                    <div class="space-y-2">
-                      <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">End Time</label>
-                      <input v-model="form.end_time" type="time"
-                        class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm font-black focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500/50 transition-all dark:text-white" />
-                    </div>
-                  </div>
-
-                  <!-- Days Selection -->
-                  <div class="space-y-3">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Repeat On</label>
-                    <div class="flex justify-between gap-1">
-                      <button v-for="day in 7" :key="day-1" 
-                        @click="toggleDay(day-1)"
-                        class="w-10 h-10 flex items-center justify-center rounded-xl text-[10px] font-black border transition-all"
-                        :class="form.days.includes(day-1) 
-                          ? 'bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-500/20' 
-                          : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-100 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'">
-                        {{ dayNamesShort[day-1] }}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="mt-10 flex gap-3">
-                  <button @click="closeModal" class="flex-1 px-6 py-3.5 rounded-2xl text-sm font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
-                    Cancel
-                  </button>
-                  <button @click="saveSchedule" :disabled="isSaving"
-                    class="flex-2 px-8 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl shadow-xl shadow-rose-500/20 transition-all font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2">
-                    <Loader2 v-if="isSaving" class="w-4 h-4 animate-spin" />
-                    {{ editingSchedule ? 'Update Schedule' : 'Create Schedule' }}
-                  </button>
-                </div>
-              </DialogPanel>
-            </TransitionChild>
+        <!-- Time Range -->
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-2">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Start Time</label>
+            <input v-model="form.start_time" type="time"
+              class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm font-black focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500/50 transition-all dark:text-white" />
+          </div>
+          <div class="space-y-2">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">End Time</label>
+            <input v-model="form.end_time" type="time"
+              class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm font-black focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500/50 transition-all dark:text-white" />
           </div>
         </div>
-      </Dialog>
-    </TransitionRoot>
+
+        <!-- Days Selection -->
+        <div class="space-y-3">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Repeat On</label>
+          <div class="flex justify-between gap-1">
+            <button v-for="day in 7" :key="day-1" 
+              type="button"
+              @click="toggleDay(day-1)"
+              class="w-10 h-10 flex items-center justify-center rounded-xl text-[10px] font-black border transition-all cursor-pointer bg-transparent"
+              :class="form.days.includes(day-1) 
+                ? 'bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-500/20' 
+                : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-100 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'">
+              {{ dayNamesShort[day-1] }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-10 flex gap-3">
+        <Button @click="closeModal" label="Cancel"
+          :pt="{ root: 'flex-1 px-6 py-3.5 rounded-2xl text-sm font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border-none bg-transparent cursor-pointer' }" />
+        <Button @click="saveSchedule" :disabled="isSaving" :loading="isSaving"
+          :label="editingSchedule ? 'Update Schedule' : 'Create Schedule'"
+          :pt="{ root: 'flex-2 px-8 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl shadow-xl shadow-rose-500/20 transition-all font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 border-none cursor-pointer' }"
+        >
+          <template #icon>
+            <Loader2 v-if="isSaving" class="w-4 h-4 animate-spin" />
+          </template>
+        </Button>
+      </div>
+    </Dialog>
     <ConfirmationModal 
       :isOpen="isDeleteModalOpen"
       title="Delete Schedule"
@@ -256,12 +250,15 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { 
   Plus, Clock, Pencil, Trash2, ArrowRight, Loader2, Calendar
 } from 'lucide-vue-next'
-import { 
-  Dialog, DialogPanel, DialogTitle, TransitionChild, TransitionRoot, Switch 
-} from '@headlessui/vue'
+import Dialog from 'primevue/dialog'
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import ToggleSwitch from 'primevue/toggleswitch'
 import api from '@/utils/api'
 import { useNotifications } from '@/composables/useNotifications'
 import { DateTime } from 'luxon'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+
 
 const props = defineProps({
   device: {
@@ -472,8 +469,6 @@ const toggleSchedule = async (s) => {
   }
 }
 
-import ConfirmationModal from '@/components/ConfirmationModal.vue'
-
 // ... existing refs ...
 const isDeleteModalOpen = ref(false)
 const scheduleToDelete = ref(null)
@@ -507,10 +502,13 @@ const getHourStatusClass = (day, hour) => {
   
   const isBlocked = schedules.value.some(s => {
     if (!s.enabled) return false
-    if (!s.days.split(',').includes(dayStr)) return false
+    if (!s.days || !s.days.split(',').includes(dayStr)) return false
     
-    const start = s.start_time
-    const end = s.end_time
+    // Slice to 5 characters (HH:MM) to handle any backend/DB format differences (e.g. HH:MM:SS)
+    const start = (s.start_time || '').slice(0, 5)
+    const end = (s.end_time || '').slice(0, 5)
+    
+    if (!start || !end) return false
     
     // Check if the START of this hour is within the block window
     if (start <= end) {
@@ -521,8 +519,8 @@ const getHourStatusClass = (day, hour) => {
   })
   
   return isBlocked 
-    ? 'bg-rose-500 hover:bg-rose-600 shadow-[inset_0_0_10px_rgba(0,0,0,0.1)]' 
-    : 'bg-emerald-500/10 dark:bg-emerald-500/5 hover:bg-emerald-500/20'
+    ? '!bg-rose-500 hover:!bg-rose-600 shadow-[inset_0_0_10px_rgba(0,0,0,0.1)]' 
+    : '!bg-emerald-500/10 dark:!bg-emerald-500/5 hover:!bg-emerald-500/20'
 }
 
 const getHourTooltip = (day, hour) => {
@@ -531,9 +529,10 @@ const getHourTooltip = (day, hour) => {
   
   const activeScheds = schedules.value.filter(s => {
     if (!s.enabled) return false
-    if (!s.days.split(',').includes(String(day))) return false
-    const start = s.start_time
-    const end = s.end_time
+    if (!s.days || !s.days.split(',').includes(String(day))) return false
+    const start = (s.start_time || '').slice(0, 5)
+    const end = (s.end_time || '').slice(0, 5)
+    if (!start || !end) return false
     if (start <= end) return timeStr >= start && timeStr < end
     else return timeStr >= start || timeStr < end
   })

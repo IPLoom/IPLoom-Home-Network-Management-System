@@ -35,3 +35,4 @@ class DeviceQuotaStatus(BaseModel):
     next_reset_at: datetime
     is_manual_block: bool
     is_scheduled_block: bool
+    is_manual_unblock: bool

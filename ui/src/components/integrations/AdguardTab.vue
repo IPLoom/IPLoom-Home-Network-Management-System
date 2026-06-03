@@ -20,28 +20,40 @@
       </div>
 
       <div class="flex items-center gap-3">
+        <button v-if="isConfigured && isVerified"
+          @click="toggleProtection"
+          :disabled="togglingProtection"
+          :class="['!px-4 !py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm flex items-center gap-2 border-none', protectionEnabled ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-emerald-500 hover:bg-emerald-600 text-white']"
+        >
+          <ShieldAlert v-if="protectionEnabled" class="h-4 w-4" />
+          <ShieldCheck v-else class="h-4 w-4" />
+          <span>{{ togglingProtection ? 'Updating...' : (protectionEnabled ? 'Disable Protection' : 'Enable Protection') }}</span>
+        </button>
         <button 
           @click="syncAdguard" 
           :disabled="syncing || !isConfigured"
-          class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white rounded-xl text-sm font-medium transition-all shadow-sm active:scale-95"
+          class="btn-primary !px-4 !py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm flex items-center gap-2 border-none"
         >
-          <svg v-if="syncing" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89H18v3" />
-          </svg>
+          <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': syncing }" />
           <span>{{ syncing ? 'Syncing...' : 'Sync Now' }}</span>
         </button>
       </div>
     </div>
 
+    <!-- Protection Disabled Warning -->
+    <div v-if="isConfigured && isVerified && !protectionEnabled && !loading" class="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-2xl p-4 text-red-700 dark:text-red-400 text-sm flex items-start gap-3 shadow-sm">
+      <ShieldAlert class="h-5 w-5 mt-0.5 shrink-0 text-red-600 dark:text-red-400" />
+      <div>
+        <h4 class="font-bold text-base">Protection Disabled</h4>
+        <p class="mt-1 text-red-600/80 dark:text-red-400/80">
+          AdGuard protection is currently turned off. Your network devices are not being shielded against ads, trackers, or malicious domains. It is highly recommended to keep protection enabled.
+        </p>
+      </div>
+    </div>
+
     <!-- Error State -->
     <div v-if="error" class="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-2xl p-4 text-red-700 dark:text-red-400 text-sm flex items-start gap-3">
-      <svg class="h-5 w-5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-      </svg>
+      <ShieldAlert class="h-5 w-5 mt-0.5 shrink-0 text-red-650 dark:text-red-450" />
       <div>
         <h4 class="font-semibold">Integration Error</h4>
         <p class="mt-0.5">{{ error }}</p>
@@ -60,9 +72,7 @@
           <div class="flex items-center justify-between">
             <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Total Queries (24h)</span>
             <div class="p-2 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
-              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <Search class="h-5 w-5" />
             </div>
           </div>
           <div class="mt-2">
@@ -76,9 +86,7 @@
           <div class="flex items-center justify-between">
             <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Blocked Queries (24h)</span>
             <div class="p-2 rounded-lg bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">
-              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
+              <ShieldAlert class="h-5 w-5" />
             </div>
           </div>
           <div class="mt-2">
@@ -92,9 +100,7 @@
           <div class="flex items-center justify-between">
             <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Blocking Ratio</span>
             <div class="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
+              <Activity class="h-5 w-5" />
             </div>
           </div>
           <div class="mt-2">
@@ -108,9 +114,7 @@
           <div class="flex items-center justify-between">
             <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Avg Resolution Latency</span>
             <div class="p-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400">
-              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <Clock class="h-5 w-5" />
             </div>
           </div>
           <div class="mt-2">
@@ -123,29 +127,27 @@
       <!-- Recent Blocked Log -->
       <div class="space-y-4">
         <h3 class="text-lg font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-          <svg class="h-5 w-5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-          </svg>
+          <Ban class="h-5 w-5 text-rose-500" />
           <span>Recently Blocked Queries</span>
         </h3>
 
         <div class="bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl overflow-hidden shadow-sm">
           <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-              <thead>
-                <tr class="bg-slate-50/75 dark:bg-slate-900/50 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-700/50">
-                  <th class="px-6 py-4">Timestamp</th>
-                  <th class="px-6 py-4">Domain Name</th>
-                  <th class="px-6 py-4">Client IP</th>
-                  <th class="px-6 py-4 text-center">Type</th>
-                  <th class="px-6 py-4">Filter Reason</th>
+            <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800/70">
+              <thead class="bg-transparent">
+                <tr class="border-b border-slate-100 dark:border-slate-800/70">
+                  <th class="table-header-cell text-left px-6 py-4">Timestamp</th>
+                  <th class="table-header-cell text-left px-6 py-4">Domain Name</th>
+                  <th class="table-header-cell text-left px-6 py-4">Client IP</th>
+                  <th class="table-header-cell text-center px-6 py-4">Type</th>
+                  <th class="table-header-cell text-left px-6 py-4">Filter Reason</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-100 dark:divide-slate-700/40 text-sm">
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-800/70">
                 <tr 
-                  v-for="(log, idx) in recentBlocked" 
+                  v-for="(log, idx) in paginatedBlocked" 
                   :key="idx"
-                  class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors"
+                  class="hover-row group"
                 >
                   <td class="px-6 py-4 text-xs font-mono text-slate-400 truncate max-w-[150px]">
                     {{ formatDate(log.timestamp) }}
@@ -177,15 +179,26 @@
             </table>
           </div>
         </div>
+
+        <!-- Pagination -->
+        <div v-if="totalPages > 1" class="flex justify-end items-center gap-2 p-4 border-t border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/30 rounded-b-2xl">
+          <button @click="changePage(currentPage - 1)" :disabled="currentPage <= 1" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+            Previous
+          </button>
+          <div class="px-4 py-1.5 bg-slate-900 dark:bg-white rounded-lg text-sm font-medium text-white dark:text-slate-900">
+            {{ currentPage }} / {{ totalPages }}
+          </div>
+          <button @click="changePage(currentPage + 1)" :disabled="currentPage >= totalPages" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+            Next
+          </button>
+        </div>
       </div>
     </template>
 
     <div v-else class="bg-white dark:bg-slate-800 rounded-2xl p-8 border border-slate-200/60 dark:border-slate-700/60 text-center shadow-sm">
       <div class="max-w-md mx-auto space-y-4">
         <div class="w-16 h-16 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center mx-auto">
-          <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
+          <ShieldAlert class="h-8 w-8 text-amber-600 dark:text-amber-450" />
         </div>
         <div>
           <h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">AdGuard Home integration is inactive</h3>
@@ -196,7 +209,7 @@
         <div>
           <router-link 
             to="/settings" 
-            class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-all active:scale-95 shadow-sm"
+            class="btn-primary !px-4 !py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 shadow-sm inline-flex items-center justify-center cursor-pointer border-none"
           >
             Go to Settings
           </router-link>
@@ -207,9 +220,22 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import api from '@/utils/api'
 import { useNotifications } from '@/composables/useNotifications'
+
+// PrimeVue components
+import Button from 'primevue/button'
+
+import {
+  RefreshCw,
+  ShieldAlert,
+  ShieldCheck,
+  Search,
+  Activity,
+  Clock,
+  Ban
+} from 'lucide-vue-next'
 
 const { notifySuccess, notifyError } = useNotifications()
 
@@ -223,6 +249,23 @@ const url = ref('')
 const stats = ref(null)
 const recentBlocked = ref([])
 
+const protectionEnabled = ref(false)
+const togglingProtection = ref(false)
+
+// Pagination
+const currentPage = ref(1)
+const itemsPerPage = 10
+const totalPages = computed(() => Math.ceil(recentBlocked.value.length / itemsPerPage) || 1)
+const paginatedBlocked = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  return recentBlocked.value.slice(start, start + itemsPerPage)
+})
+const changePage = (p) => {
+  if (p >= 1 && p <= totalPages.value) {
+    currentPage.value = p
+  }
+}
+
 const fetchAdguardData = async () => {
   loading.value = true
   error.value = null
@@ -232,6 +275,7 @@ const fetchAdguardData = async () => {
     isVerified.value = res.data.verified
     url.value = res.data.url || ''
     stats.value = res.data.stats
+    protectionEnabled.value = res.data.protection_enabled || false
     recentBlocked.value = res.data.recent_blocked || []
   } catch (err) {
     console.error('Error fetching adguard data:', err)
@@ -252,6 +296,21 @@ const syncAdguard = async () => {
     notifyError(err.response?.data?.detail || 'Failed to start AdGuard synchronization.')
   } finally {
     syncing.value = false
+  }
+}
+
+const toggleProtection = async () => {
+  togglingProtection.value = true
+  try {
+    const newState = !protectionEnabled.value
+    await api.post('/integrations/adguard/protection', { enabled: newState })
+    protectionEnabled.value = newState
+    notifySuccess(newState ? 'AdGuard protection enabled' : 'AdGuard protection disabled')
+  } catch (err) {
+    console.error('Failed to toggle Adguard protection:', err)
+    notifyError(err.response?.data?.detail || 'Failed to toggle protection state.')
+  } finally {
+    togglingProtection.value = false
   }
 }
 

@@ -1,146 +1,153 @@
 <template>
-    <div class="premium-card !p-0 h-[calc(100vh-120px)] flex flex-col overflow-hidden" @click="closeDropdowns">
-        
-        <!-- Header: Smart Filter Bar -->
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between px-4 sm:px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-50 gap-4 lg:gap-0">
-            <!-- Left: Legend & Title -->
-            <div class="flex flex-wrap items-center gap-4 sm:gap-6">
-                <div class="flex items-center gap-3 pr-4 sm:pr-6 border-r border-slate-200 dark:border-slate-700 h-11">
-                    <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 whitespace-nowrap">Network Map</h2>
-                </div>
-                <div class="flex items-center gap-3 sm:gap-5 overflow-x-auto no-scrollbar">
-                    <div class="flex items-center gap-2 whitespace-nowrap">
-                        <div class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.4)]"></div>
-                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-500 hidden sm:inline">Active</span>
-                    </div>
-                    <div class="flex items-center gap-2 whitespace-nowrap">
-                        <div class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.4)]"></div>
-                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-500 hidden sm:inline">Threat</span>
-                    </div>
-                    <div class="flex items-center gap-2 whitespace-nowrap">
-                        <div class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]"></div>
-                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-500 hidden sm:inline">Insecure</span>
-                    </div>
-                </div>
+    <div class="space-y-4 h-[calc(100vh-120px)] flex flex-col overflow-hidden" @click="closeDropdowns">
+        <!-- Header -->
+        <div class="page-header shrink-0 !mb-0">
+            <div>
+                <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Topology</h1>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Interactive network map & device statuses</p>
             </div>
 
-            <!-- Right: Searchable Dropdowns -->
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <!-- Right: Toolbar Controls -->
+            <div class="flex flex-wrap items-center gap-1.5 p-1 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/50 dark:border-slate-700/30">
                 
                 <!-- 1. Searchable Port Dropdown -->
-                <div class="relative h-11 w-full sm:w-40 lg:w-48" @click.stop>
-                    <div class="h-full flex items-center bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-xl px-4 gap-3 cursor-text group focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all"
-                         @click="showPortDropdown = !showPortDropdown">
-                        <Filter class="w-4 h-4 text-slate-400 shrink-0" />
-                        <input 
-                            v-model="portSearchQuery"
-                            placeholder="All Ports"
-                            class="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 w-full placeholder:text-slate-400"
-                            @focus="showPortDropdown = true"
-                        />
-                        <ChevronDown class="w-4 h-4 text-slate-400 shrink-0 transition-transform duration-300" :class="{ 'rotate-180': showPortDropdown }" />
+                <div class="relative h-9 w-full sm:w-36 lg:w-40" @click.stop>
+                    <div class="h-full flex items-center hover:bg-white dark:hover:bg-slate-700 rounded-lg px-3 gap-2 cursor-pointer transition-all"
+                         @click="togglePortPopover($event)">
+                        <Filter class="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0" />
+                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 truncate select-none">
+                            {{ selectedPortFilter ? selectedPortFilter : 'All Ports' }}
+                        </span>
+                        <ChevronDown class="w-3.5 h-3.5 text-slate-400 shrink-0 ml-auto" />
                     </div>
 
                     <!-- Dropdown List -->
-                    <transition name="fade-slide">
-                        <div v-if="showPortDropdown" class="absolute top-12 left-0 right-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden z-[100] max-h-60 overflow-y-auto">
-                            <div 
-                                @click="selectPort(null)"
-                                class="px-4 py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors border-b border-slate-100 dark:border-slate-700/50"
-                                :class="{ 'text-blue-500 bg-blue-50/30 dark:bg-blue-900/10': selectedPortFilter === null }"
-                            >
-                                All Ports
-                            </div>
-                            <div 
-                                v-for="port in filteredPorts" :key="port"
-                                @click="selectPort(port)"
-                                class="px-4 py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"
-                                :class="{ 'text-blue-500 bg-blue-50/30 dark:bg-blue-900/10': selectedPortFilter === port }"
-                            >
-                                Port {{ port }}
+                    <Popover ref="portPopover" :pt="{ content: 'p-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden z-[100] max-h-60 overflow-y-auto w-[180px]' }">
+                        <div class="p-2 border-b border-slate-100 dark:border-slate-700/50">
+                            <div class="flex items-center bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 gap-2">
+                                <Search class="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <InputText 
+                                    v-model="portSearchQuery"
+                                    placeholder="Search Port"
+                                    class="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 w-full p-0 focus:ring-0"
+                                />
                             </div>
                         </div>
-                    </transition>
+                        <div 
+                            @click="selectPort(null)"
+                            class="px-4 py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors border-b border-slate-100 dark:border-slate-700/50"
+                            :class="{ 'text-blue-500 bg-blue-50/30 dark:bg-blue-900/10': selectedPortFilter === null }"
+                        >
+                            All Ports
+                        </div>
+                        <div 
+                            v-for="port in filteredPorts" :key="port"
+                            @click="selectPort(port)"
+                            class="px-4 py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"
+                            :class="{ 'text-blue-500 bg-blue-50/30 dark:bg-blue-900/10': selectedPortFilter === port }"
+                        >
+                            {{ port }}
+                        </div>
+                    </Popover>
                 </div>
+
+                <div class="hidden sm:block w-px h-5 bg-slate-200 dark:bg-slate-700/60 mx-0.5"></div>
 
                 <!-- 2. Searchable Device Dropdown -->
-                <div class="relative h-11 w-full sm:w-64 lg:w-80" @click.stop>
-                    <div class="h-full flex items-center bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-xl px-4 gap-3 cursor-text group focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all"
-                         @click="showDeviceDropdown = !showDeviceDropdown">
-                        <Search class="w-4 h-4 text-slate-400 shrink-0" />
-                        <input 
-                            v-model="deviceSearchQuery"
-                            placeholder="Find Device..."
-                            class="bg-transparent border-none outline-none text-[11px] font-bold text-slate-700 dark:text-slate-200 w-full placeholder:text-slate-400 placeholder:font-medium"
-                            @focus="showDeviceDropdown = true"
-                        />
-                        <ChevronDown class="w-4 h-4 text-slate-400 shrink-0 transition-transform duration-300" :class="{ 'rotate-180': showDeviceDropdown }" />
+                <div class="relative h-9 w-full sm:w-48 lg:w-60" @click.stop>
+                    <div class="h-full flex items-center hover:bg-white dark:hover:bg-slate-700 rounded-lg px-3 gap-2 cursor-pointer transition-all"
+                         @click="toggleDevicePopover($event)">
+                        <Search class="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0" />
+                        <span class="text-[11px] font-bold text-slate-600 dark:text-slate-300 truncate select-none">
+                            {{ selectedDeviceName }}
+                        </span>
+                        <ChevronDown class="w-3.5 h-3.5 text-slate-400 shrink-0 ml-auto" />
                     </div>
 
                     <!-- Dropdown List -->
-                    <transition name="fade-slide">
-                        <div v-if="showDeviceDropdown" class="absolute top-12 left-0 right-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden z-[100] max-h-80 overflow-y-auto">
-                            <div 
-                                @click="selectDevice(null)"
-                                class="px-4 py-3 text-[11px] font-bold hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors border-b border-slate-100 dark:border-slate-700/50"
-                                :class="{ 'text-blue-500 bg-blue-50/30 dark:bg-blue-900/10': !searchQuery }"
-                            >
-                                All Devices
+                    <Popover ref="devicePopover" :pt="{ content: 'p-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden z-[100] max-h-80 overflow-y-auto w-[320px]' }">
+                        <div class="p-2 border-b border-slate-100 dark:border-slate-700/50">
+                            <div class="flex items-center bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 gap-2">
+                                <Search class="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <InputText 
+                                    v-model="deviceSearchQuery"
+                                    placeholder="Search Device..."
+                                    class="bg-transparent border-none outline-none text-[11px] font-medium text-slate-700 dark:text-slate-200 w-full p-0 focus:ring-0"
+                                />
                             </div>
-                            <div 
-                                v-for="node in filteredNodesForDropdown" :key="node.id"
-                                @click="selectDevice(node)"
-                                class="px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"
-                                :class="{ 'text-blue-500 bg-blue-50/30 dark:bg-blue-900/10': searchQuery === node.name || searchQuery === node.ip }"
-                            >
-                                <div class="flex items-center gap-3">
-                                    <div class="p-1.5 rounded-lg text-white" :style="{ backgroundColor: getNodeColor(node) }">
-                                        <component :is="getIcon(node.icon)" class="w-3.5 h-3.5" />
-                                    </div>
-                                    <div class="flex flex-col min-w-0">
-                                        <span class="text-[11px] font-bold truncate max-w-[120px] sm:max-w-[160px]">{{ node.name }}</span>
-                                        <span class="text-[9px] font-mono text-slate-400">{{ node.ip }}</span>
-                                    </div>
+                        </div>
+                        <div 
+                            @click="selectDevice(null)"
+                            class="px-4 py-3 text-[11px] font-bold hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors border-b border-slate-100 dark:border-slate-700/50"
+                            :class="{ 'text-blue-500 bg-blue-50/30 dark:bg-blue-900/10': !searchQuery }"
+                        >
+                            All Devices
+                        </div>
+                        <div 
+                            v-for="node in filteredNodesForDropdown" :key="node.id"
+                            @click="selectDevice(node)"
+                            class="px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"
+                            :class="{ 'text-blue-500 bg-blue-50/30 dark:bg-blue-900/10': searchQuery === node.name || searchQuery === node.ip }"
+                        >
+                            <div class="flex items-center gap-3">
+                                <div class="p-1.5 rounded-lg text-white" :style="{ backgroundColor: getNodeColor(node) }">
+                                    <component :is="getIcon(node.icon)" class="w-3.5 h-3.5" />
                                 </div>
-                                <div class="flex flex-col items-end gap-1 shrink-0">
-                                    <span class="text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 text-slate-500">{{ node.type }}</span>
-                                    <div v-if="node.open_ports?.length" class="flex gap-1">
-                                        <div v-for="p in node.open_ports.slice(0, 3)" :key="p.port" class="w-1.5 h-1.5 rounded-full" :style="{ backgroundColor: getPortColor(p.port, p.service) }"></div>
-                                    </div>
+                                <div class="flex flex-col min-w-0">
+                                    <span class="text-[11px] font-bold truncate max-w-[120px] sm:max-w-[160px]">{{ node.name }}</span>
+                                    <span class="text-[9px] font-mono text-slate-400">{{ node.ip }}</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end gap-1 shrink-0">
+                                <span class="text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 text-slate-500">{{ node.type }}</span>
+                                <div v-if="node.open_ports?.length" class="flex gap-1">
+                                    <div v-for="p in node.open_ports.slice(0, 3)" :key="p.port" class="w-1.5 h-1.5 rounded-full" :style="{ backgroundColor: getPortColor(p.port, p.service) }"></div>
                                 </div>
                             </div>
                         </div>
-                    </transition>
+                    </Popover>
                 </div>
+
+                <div class="hidden sm:block w-px h-5 bg-slate-200 dark:bg-slate-700/60 mx-0.5"></div>
 
                 <!-- Show Ports Toggle -->
-                <div class="flex items-center gap-2 px-3 h-11 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-xl transition-all shrink-0">
+                <div class="flex items-center gap-3 px-3 h-9 rounded-lg hover:bg-white dark:hover:bg-slate-700 transition-all shrink-0">
                     <span class="text-[10px] font-black uppercase tracking-widest text-slate-500 select-none">Show Ports</span>
-                    <button 
-                        @click="showPorts = !showPorts"
-                        :class="[
-                            'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
-                            showPorts ? 'bg-blue-500' : 'bg-slate-200 dark:bg-slate-700'
-                        ]"
-                    >
-                        <span 
-                            :class="[
-                                'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
-                                showPorts ? 'translate-x-4' : 'translate-x-0'
-                            ]"
-                        ></span>
-                    </button>
+                    <ToggleSwitch v-model="showPorts" />
                 </div>
 
+                <div class="hidden sm:block w-px h-5 bg-slate-200 dark:bg-slate-700/60 mx-0.5"></div>
+
                 <!-- Refresh -->
-                <button @click="fetchTopology" class="h-11 w-11 flex items-center justify-center bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/60 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500 dark:text-slate-400 transition-all shrink-0" v-tooltip="'Refresh View'">
+                <Button 
+                    @click="fetchTopology" 
+                    class="!h-9 !w-9 flex items-center justify-center hover:bg-white dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-all shrink-0 p-0 border-none bg-transparent" 
+                    v-tooltip="'Refresh View'"
+                    variant="text"
+                >
                     <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
-                </button>
+                </Button>
             </div>
         </div>
 
-        <!-- Main Content Area -->
-        <div class="flex-1 relative overflow-hidden">
+        <!-- Main Content Area: Graph Canvas inside Premium Card -->
+        <div class="card-base !p-0 flex-1 relative overflow-hidden">
+            <!-- Floating Legend -->
+            <div class="absolute top-4 left-4 flex flex-col gap-2.5 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-3.5 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 z-10 select-none">
+                <div class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500 mb-0.5">Node Status</div>
+                <div class="flex items-center gap-2">
+                    <div class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.4)]"></div>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Active</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.4)]"></div>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Threat</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]"></div>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Insecure</span>
+                </div>
+            </div>
             <!-- Loading State -->
             <div v-if="loading"
                 class="absolute inset-0 flex items-center justify-center z-10 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
@@ -314,12 +321,15 @@
             <!-- Controls -->
             <div
                 class="absolute bottom-4 sm:bottom-6 right-4 sm:right-6 flex flex-col gap-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg p-2 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 z-10">
-                <button @click="zoomIn" class="btn-action !p-2 sm:!p-2.5 hover:bg-blue-50 dark:hover:bg-blue-900/20" v-tooltip="'Zoom In'">
+                <Button @click="zoomIn" class="!p-2 sm:!p-2.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-slate-200 border-none bg-transparent" v-tooltip="'Zoom In'" variant="text">
                     <Plus class="h-4 w-4 sm:h-5 sm:w-5" />
-                </button>
-                <button @click="zoomOut" class="btn-action !p-2 sm:!p-2.5 hover:bg-blue-50 dark:hover:bg-blue-900/20" v-tooltip="'Zoom Out'">
+                </Button>
+                <Button @click="zoomReset" class="!p-2 sm:!p-2.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-slate-200 border-none bg-transparent" v-tooltip="'Reset Zoom'" variant="text">
+                    <RotateCcw class="h-4 w-4 sm:h-5 sm:w-5" />
+                </Button>
+                <Button @click="zoomOut" class="!p-2 sm:!p-2.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-slate-200 border-none bg-transparent" v-tooltip="'Zoom Out'" variant="text">
                     <Minus class="h-4 w-4 sm:h-5 sm:w-5" />
-                </button>
+                </Button>
             </div>
 
             <!-- Floating Tooltip -->
@@ -343,8 +353,14 @@ import { formatBytes } from '@/utils/format'
 import { parseUTC } from '@/utils/date'
 import { DateTime } from 'luxon'
 import {
-    Loader2, Plus, Minus, RefreshCw, X, ArrowDown, ArrowUp, ExternalLink, AlertTriangle, Search, ShieldAlert, Filter, ChevronDown
+    Loader2, Plus, Minus, RefreshCw, X, ArrowDown, ArrowUp, ExternalLink, AlertTriangle, Search, ShieldAlert, Filter, ChevronDown, RotateCcw
 } from 'lucide-vue-next'
+
+// PrimeVue components
+import Popover from 'primevue/popover'
+import ToggleSwitch from 'primevue/toggleswitch'
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
 
 const nodes = ref<any>({})
 const edges = ref<any>({})
@@ -354,14 +370,30 @@ const selectedNodeId = ref<string | null>(null)
 const isMobile = ref(window.innerWidth < 640)
 const showPorts = ref(false)
 
-// Dropdown States
-const showPortDropdown = ref(false)
-const showDeviceDropdown = ref(false)
+// Popover Refs
+const portPopover = ref<any>(null)
+const devicePopover = ref<any>(null)
+
+const togglePortPopover = (event: any) => {
+    portSearchQuery.value = ""
+    portPopover.value?.toggle(event)
+}
+const toggleDevicePopover = (event: any) => {
+    deviceSearchQuery.value = ""
+    devicePopover.value?.toggle(event)
+}
+
 const portSearchQuery = ref("")
 const deviceSearchQuery = ref("")
 
 const searchQuery = ref("")
 const selectedPortFilter = ref<number | null>(null)
+
+const selectedDeviceName = computed(() => {
+    if (!searchQuery.value) return 'Find Device...'
+    const foundNode = Object.values(nodes.value).find((n: any) => n.ip === searchQuery.value || n.name === searchQuery.value)
+    return foundNode ? (foundNode as any).name : searchQuery.value
+})
 
 const tooltip = reactive({
     visible: false,
@@ -378,7 +410,11 @@ const selectedNode = computed(() => {
 const uniquePorts = computed(() => {
     const ports = new Set<number>()
     Object.values(nodes.value).forEach((n: any) => {
-        if (n.isPort) ports.add(n.port)
+        if (!n.isPort && n.open_ports && Array.isArray(n.open_ports)) {
+            n.open_ports.forEach((p: any) => {
+                if (p.port) ports.add(p.port)
+            })
+        }
     })
     return Array.from(ports).sort((a, b) => a - b)
 })
@@ -405,14 +441,14 @@ const handleResize = () => {
 }
 
 const closeDropdowns = () => {
-    showPortDropdown.value = false
-    showDeviceDropdown.value = false
+    portPopover.value?.hide()
+    devicePopover.value?.hide()
 }
 
 const selectPort = (port: number | null) => {
     selectedPortFilter.value = port
-    portSearchQuery.value = port ? `Port ${port}` : ""
-    showPortDropdown.value = false
+    portSearchQuery.value = port ? port.toString() : ""
+    portPopover.value?.hide()
     if (port) {
         showPorts.value = true
     }
@@ -434,7 +470,7 @@ const selectDevice = (node: any | null) => {
         searchQuery.value = node.ip 
         deviceSearchQuery.value = node.name
     }
-    showDeviceDropdown.value = false
+    devicePopover.value?.hide()
 }
 
 const isInsecurePort = (port: number) => [21, 23, 161, 389, 445].includes(port)
@@ -696,6 +732,9 @@ const getNodeColor = (node: any) => {
 
 const zoomIn = () => {
     zoomLevel.value = Math.min(zoomLevel.value * 1.2, 5)
+}
+const zoomReset = () => {
+    zoomLevel.value = 1.0
 }
 const zoomOut = () => {
     zoomLevel.value = Math.max(zoomLevel.value / 1.2, 0.1)

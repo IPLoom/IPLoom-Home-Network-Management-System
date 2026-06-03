@@ -1,8 +1,8 @@
 <template>
   <div class="overflow-x-auto">
-    <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-      <thead class="bg-slate-50 dark:bg-slate-900/50">
-        <tr>
+    <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800/70">
+      <thead class="bg-transparent">
+        <tr class="border-b border-slate-100 dark:border-slate-800/70">
           <!-- Expand Column for Mobile -->
           <th class="md:hidden px-4 py-3 w-8"></th>
           
@@ -28,12 +28,12 @@
           <slot name="extra-headers"></slot>
           
           <th v-if="columns.includes('activity')"
-              class="hidden md:table-cell table-header-cell w-1/6">
+              class="hidden lg:table-cell table-header-cell w-1/6">
             Activity
           </th>
           
           <th v-if="columns.includes('ports')"
-              class="hidden md:table-cell table-header-cell w-1/6">
+              class="hidden lg:table-cell table-header-cell w-1/6">
             Open Ports
           </th>
           
@@ -48,7 +48,7 @@
           
           <th v-if="columns.includes('last_seen')"
               @click="toggleSort('last_seen')"
-              class="hidden md:table-cell table-header-cell cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors w-1/12">
+              class="hidden lg:table-cell table-header-cell cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors w-1/12">
             <div class="flex items-center gap-1">
               Last Seen
               <component :is="getSortIcon('last_seen')" class="h-3 w-3" />
@@ -56,17 +56,17 @@
           </th>
           
           <th v-if="columns.includes('actions')"
-              class="hidden md:table-cell table-header-cell text-right w-1/12">
+              class="hidden md:table-cell table-header-cell text-right w-20">
             Actions
           </th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+      <tbody class="divide-y divide-slate-100 dark:divide-slate-800/70">
         <template v-for="device in devices" :key="device.id">
           <!-- Main Row -->
           <tr @click="navigateToDetails(device.id)" 
               class="hover-row group cursor-pointer"
-              :class="{ '!bg-red-50/30 dark:!bg-red-900/20': !device.is_trusted }">
+              :class="{ '!bg-red-500/[0.04] dark:!bg-red-500/[0.08]': !device.is_trusted }">
             
             <!-- Mobile Toggle -->
             <td class="md:hidden table-data-cell" @click.stop>
@@ -120,22 +120,29 @@
                     
                     <span v-if="device.is_blocked"
                           class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 flex items-center gap-1"
-                          v-tooltip="'Internet Access Blocked via OpenWrt'">
+                          v-tooltip="'Internet Access Blocked'">
                       <component :is="Ban" class="h-3 w-3" /> Blocked
+                    </span>
+
+                    <span v-if="device.is_manual_unblock && (device.is_scheduled_block || device.is_quota_exceeded)"
+                          class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1"
+                          v-tooltip="'Access manually restored by administrator override'">
+                      <component :is="ShieldCheck" class="h-3 w-3" /> Override Active
                     </span>
                     
                     <span v-if="device.has_schedule"
                           class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 flex items-center gap-1"
-                          :class="{ 'animate-pulse ring-1 ring-rose-500/50': device.is_scheduled_block }"
-                          v-tooltip="device.is_scheduled_block ? 'Currently blocked by schedule' : 'Has recurring schedules defined'">
+                          :class="{ 'animate-pulse ring-1 ring-rose-500/50': device.is_scheduled_block && !device.is_manual_unblock }"
+                          v-tooltip="device.is_scheduled_block ? (device.is_manual_unblock ? 'Scheduled block is bypassed by manual override' : 'Currently blocked by schedule') : 'Has recurring schedules defined'">
                       <component :is="Clock" class="h-3 w-3" /> 
-                      {{ device.is_scheduled_block ? 'Scheduled (Active)' : 'Scheduled' }}
+                      {{ device.is_scheduled_block ? (device.is_manual_unblock ? 'Scheduled (Bypassed)' : 'Scheduled (Active)') : 'Scheduled' }}
                     </span>
                     
                     <div v-if="device.is_quota_exceeded"
                           class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 flex items-center gap-1"
-                          v-tooltip="'Internet Data Quota Exceeded'">
-                      <component :is="Zap" class="h-3 w-3" /> Quota
+                          v-tooltip="device.is_manual_unblock ? 'Quota block is bypassed by manual override' : 'Internet Data Quota Exceeded'">
+                      <component :is="Zap" class="h-3 w-3" />
+                      {{ device.is_manual_unblock ? 'Quota (Bypassed)' : 'Quota' }}
                     </div>
 
                     <span v-if="device.attributes?.connection_type === 'wireless'"
@@ -169,7 +176,7 @@
             </td>
             
             <!-- Network Info Column -->
-            <td v-if="columns.includes('network')" class="px-2 py-2 hidden md:table-cell">
+            <td v-if="columns.includes('network')" class="table-data-cell hidden md:table-cell">
               <div class="text-xs text-slate-600 dark:text-slate-300 font-medium">{{ device.vendor || 'Unknown' }}</div>
               <div class="text-xs text-slate-500 font-mono truncate max-w-[200px]">{{ device.mac || 'N/A' }}</div>
             </td>
@@ -178,7 +185,7 @@
             <slot name="extra-cells" :device="device"></slot>
             
             <!-- Activity Sparkline Column -->
-            <td v-if="columns.includes('activity')" class="px-2 py-2 hidden md:table-cell">
+            <td v-if="columns.includes('activity')" class="table-data-cell hidden lg:table-cell">
               <div class="h-8 w-24 relative" v-if="device.traffic_history && device.traffic_history.length > 1">
                 <TrafficSparkline :data="device.traffic_history" :width="100" :height="32" />
               </div>
@@ -186,7 +193,7 @@
             </td>
             
             <!-- Open Ports Column -->
-            <td v-if="columns.includes('ports')" class="px-2 py-2 hidden md:table-cell">
+            <td v-if="columns.includes('ports')" class="table-data-cell hidden lg:table-cell">
               <div v-if="device.open_ports && device.open_ports.length > 0" class="flex flex-wrap gap-1">
                 <span v-for="port in device.open_ports.slice(0, 3)"
                       :key="typeof port === 'object' ? port.port : port"
@@ -201,53 +208,39 @@
             </td>
             
             <!-- Type Column -->
-            <td v-if="columns.includes('type')" class="px-2 py-2 hidden md:table-cell">
+            <td v-if="columns.includes('type')" class="table-data-cell hidden md:table-cell">
               <span class="inline-flex px-2 py-1 text-xs font-medium rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
                 {{ device.device_type || 'Unknown' }}
               </span>
             </td>
             
             <!-- Last Seen Column -->
-            <td v-if="columns.includes('last_seen')" class="px-3 py-4 text-sm text-slate-600 dark:text-slate-400 hidden md:table-cell">
+            <td v-if="columns.includes('last_seen')" class="table-data-cell hidden lg:table-cell !text-xs font-semibold">
               {{ formatRelativeTime(device.last_seen) }}
             </td>
             
             <!-- Actions Column -->
-            <td v-if="columns.includes('actions')" class="px-2 py-2 text-right hidden md:table-cell" @click.stop>
+            <td v-if="columns.includes('actions')" class="table-data-cell text-right hidden md:table-cell w-20" @click.stop>
               <div class="flex items-center justify-end gap-1">
-                <button v-if="!device.is_trusted" 
-                        @click.stop="$emit('approve', device)"
-                        :disabled="approvingId === device.id"
-                        class="p-1.5 rounded-lg transition-all text-rose-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
-                        v-tooltip="approvingId === device.id ? 'Trusting...' : 'Trust this Device'">
-                  <Loader2 v-if="approvingId === device.id" class="h-4 w-4 animate-spin" />
-                  <component :is="ShieldCheck" v-else class="h-4 w-4" />
-                </button>
+                <Button @click="navigateToDetails(device.id)"
+                        severity="secondary"
+                        text
+                        v-tooltip="'View Details'"
+                        :pt="{ root: 'p-1.5 rounded-lg' }">
+                  <template #icon>
+                    <component :is="Eye" class="h-4 w-4" />
+                  </template>
+                </Button>
                 
-                <button @click.stop="$emit('block-toggle', device)"
-                        :disabled="blockingId === device.id"
-                        class="p-1.5 rounded-lg transition-all"
-                        :class="device.is_blocked ? 'text-red-600 bg-red-50 dark:bg-red-900/20 hover:text-red-700' : 'text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20'"
-                        v-tooltip="device.is_blocked ? 'Unblock Device Access' : 'Block Device Access'">
-                  <Loader2 v-if="blockingId === device.id" class="h-4 w-4 animate-spin text-slate-400" />
-                  <component :is="Ban" v-else class="h-4 w-4" />
-                </button>
-                
-                <button @click="navigateToDetails(device.id)" class="btn-action !p-1.5" v-tooltip="'View Details'">
-                  <component :is="Eye" class="h-4 w-4" />
-                </button>
-                
-                <button @click.stop="$emit('edit', device)"
-                        class="btn-action !p-1.5 hover:!text-blue-600 dark:hover:!text-blue-400 hover:!bg-blue-50 dark:hover:!bg-blue-900/20"
-                        v-tooltip="'Edit Device Name & Type'">
-                  <component :is="Pencil" class="h-4 w-4" />
-                </button>
-                
-                <button @click.stop="$emit('delete', device)"
-                        class="btn-action !p-1.5 hover:!text-red-600 dark:hover:!text-red-400 hover:!bg-red-50 dark:hover:!bg-red-900/20"
-                        v-tooltip="'Delete Device'">
-                  <component :is="Trash2" class="h-4 w-4" />
-                </button>
+                <Button @click.stop="toggleMenu($event, device)"
+                        severity="secondary"
+                        text
+                        v-tooltip="'More Actions'"
+                        :pt="{ root: 'p-1.5 rounded-lg' }">
+                  <template #icon>
+                    <component :is="MoreVertical" class="h-4 w-4" />
+                  </template>
+                </Button>
               </div>
             </td>
           </tr>
@@ -258,18 +251,24 @@
               <div class="space-y-4">
                 <!-- Actions Row -->
                 <div v-if="columns.includes('actions')" class="flex gap-2 mb-4">
-                  <button @click="navigateToDetails(device.id)"
-                          class="btn-action flex-1 gap-2 !p-2 !text-xs font-medium justify-center flex items-center">
-                    <component :is="Eye" class="h-3.5 w-3.5" /> View
-                  </button>
-                  <button @click.stop="$emit('edit', device)"
-                          class="btn-action flex-1 gap-2 !p-2 !text-xs font-medium !text-blue-600 dark:!text-blue-400 !bg-blue-50 dark:!bg-blue-900/20 !border-blue-100 dark:!border-blue-800/50 justify-center flex items-center">
-                    <component :is="Pencil" class="h-3.5 w-3.5" /> Edit
-                  </button>
-                  <button @click.stop="$emit('delete', device)"
-                          class="btn-action flex-1 gap-2 !p-2 !text-xs font-medium !text-red-600 dark:!text-red-400 !bg-red-50 dark:!bg-red-900/20 !border-red-100 dark:!border-red-800/50 justify-center flex items-center">
-                    <component :is="Trash2" class="h-3.5 w-3.5" /> Delete
-                  </button>
+                  <Button @click="navigateToDetails(device.id)"
+                          severity="secondary" outlined size="small"
+                          :pt="{ root: 'flex-1 justify-center text-xs font-medium gap-1.5 rounded-lg py-2' }">
+                    <template #icon><component :is="Eye" class="h-3.5 w-3.5" /></template>
+                    View
+                  </Button>
+                  <Button @click.stop="$emit('edit', device)"
+                          severity="info" outlined size="small"
+                          :pt="{ root: 'flex-1 justify-center text-xs font-medium gap-1.5 rounded-lg py-2' }">
+                    <template #icon><component :is="Pencil" class="h-3.5 w-3.5" /></template>
+                    Edit
+                  </Button>
+                  <Button @click.stop="$emit('delete', device)"
+                          severity="danger" outlined size="small"
+                          :pt="{ root: 'flex-1 justify-center text-xs font-medium gap-1.5 rounded-lg py-2' }">
+                    <template #icon><component :is="Trash2" class="h-3.5 w-3.5" /></template>
+                    Delete
+                  </Button>
                 </div>
                 
                 <!-- Network Info -->
@@ -307,17 +306,41 @@
         </template>
       </tbody>
     </table>
+
+    <Menu ref="actionMenu" :model="menuItems" :popup="true"
+      :pt="{
+        root: 'min-w-[160px] rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl p-1',
+        list: 'py-0.5 space-y-0.5'
+      }"
+    >
+      <template #item="{ item }">
+        <button
+          v-if="!item.separator"
+          @click="item.command"
+          class="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-lg transition-colors text-left font-medium"
+          :class="item.class || 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white'"
+        >
+          <component :is="item.icon" class="h-3.5 w-3.5 shrink-0" />
+          <span>{{ item.label }}</span>
+        </button>
+        <div v-else class="h-px bg-slate-100 dark:bg-slate-700/50 my-1"></div>
+      </template>
+    </Menu>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import TrafficSparkline from '@/components/TrafficSparkline.vue'
 import { getIcon } from '@/utils/icons'
 import { formatRelativeTime } from '@/utils/date'
 import { DateTime } from 'luxon'
 import * as LucideIcons from 'lucide-vue-next'
+
+// PrimeVue components
+import Button from 'primevue/button'
+import Menu from 'primevue/menu'
 
 const { 
   ChevronDown, 
@@ -334,7 +357,8 @@ const {
   Trash2, 
   Loader2, 
   ArrowUpDown, 
-  ChevronUp 
+  ChevronUp,
+  MoreVertical
 } = LucideIcons
 
 const props = defineProps({
@@ -413,4 +437,71 @@ const isNewDevice = (firstSeen) => {
 const navigateToDetails = (id) => {
   router.push({ name: 'DeviceDetails', params: { id } })
 }
+
+// Overflow menu for secondary actions (Edit, Delete)
+const actionMenu = ref(null)
+const menuTargetDevice = ref(null)
+
+const toggleMenu = (event, device) => {
+  menuTargetDevice.value = device
+  if (actionMenu.value) {
+    actionMenu.value.toggle(event)
+  }
+}
+
+const menuItems = computed(() => {
+  if (!menuTargetDevice.value) return []
+  
+  const items = []
+  
+  // 1. Trust Action (only if not trusted)
+  if (!menuTargetDevice.value.is_trusted) {
+    items.push({
+      label: 'Trust Device',
+      icon: ShieldCheck,
+      class: 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20',
+      command: () => {
+        emit('approve', menuTargetDevice.value)
+      }
+    })
+    items.push({ separator: true })
+  }
+  
+  // 2. Block/Unblock Action
+  items.push({
+    label: menuTargetDevice.value.is_blocked ? 'Unblock Device' : 'Block Device',
+    icon: Ban,
+    class: menuTargetDevice.value.is_blocked 
+      ? 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20' 
+      : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20',
+    command: () => {
+      emit('block-toggle', menuTargetDevice.value)
+    }
+  })
+  
+  items.push({ separator: true })
+  
+  // 3. Edit Action
+  items.push({
+    label: 'Edit Device',
+    icon: Pencil,
+    command: () => {
+      emit('edit', menuTargetDevice.value)
+    }
+  })
+  
+  items.push({ separator: true })
+  
+  // 4. Delete Action
+  items.push({
+    label: 'Delete Device',
+    icon: Trash2,
+    class: 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20',
+    command: () => {
+      emit('delete', menuTargetDevice.value)
+    }
+  })
+  
+  return items
+})
 </script>

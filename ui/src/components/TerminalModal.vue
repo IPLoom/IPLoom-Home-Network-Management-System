@@ -1,53 +1,55 @@
 <template>
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-        <div class="terminal-panel">
-            <!-- Header -->
-            <div class="terminal-header">
-                <div class="flex items-center space-x-2">
-                    <div class="h-3 w-3 rounded-full bg-red-500"></div>
-                    <div class="h-3 w-3 rounded-full bg-yellow-500"></div>
-                    <div class="h-3 w-3 rounded-full bg-green-500"></div>
-                    <span class="ml-2 text-gray-300 font-mono text-sm">ssh {{ device.ip }}</span>
-                </div>
-                <button @click="$emit('close')" class="text-gray-400 hover:text-white">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
+    <Dialog 
+        v-model:visible="visible" 
+        modal 
+        :draggable="false"
+        :pt="{
+            root: 'rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl p-0 overflow-hidden max-w-[90vw] w-[800px] h-[550px] flex flex-col',
+            header: 'flex items-center justify-between px-6 py-4 bg-slate-950 border-b border-slate-800 shrink-0',
+            content: 'flex-1 p-0 bg-black flex flex-col min-h-0'
+        }"
+    >
+        <template #header>
+            <div class="flex items-center space-x-2">
+                <div class="h-3 w-3 rounded-full bg-red-500"></div>
+                <div class="h-3 w-3 rounded-full bg-yellow-500"></div>
+                <div class="h-3 w-3 rounded-full bg-green-500"></div>
+                <span class="ml-2 text-gray-300 font-mono text-xs">ssh {{ device.ip }}</span>
             </div>
+        </template>
 
-            <!-- Auth Form -->
-            <div v-if="!connected && !terminalActive" class="flex-1 flex items-center justify-center">
-                <div class="w-full max-w-xs space-y-4">
-                    <h3 class="text-white text-lg font-bold text-center">SSH Credentials</h3>
-                    <div>
-                        <label class="block text-xs font-mono text-gray-400 mb-1">Username</label>
-                        <input v-model="username" type="text" class="terminal-input" placeholder="pi" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-mono text-gray-400 mb-1">Password</label>
-                        <input v-model="password" type="password" class="terminal-input" />
-                    </div>
-                    <button @click="connect" :disabled="connecting"
-                        class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 font-bold disabled:opacity-50">
-                        {{ connecting ? 'Connecting...' : 'Connect' }}
-                    </button>
-                    <p v-if="error" class="text-red-400 text-xs text-center">{{ error }}</p>
+        <!-- Auth Form -->
+        <div v-if="!connected && !terminalActive" class="flex-1 flex items-center justify-center p-6 min-h-0 bg-slate-900">
+            <div class="w-full max-w-xs space-y-4">
+                <h3 class="text-white text-base font-bold text-center">SSH Credentials</h3>
+                <div>
+                    <label class="block text-xs font-mono text-gray-400 mb-1">Username</label>
+                    <InputText v-model="username" type="text" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:border-blue-500 outline-none" placeholder="pi" />
                 </div>
-            </div>
-
-            <!-- Terminal -->
-            <div v-show="terminalActive" class="flex-1 bg-black p-2 overflow-hidden relative">
-                <div ref="terminalContainer" class="h-full w-full"></div>
+                <div>
+                    <label class="block text-xs font-mono text-gray-400 mb-1">Password</label>
+                    <InputText v-model="password" type="password" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:border-blue-500 outline-none" />
+                </div>
+                <Button @click="connect" :disabled="connecting" :loading="connecting"
+                    label="Connect"
+                    :pt="{ root: 'w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 rounded-lg border-none flex items-center justify-center cursor-pointer' }"
+                />
+                <p v-if="error" class="text-red-400 text-xs text-center font-semibold">{{ error }}</p>
             </div>
         </div>
-    </div>
+
+        <!-- Terminal -->
+        <div v-show="terminalActive" class="flex-grow bg-black p-2 overflow-hidden relative min-h-0">
+            <div ref="terminalContainer" class="h-full w-full"></div>
+        </div>
+    </Dialog>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import Dialog from 'primevue/dialog'
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
@@ -62,6 +64,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
+const visible = ref(true)
 const username = ref('')
 const password = ref('')
 const connecting = ref(false)
@@ -73,6 +76,12 @@ const terminalContainer = ref(null)
 let term = null
 let fitAddon = null
 let ws = null
+
+watch(visible, (newVal) => {
+    if (!newVal) {
+        emit('close')
+    }
+})
 
 const connect = async () => {
     if (!username.value || !password.value) {

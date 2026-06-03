@@ -1,1017 +1,1196 @@
 <template>
-  <div v-if="device" class="space-y-6 max-w-7xl mx-auto pb-12">
-    <!-- Header Area -->
-    <div class="mb-8">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        
-        <!-- Left: Identity & Context -->
-        <div class="flex items-center gap-4 flex-1 min-w-0">
-          <router-link to="/devices" 
-            class="group flex items-center justify-center w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all" 
-            v-tooltip="'Back to Inventory'">
-            <ArrowLeft class="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-colors" />
-          </router-link>
+  <div v-if="device" class="space-y-6 w-full pb-12">
+    <div class="w-full">
+      <!-- Header Area -->
+      <div class="mb-8">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
 
+          <!-- Left: Identity & Context -->
           <div class="flex items-center gap-4 flex-1 min-w-0">
-            <!-- Large Main Icon with Popover and Status Badge -->
-            <Popover class="relative shrink-0">
-              <PopoverButton
-                v-tooltip="'Change Device Category & Icon'"
-                class="h-16 w-16 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:border-blue-500 transition-all group focus:outline-none shadow-sm relative overflow-hidden">
-                <img v-if="form.icon && form.icon.startsWith('/static/')" :src="form.icon" class="h-10 w-10 object-contain" />
-                <component :is="resolveIcon(form.icon || 'help-circle')" v-else class="h-8 w-8 text-slate-500 group-hover:text-blue-500 transition-colors" />
-                
-                <div class="absolute inset-0 bg-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <Pencil class="w-4 h-4 text-blue-600" />
+            <router-link to="/devices"
+              class="group flex items-center justify-center w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
+              v-tooltip="'Back to Inventory'">
+              <ArrowLeft class="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+            </router-link>
+
+            <div class="flex items-center gap-4 flex-1 min-w-0">
+              <!-- Large Main Icon with Popover and Status Badge -->
+              <div class="relative shrink-0">
+                <button type="button" @click="toggleIconPopover($event)" v-tooltip="'Change Device Category & Icon'"
+                  class="h-16 w-16 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:border-blue-500 transition-all group focus:outline-none shadow-sm relative overflow-hidden cursor-pointer">
+                  <img v-if="form.icon && form.icon.startsWith('/static/')" :src="form.icon"
+                    class="h-10 w-10 object-contain" />
+                  <component :is="resolveIcon(form.icon || 'help-circle')" v-else
+                    class="h-8 w-8 text-slate-500 group-hover:text-blue-500 transition-colors" />
+
+                  <div
+                    class="absolute inset-0 bg-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Pencil class="w-4 h-4 text-blue-600" />
+                  </div>
+                </button>
+
+                <!-- Online Status Badge overlapping/next to icon -->
+                <div :class="[
+                  device.status === 'online' ? 'bg-emerald-500 border-white dark:border-slate-900' : 'bg-slate-400 border-white dark:border-slate-900',
+                  'absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 z-10 shadow-sm'
+                ]" v-tooltip="device.status">
+                  <div v-if="device.status === 'online'"
+                    class="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-25"></div>
                 </div>
-              </PopoverButton>
 
-              <!-- Online Status Badge overlapping/next to icon -->
-              <div :class="[
-                device.status === 'online' ? 'bg-emerald-500 border-white dark:border-slate-900' : 'bg-slate-400 border-white dark:border-slate-900',
-                'absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 z-10 shadow-sm'
-              ]" v-tooltip="device.status">
-                <div v-if="device.status === 'online'" class="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-25"></div>
-              </div>
-
-              <transition enter-active-class="transition duration-200 ease-out"
-                enter-from-class="translate-y-1 opacity-0" enter-to-class="translate-y-0 opacity-100"
-                leave-active-class="transition duration-150 ease-in" leave-from-class="translate-y-0 opacity-100"
-                leave-to-class="translate-y-1 opacity-0">
-                <PopoverPanel
-                  class="absolute z-50 mt-4 left-0 w-[320px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-4 focus:outline-none overflow-x-hidden">
-                  <div class="mb-3 px-1">
+                <Popover ref="iconPopover"
+                  :pt="{ content: 'p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl w-[320px] overflow-hidden focus:outline-none' }">
+                  <div class="mb-3">
                     <div class="space-y-2">
-                      <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Device Type</label>
-                      <Popover class="relative" v-slot="{ open, close }">
-                        <PopoverButton
+                      <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Device
+                        Type</label>
+                      <div class="relative">
+                        <button type="button" @click="toggleCategoryInnerPopover($event)"
                           v-tooltip="'Change Device Category'"
-                          class="w-full flex items-center justify-between px-5 py-4 bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold text-slate-900 dark:text-white hover:border-blue-500/50 transition-all group outline-none">
+                          class="w-full flex items-center justify-between px-5 py-4 bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold text-slate-900 dark:text-white hover:border-blue-500/50 transition-all group outline-none cursor-pointer">
                           <div class="flex items-center gap-3">
                             <component :is="resolveIcon(form.device_type)" class="w-5 h-5 text-blue-500" />
                             <span class="text-xs font-black uppercase tracking-widest">{{ form.device_type || 'Select Type' }}</span>
                           </div>
-                          <ChevronDown class="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-all" :class="{ 'rotate-180': open }" />
-                        </PopoverButton>
-                        <transition enter-active-class="transition duration-200 ease-out" enter-from-class="translate-y-1 opacity-0"
-                          enter-to-class="translate-y-0 opacity-100" leave-active-class="transition duration-150 ease-in"
-                          leave-from-class="translate-y-0 opacity-100" leave-to-class="translate-y-1 opacity-0">
-                          <PopoverPanel
-                            class="absolute z-50 mt-2 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden p-2">
-                            <div class="max-h-64 overflow-y-auto custom-scrollbar space-y-1">
-                              <button v-for="type in deviceTypes" :key="type" 
-                                @click="form.device_type = type; form.icon = systemStore.getIcon(type); close()"
-                                class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
-                                :class="form.device_type === type ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'">
-                                <component :is="resolveIcon(type)" class="w-4 h-4" />
-                                {{ type }}
-                              </button>
-                            </div>
-                          </PopoverPanel>
-                        </transition>
-                      </Popover>
+                          <ChevronDown class="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-all" />
+                        </button>
+
+                        <Popover ref="categoryInnerPopover"
+                          :pt="{ content: 'w-[280px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden p-2 focus:outline-none' }">
+                          <div class="max-h-64 overflow-y-auto custom-scrollbar space-y-1">
+                            <button v-for="type in deviceTypes" :key="type"
+                              @click="form.device_type = type; form.icon = systemStore.getIcon(type); categoryInnerPopover.hide()"
+                              class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border-none bg-transparent cursor-pointer"
+                              :class="form.device_type === type ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'">
+                              <component :is="resolveIcon(type)" class="w-4 h-4" />
+                              {{ type }}
+                            </button>
+                          </div>
+                        </Popover>
+                      </div>
                     </div>
 
                     <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900/50 rounded-lg mt-4">
                       <Search class="w-3.5 h-3.5 text-slate-400" />
-                      <input v-model="iconSearch" type="text" placeholder="Search icons or categories..."
-                        class="bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-200 w-full placeholder:text-slate-400" />
+                      <InputText v-model="iconSearch" type="text" placeholder="Search icons or categories..."
+                        class="bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-200 w-full placeholder:text-slate-400 focus:ring-0 p-0" />
                     </div>
                   </div>
                   <div class="max-h-[360px] overflow-y-auto overflow-x-hidden pr-1 custom-scrollbar">
                     <div v-for="(icons, category) in groupedIcons" :key="category" class="mb-5">
-                      <h4 class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2.5 px-1">{{ category }}</h4>
+                      <h4 class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2.5 px-1">{{
+                        category }}</h4>
                       <div class="grid grid-cols-4 gap-2">
-                        <button v-for="icon in icons" :key="icon.name" type="button" @click="updateFields({ icon: icon.name })"
-                          class="group/item relative flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all"
-                          :class="form.icon === icon.name ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500'">
+                        <button v-for="icon in icons" :key="icon.name" type="button"
+                          @click="updateFields({ icon: icon.name }); iconPopover.hide()"
+                          class="group/item relative flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all border-none cursor-pointer"
+                          :class="form.icon === icon.name ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 bg-transparent'">
                           <div class="h-8 w-8 flex items-center justify-center">
-                            <img v-if="icon.name.startsWith('/static/')" :src="icon.name" class="h-6 w-6 object-contain" />
+                            <img v-if="icon.name.startsWith('/static/')" :src="icon.name"
+                              class="h-6 w-6 object-contain" />
                             <component :is="resolveIcon(icon.name)" v-else class="h-6 w-6" />
                           </div>
-                          <span class="text-[8px] font-bold truncate w-full text-center px-0.5 opacity-80 group-hover/item:opacity-100">
+                          <span
+                            class="text-[8px] font-bold truncate w-full text-center px-0.5 opacity-80 group-hover/item:opacity-100">
                             {{ icon.label }}
                           </span>
                         </button>
                       </div>
                     </div>
                   </div>
-                </PopoverPanel>
-              </transition>
-            </Popover>
+                </Popover>
+              </div>
 
-            <div class="flex-1 min-w-0">
-              <div class="flex flex-col">
-                <div class="flex items-center gap-2 mb-1">
-                  <span class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Network Resource</span>
-                  <div class="w-1 h-1 bg-slate-300 dark:bg-slate-700 rounded-full"></div>
-                  <span class="text-[9px] font-black uppercase tracking-[0.2em] text-blue-500">{{ device.ip }}</span>
-                  
-                  <template v-if="device.attributes?.connection_type === 'wireless'">
+              <div class="flex-1 min-w-0">
+                <div class="flex flex-col">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Network
+                      Resource</span>
                     <div class="w-1 h-1 bg-slate-300 dark:bg-slate-700 rounded-full"></div>
-                    <div class="flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.2em] text-blue-500" 
-                      v-tooltip="device.attributes.wlan_ssid ? `Connected to ${device.attributes.wlan_ssid} (${device.attributes.wlan_rssi} dBm)` : 'Connected via Wi-Fi Wireless'">
-                      <Wifi class="w-3 h-3" />
-                      <span>WiFi</span>
-                    </div>
-                  </template>
-                  <template v-else-if="device.attributes?.connection_type === 'wired'">
-                    <div class="w-1 h-1 bg-slate-300 dark:bg-slate-700 rounded-full"></div>
-                    <div class="flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.2em] text-emerald-500" v-tooltip="'Connected via Ethernet LAN'">
-                      <Network class="w-3 h-3" />
-                      <span>LAN</span>
-                    </div>
-                  </template>
-                </div>
-                <div class="flex items-center gap-3">
-                  <input v-model="form.display_name" type="text" 
-                    @change="updateFields({ display_name: form.display_name }, 'Name updated')"
-                    @keyup.enter="$event.target.blur()"
-                    class="bg-transparent border-none p-0 focus:ring-0 text-3xl font-black text-slate-900 dark:text-white flex-1 min-w-0 placeholder:text-slate-200 dark:placeholder:text-slate-800"
-                    placeholder="Untagged Device" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+                    <span class="text-[9px] font-black uppercase tracking-[0.2em] text-blue-500">{{ device.ip }}</span>
 
-        <!-- Right: Meta Info & Trusted Badge -->
-        <div class="flex items-center gap-3 shrink-0">
-          <!-- Trusted / Shield -->
-          <div v-if="device.is_trusted" 
-            class="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm"
-            v-tooltip="'Verified Configuration'">
-            <ShieldCheck class="w-3.5 h-3.5"></ShieldCheck>
-            <span>Verified</span>
-          </div>
-
-          <!-- Block / Unblock Toggle -->
-          <button @click="toggleBlock"
-            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm transition-all"
-            :class="device.is_blocked 
-              ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 hover:bg-red-500/20' 
-              : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-red-500 hover:text-red-500'"
-            v-tooltip="device.is_blocked ? 'Unblock Device Access' : 'Block Device Access'">
-            <Ban class="w-3.5 h-3.5" :class="{ 'text-red-500': device.is_blocked }" />
-            <span>{{ device.is_blocked ? 'Blocked' : 'Block' }}</span>
-          </button>
-
-          <!-- Brand Popover Integration -->
-          <Popover class="relative">
-            <PopoverButton
-              v-tooltip="'Update Device Branding'"
-              class="p-1 w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:border-blue-500 transition-all group overflow-hidden focus:outline-none flex items-center justify-center relative">
-              <img v-if="form.brand_icon" :src="form.brand_icon" class="w-7 h-7 object-contain" />
-              <div v-else class="flex flex-col items-center">
-                <component :is="resolveIcon('shield-question')" class="w-5 h-5 text-slate-300 group-hover:text-blue-500" />
-              </div>
-              <div class="absolute inset-0 bg-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Pencil class="w-3 h-3 text-blue-600" />
-              </div>
-            </PopoverButton>
-
-            <transition enter-active-class="transition duration-200 ease-out"
-              enter-from-class="translate-y-1 opacity-0" enter-to-class="translate-y-0 opacity-100"
-              leave-active-class="transition duration-150 ease-in" leave-from-class="translate-y-0 opacity-100"
-              leave-to-class="translate-y-1 opacity-0">
-              <PopoverPanel
-                class="absolute z-[60] mt-4 right-0 w-[280px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-4 focus:outline-none">
-                <div class="mb-3 px-1">
-                  <p class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2 px-1">Identity Provider</p>
-                  <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900/50 rounded-lg">
-                    <Search class="w-3.5 h-3.5 text-slate-400" />
-                    <input v-model="brandSearch" type="text" placeholder="Search brands..."
-                      class="bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-200 w-full placeholder:text-slate-400" />
-                  </div>
-                </div>
-                <div class="max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
-                  <div class="grid grid-cols-2 gap-2">
-                    <button type="button" @click="updateFields({ brand: '', brand_icon: '' })"
-                      class="flex items-center gap-2 p-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 hover:border-blue-500 transition-all text-left">
-                      <div class="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
-                        <X class="w-4 h-4 text-slate-400" />
+                    <template v-if="device.attributes?.connection_type === 'wireless'">
+                      <div class="w-1 h-1 bg-slate-300 dark:bg-slate-700 rounded-full"></div>
+                      <div
+                        class="flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.2em] text-blue-500"
+                        v-tooltip="device.attributes.wlan_ssid ? `Connected to ${device.attributes.wlan_ssid} (${device.attributes.wlan_rssi} dBm)` : 'Connected via Wi-Fi Wireless'">
+                        <Wifi class="w-3 h-3" />
+                        <span>WiFi</span>
                       </div>
-                      <span class="text-[10px] font-bold text-slate-500">None</span>
-                    </button>
-                    <button v-for="brand in filteredBrands" :key="brand.id" type="button"
-                      @click="updateFields({ brand: brand.name, brand_icon: brand.path }, `Brand updated to ${brand.name}`)"
-                      class="flex items-center gap-2 p-2 rounded-xl border transition-all text-left"
-                      :class="form.brand === brand.name ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-900/50'">
-                      <img :src="brand.path" class="w-8 h-8 object-contain rounded-lg bg-white p-1" />
-                      <span class="text-[10px] font-black truncate text-slate-700 dark:text-slate-200">{{ brand.name }}</span>
-                    </button>
-                  </div>
-                </div>
-              </PopoverPanel>
-            </transition>
-          </Popover>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tabs Navigation -->
-    <div class="flex items-center gap-2 mb-2 bg-white/50 dark:bg-slate-900/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 w-fit">
-      <button v-for="tab in tabs" :key="tab.id"
-        @click="activeTab = tab.id"
-        class="flex items-center gap-2 px-6 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all"
-        :class="activeTab === tab.id 
-          ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/20' 
-          : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'">
-        <component :is="tab.icon" class="w-3.5 h-3.5" />
-        <span>{{ tab.name }}</span>
-      </button>
-    </div>
-
-    <!-- Main Content Grid -->
-    <div v-if="activeTab === 'overview'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-      <!-- Column 1 & 2: Main Info -->
-      <div class="lg:col-span-2 space-y-6">
-
-        <!-- Approval Banner -->
-        <div v-if="!device.is_trusted"
-          class="relative overflow-hidden rounded-3xl bg-red-500 dark:bg-red-600 p-6 shadow-xl text-white">
-          <div class="absolute -right-6 -top-6 w-24 h-24 bg-white/20 rounded-full blur-2xl"></div>
-          <div class="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div class="flex items-center gap-4">
-              <ShieldAlert class="w-10 h-10 text-white/90" />
-              <div>
-                <h2 class="text-lg font-bold">Untrusted Device</h2>
-                <p class="text-sm text-red-100 font-medium">This device has not been verified yet.</p>
-              </div>
-            </div>
-            <button @click="approveDevice"
-              class="btn-primary !bg-white !text-red-600 !px-5 !py-2.5 rounded-xl shadow-lg hover:shadow-xl hover:scale-105">
-              <ShieldCheck class="w-5 h-5"></ShieldCheck> Approve
-            </button>
-          </div>
-        </div>
-
-        <!-- Metadata Protection Banner -->
-        <div class="relative overflow-hidden rounded-3xl p-5 shadow-xl border transition-all mb-6"
-          :class="device.is_trusted 
-            ? 'bg-emerald-500 dark:bg-emerald-600 text-white border-emerald-400/30' 
-            : 'bg-blue-500 dark:bg-blue-600 text-white border-blue-400/30'">
-          <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
-          <div class="relative z-10 flex items-center gap-4">
-            <div class="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
-              <ShieldCheck v-if="device.is_trusted" class="w-6 h-6 text-white"></ShieldCheck>
-              <Info v-else class="w-6 h-6 text-white" />
-            </div>
-            <div class="flex-1">
-              <h3 class="text-sm font-black uppercase tracking-wider leading-none mb-1">
-                {{ device.is_trusted ? 'Configuration Locked' : 'Auto-Updates Active' }}
-              </h3>
-              <p class="text-xs text-white/90 font-medium leading-relaxed max-w-xl">
-                {{ device.is_trusted 
-                  ? 'This device is verified. All manual edits to the name, icon, and brand are protected from being overwritten by automated system scans.' 
-                  : 'The system may automatically update this device\'s name and icon during scans. Mark it as Trusted to lock your manual configuration.' 
-                }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Device Info Card -->
-        <div class="premium-card group !overflow-visible z-30">
-          <div
-            class="absolute top-0 right-0 p-8 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity pointer-events-none select-none">
-            <img v-if="(form.icon || device.icon) && (form.icon || device.icon).startsWith('/static/')" :src="form.icon || device.icon" class="w-32 h-32 object-contain" />
-            <component v-else :is="resolveIcon(form.icon || device.icon)" class="w-32 h-32" />
-          </div>
-
-          <div class="flex items-center justify-between mb-6 relative z-10">
-            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <div class="w-1.5 h-6 bg-blue-500 rounded-full"></div>
-              Device Identification
-            </h2>
-            <button @click="saveChanges" :disabled="!isChanged || isSaving"
-              class="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all font-black uppercase tracking-[0.15em] text-[10px] relative z-20 disabled:opacity-50 disabled:bg-slate-400 disabled:shadow-none disabled:cursor-not-allowed">
-              <Loader2 v-if="isSaving" class="w-3 h-3 animate-spin" />
-              <Save v-else class="w-3 h-3" />
-              <span>{{ isSaving ? 'Saving...' : 'Save Changes' }}</span>
-            </button>
-          </div>
-
-          <div class="space-y-8">
-            <!-- Tier 2: Classification & Hostname -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div class="space-y-3">
-                <label class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 ml-1">Classification Type</label>
-                <div class="relative w-full group" v-click-outside="() => isCategoryOpen = false">
-                  <button @click="isCategoryOpen = !isCategoryOpen"
-                    class="w-full flex items-center justify-between px-5 py-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 hover:border-blue-500/30 transition-all rounded-2xl">
-                    <div class="flex items-center gap-3">
-                      <div class="p-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg">
-                        <component :is="resolveIcon(form.icon || systemStore.getIcon(form.device_type))" class="w-4 h-4" />
-                      </div>
-                      <span class="font-bold text-slate-900 dark:text-white">{{ form.device_type || 'Select Category' }}</span>
-                    </div>
-                    <ChevronDown class="h-4 w-4 text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': isCategoryOpen }" />
-                  </button>
-
-                  <transition enter-active-class="transition duration-100 ease-out" enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100" leave-active-class="transition duration-75 ease-in" leave-from-class="transform scale-100 opacity-100" leave-to-class="transform scale-95 opacity-0">
-                    <div v-if="isCategoryOpen" class="absolute z-[60] mt-2 w-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl py-1.5 overflow-hidden">
-                      <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-700/50">
-                        <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900/50 rounded-lg border border-transparent focus-within:border-blue-500/30 transition-colors">
-                          <Search class="w-3.5 h-3.5 text-slate-400" />
-                          <input v-model="categorySearch" @click.stop type="text" placeholder="Search..." class="bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-200 w-full placeholder:text-slate-400" autofocus />
-                        </div>
-                      </div>
-                      <div class="overflow-y-auto max-h-60 custom-scrollbar">
-                        <button v-for="type in filteredDeviceTypes" :key="type" @click="form.device_type = type; form.icon = systemStore.getIcon(type); isCategoryOpen = false; categorySearch = ''" class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left hover:bg-blue-600 hover:text-white transition-colors" :class="form.device_type === type ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
-                          {{ type }}
-                        </button>
-                      </div>
-                    </div>
-                  </transition>
-                </div>
-              </div>
-
-              <div class="space-y-3">
-                <label class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 ml-1">Network Hostname</label>
-                <div class="relative group">
-                  <input v-model="form.name" type="text" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/5 transition-all rounded-2xl px-5 py-3.5 font-mono text-sm font-bold text-slate-700 dark:text-slate-300" />
-                  <div class="absolute right-4 top-1/2 -translate-y-1/2">
-                    <div class="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-[8px] font-black uppercase tracking-widest text-slate-500">Local</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Tier 3: Connectivity & Uplink -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div class="space-y-3">
-                <label class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 ml-1">IP Management</label>
-                <div class="relative w-full group" v-click-outside="() => isIPOpen = false">
-                  <button @click="isIPOpen = !isIPOpen" class="w-full flex items-center justify-between px-5 py-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 hover:border-blue-500/30 transition-all rounded-2xl">
-                    <span class="font-bold text-slate-900 dark:text-white">{{ getIPAllocationLabel(form.ip_type) }}</span>
-                    <ChevronDown class="h-4 w-4 text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': isIPOpen }" />
-                  </button>
-
-                  <transition enter-active-class="transition duration-100 ease-out" enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100" leave-active-class="transition duration-75 ease-in" leave-from-class="transform scale-100 opacity-100" leave-to-class="transform scale-95 opacity-0">
-                    <div v-if="isIPOpen" class="absolute z-[60] mt-2 w-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl py-1.5 overflow-hidden">
-                      <button @click="form.ip_type = 'dynamic'; isIPOpen = false" class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left hover:bg-blue-600 hover:text-white transition-colors" :class="form.ip_type === 'dynamic' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
-                        Dynamic (DHCP)
-                      </button>
-                      <button @click="form.ip_type = 'static'; isIPOpen = false" class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left hover:bg-blue-600 hover:text-white transition-colors" :class="form.ip_type === 'static' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
-                        Static Reservation
-                      </button>
-                    </div>
-                  </transition>
-                </div>
-              </div>
-
-              <div class="space-y-3">
-                <label class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 ml-1">Upstream Connection</label>
-                <div class="relative w-full group" v-click-outside="() => isParentOpen = false">
-                  <button @click="isParentOpen = !isParentOpen" class="w-full flex items-center justify-between px-5 py-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 hover:border-blue-500/30 transition-all rounded-2xl">
-                    <div class="flex items-center gap-2 overflow-hidden">
-                      <component :is="resolveIcon(getParentIcon)" class="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span class="font-bold text-slate-900 dark:text-white truncate">{{ getParentLabel }}</span>
-                    </div>
-                    <ChevronDown class="h-4 w-4 text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': isParentOpen }" />
-                  </button>
-
-                  <transition enter-active-class="transition duration-100 ease-out" enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100" leave-active-class="transition duration-75 ease-in" leave-from-class="transform scale-100 opacity-100" leave-to-class="transform scale-95 opacity-0">
-                    <div v-if="isParentOpen" class="absolute z-[60] mt-2 w-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl py-1.5 overflow-hidden">
-                      <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-700/50">
-                        <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900/50 rounded-lg">
-                          <Search class="w-3.5 h-3.5 text-slate-400" />
-                          <input v-model="parentSearch" @click.stop type="text" placeholder="Search devices..." class="bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-200 w-full placeholder:text-slate-400" />
-                        </div>
-                      </div>
-                      <div class="max-h-60 overflow-y-auto custom-scrollbar">
-                        <button @click="form.parent_id = null; isParentOpen = false" class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left hover:bg-blue-600 hover:text-white transition-colors" :class="!form.parent_id ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
-                          Main Gateway (Default)
-                        </button>
-                        <button v-for="d in filteredPotentialParents" :key="d.id" @click="form.parent_id = d.id; isParentOpen = false" class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left hover:bg-blue-600 hover:text-white transition-colors" :class="form.parent_id === d.id ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
-                          <img v-if="d.icon && d.icon.startsWith('/static/')" :src="d.icon" class="w-4 h-4 object-contain opacity-70" />
-                          <component v-else :is="resolveIcon(d.icon)" class="w-4 h-4 opacity-70" />
-                          <span>{{ d.display_name || d.name || d.ip }}</span>
-                        </button>
-                      </div>
-                    </div>
-                  </transition>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-      <!-- Slim & Compact Network Insights Bar -->
-      <div class="premium-card !p-4 group">
-        <!-- First Row: General Insights -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 lg:divide-x divide-slate-100 dark:divide-slate-800">
-          
-          <!-- Manufacturer -->
-          <div class="px-6 py-2 lg:py-0 first:pl-0 lg:px-8">
-            <div class="flex items-center gap-4">
-              <div class="p-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg">
-                <Cpu class="w-4 h-4" />
-              </div>
-              <div class="min-w-0">
-                <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Vendor</div>
-                <div class="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[120px]">{{ device.vendor || 'Generic' }}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- MAC Signature -->
-          <div class="px-6 py-2 lg:py-0 lg:px-8">
-            <div class="flex items-center gap-4">
-              <div class="p-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-lg">
-                <Fingerprint class="w-4 h-4" />
-              </div>
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center justify-between">
-                  <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">MAC</span>
-                  <div v-if="device.mac" class="flex items-center gap-1">
-                    <button @click="lookupVendor" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors" v-tooltip="'Refresh Vendor & Brand'">
-                      <RefreshCw class="w-2.5 h-2.5 text-slate-400" :class="{ 'animate-spin': isLookingUpVendor }" />
-                    </button>
-                    <button @click="copyToClipboard(device.mac)" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors">
-                      <Copy class="w-2.5 h-2.5 text-slate-400" />
-                    </button>
-                  </div>
-                </div>
-                <div class="text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300">{{ device.mac ? device.mac.toUpperCase() : 'N/A' }}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Discovery -->
-          <div class="px-6 py-2 lg:py-0 lg:px-8">
-            <div class="flex items-center gap-4">
-              <div class="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg">
-                <Calendar class="w-4 h-4" />
-              </div>
-              <div class="min-w-0">
-                <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Age</div>
-                <div class="text-xs font-bold text-slate-900 dark:text-white truncate">{{ formatRelativeTime(device.first_seen) }}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Path -->
-          <div class="px-6 py-2 lg:py-0 lg:px-8 last:pr-0">
-            <div class="flex items-center gap-4">
-              <div class="p-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg">
-                <Globe class="w-4 h-4" />
-              </div>
-              <div class="min-w-0">
-                <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Node</div>
-                <div class="text-xs font-bold text-slate-900 dark:text-white truncate">{{ device.internet_path || 'Local Network' }}</div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- Second Row: Wireless Link Status -->
-        <div v-if="form.attributes?.connection_type === 'wireless'">
-          <div class="h-px bg-slate-100 dark:bg-slate-800 my-4 lg:my-4"></div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 lg:divide-x divide-slate-100 dark:divide-slate-800">
-            
-            <!-- Signal Strength -->
-            <div class="px-6 py-2 lg:py-0 first:pl-0 lg:px-8">
-              <div class="flex items-center gap-4">
-                <div class="p-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg">
-                  <Wifi class="w-4 h-4" />
-                </div>
-                <div class="min-w-0">
-                  <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Signal (RSSI)</div>
-                  <div class="flex items-center gap-2">
-                    <div class="text-xs font-bold text-slate-900 dark:text-white">{{ form.attributes?.wlan_rssi || '?' }} dBm</div>
-                    <div v-if="form.attributes?.wlan_rssi" class="flex gap-0.5 h-2 items-end">
-                      <div class="w-0.5 rounded-full bg-current text-blue-500" :class="form.attributes?.wlan_rssi > -90 ? 'h-1' : 'h-1 opacity-20'"></div>
-                      <div class="w-0.5 rounded-full bg-current text-blue-500" :class="form.attributes?.wlan_rssi > -80 ? 'h-1.5' : 'h-1.5 opacity-20'"></div>
-                      <div class="w-0.5 rounded-full bg-current text-blue-500" :class="form.attributes?.wlan_rssi > -70 ? 'h-2' : 'h-2 opacity-20'"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Band -->
-            <div class="px-6 py-2 lg:py-0 lg:px-8">
-              <div class="flex items-center gap-4">
-                <div class="p-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg">
-                  <Radio class="w-4 h-4" />
-                </div>
-                <div class="min-w-0">
-                  <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Band</div>
-                  <div class="text-xs font-bold text-slate-900 dark:text-white">{{ form.attributes?.wlan_band || 'Unknown' }}</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- SSID -->
-            <div class="px-6 py-2 lg:py-0 lg:px-8">
-              <div class="flex items-center gap-4">
-                <div class="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg">
-                  <Network class="w-4 h-4" />
-                </div>
-                <div class="min-w-0">
-                  <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Network (SSID)</div>
-                  <div class="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[120px]">{{ form.attributes?.wlan_ssid || 'Unknown' }}</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Speed -->
-            <div class="px-6 py-2 lg:py-0 lg:px-8 last:pr-0">
-              <div class="flex items-center gap-4">
-                <div class="p-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg">
-                  <Activity class="w-4 h-4" />
-                </div>
-                <div class="min-w-0">
-                  <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Link Rate</div>
-                  <div class="text-xs font-bold text-slate-900 dark:text-white">
-                    <template v-if="form.attributes?.wlan_tx_rate">
-                      {{ (form.attributes.wlan_tx_rate / 1000).toFixed(0) }} <span class="text-[10px] opacity-60">Mbps</span>
                     </template>
-                    <template v-else>
-                      Unknown
+                    <template v-else-if="device.attributes?.connection_type === 'wired'">
+                      <div class="w-1 h-1 bg-slate-300 dark:bg-slate-700 rounded-full"></div>
+                      <div
+                        class="flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.2em] text-emerald-500"
+                        v-tooltip="'Connected via Ethernet LAN'">
+                        <Network class="w-3 h-3" />
+                        <span>LAN</span>
+                      </div>
                     </template>
                   </div>
+                  <div class="flex items-center gap-3">
+                    <InputText v-model="form.display_name" type="text"
+                      @change="updateFields({ display_name: form.display_name }, 'Name updated')"
+                      @keyup.enter="$event.target.blur()" placeholder="Untagged Device"
+                      class="w-full bg-transparent border-none outline-none text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:ring-0 p-0" />
+                  </div>
+                  <!-- Inline Action Badge & Controls -->
+                  <div class="flex flex-wrap items-center gap-2 mt-2.5">
+                    <!-- Verified / Shield -->
+                    <div v-if="device.is_trusted"
+                      class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider"
+                      v-tooltip="'Verified Configuration'">
+                      <ShieldCheck class="w-3 h-3"></ShieldCheck>
+                      <span>Verified</span>
+                    </div>
+
+                    <!-- Block / Unblock Toggle -->
+                    <button @click="toggleBlock"
+                      class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:border-red-500 hover:text-red-500 cursor-pointer"
+                      v-tooltip="device.is_blocked ? 'Unblock Device Access' : 'Block Device Access'">
+                      <Ban class="w-3.5 h-3.5" :class="{ 'text-red-500': device.is_blocked }" />
+                      <span>{{ device.is_blocked ? 'Blocked' : 'Block' }}</span>
+                    </button>
+
+                    <!-- Block Status Badges -->
+                    <template v-if="device.is_blocked">
+                      <div v-if="device.is_manual_block"
+                        class="flex items-center gap-1.5 px-2.5 py-1 bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider"
+                        v-tooltip="'Manually Blocked by Admin'">
+                        <Ban class="w-3 h-3" />
+                        <span>Manual Block</span>
+                      </div>
+                      <div v-if="device.is_scheduled_block"
+                        class="flex items-center gap-1.5 px-2.5 py-1 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider"
+                        v-tooltip="'Blocked by active internet schedule'">
+                        <Clock class="w-3 h-3" />
+                        <span>Schedule Block</span>
+                      </div>
+                      <div v-if="device.is_quota_exceeded"
+                        class="flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider"
+                        v-tooltip="'Blocked because daily/weekly data limit was exceeded'">
+                        <Zap class="w-3 h-3" />
+                        <span>Quota Exceeded</span>
+                      </div>
+                    </template>
+                    <template v-else-if="device.is_manual_unblock && (device.is_scheduled_block || device.is_quota_exceeded)">
+                      <div
+                        class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider"
+                        v-tooltip="'Schedules and Quotas are currently bypassed via admin override'">
+                        <ShieldCheck class="w-3 h-3" />
+                        <span>Override Active</span>
+                      </div>
+                    </template>
+
+                    <!-- Brand Popover Integration -->
+                    <div class="relative">
+                      <button type="button" @click="toggleBrandPopover($event)" v-tooltip="'Update Device Branding'"
+                        class="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-500 transition-all group focus:outline-none cursor-pointer">
+                        <img v-if="form.brand_icon" :src="form.brand_icon"
+                          class="w-3.5 h-3.5 object-contain rounded-md" />
+                        <component :is="resolveIcon('shield-question')" v-else class="w-3.5 h-3.5 text-slate-400" />
+                        <span
+                          class="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">{{
+                            form.brand ||
+                            'Set Brand' }}</span>
+                      </button>
+
+                      <Popover ref="brandPopover"
+                        :pt="{ content: 'p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl w-[280px] focus:outline-none' }">
+                        <div class="mb-3 px-1">
+                          <p class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2 px-1">Identity
+                            Provider</p>
+                          <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900/50 rounded-lg">
+                            <Search class="w-3.5 h-3.5 text-slate-400" />
+                            <InputText v-model="brandSearch" type="text" placeholder="Search brands..."
+                              class="bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-200 w-full placeholder:text-slate-400 focus:ring-0 p-0" />
+                          </div>
+                        </div>
+                        <div class="max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
+                          <div class="grid grid-cols-2 gap-2">
+                            <button type="button"
+                              @click="updateFields({ brand: '', brand_icon: '' }); brandPopover.hide()"
+                              class="flex items-center gap-2 p-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 hover:border-blue-500 transition-all text-left bg-transparent cursor-pointer">
+                              <div
+                                class="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+                                <X class="w-4 h-4 text-slate-400" />
+                              </div>
+                              <span class="text-[10px] font-bold text-slate-500">None</span>
+                            </button>
+                            <button v-for="brand in filteredBrands" :key="brand.id" type="button"
+                              @click="updateFields({ brand: brand.name, brand_icon: brand.path }, `Brand updated to ${brand.name}`); brandPopover.hide()"
+                              class="flex items-center gap-2 p-2 rounded-xl border transition-all text-left bg-transparent cursor-pointer"
+                              :class="form.brand === brand.name ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-900/50'">
+                              <img :src="brand.path" class="w-8 h-8 object-contain rounded-lg bg-white p-1" />
+                              <span class="text-[10px] font-black truncate text-slate-700 dark:text-slate-200">{{
+                                brand.name }}</span>
+                            </button>
+                          </div>
+                        </div>
+                      </Popover>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-
           </div>
-        </div>
-      </div>
 
-      <!-- Signal Strength & Mesh Node History -->
-      <div v-if="form.attributes?.connection_type === 'wireless' && signalHistory.length > 0" class="premium-card">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <div class="w-1.5 h-6 bg-teal-500 rounded-full"></div>
-            Wi-Fi Connection History
-          </h2>
-          <span class="px-2.5 py-1 bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-full text-[10px] font-black tracking-widest uppercase">
-            Deco Mesh Logs
-          </span>
-        </div>
-
-        <div class="overflow-x-auto custom-scrollbar">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="border-b border-slate-100 dark:border-slate-800/80">
-                <th class="py-3 px-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Time</th>
-                <th class="py-3 px-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Deco Node</th>
-                <th class="py-3 px-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Band</th>
-                <th class="py-3 px-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Signal Strength</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(log, idx) in signalHistory.slice().reverse()" :key="idx" 
-                class="border-b border-slate-100 dark:border-slate-800/40 last:border-none hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors">
-                <td class="py-3 px-4">
-                  <span class="text-xs font-bold text-slate-900 dark:text-white">{{ formatLogTime(log.timestamp) }}</span>
-                </td>
-                <td class="py-3 px-4">
-                  <div class="flex items-center gap-2">
-                    <div class="w-2 h-2 rounded-full bg-teal-500"></div>
-                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">{{ log.mesh_node || 'Main Gateway' }}</span>
-                  </div>
-                </td>
-                <td class="py-3 px-4">
-                  <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                    {{ log.band || 'Unknown' }}
-                  </span>
-                </td>
-                <td class="py-3 px-4 text-right">
-                  <span class="text-xs font-bold mr-2" :class="getRssiClass(log.rssi)">{{ log.rssi }} dBm</span>
-                  <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full" :class="getRssiBadgeClass(log.rssi)">
-                    {{ getRssiLabel(log.rssi) }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-        <!-- Availability Trend Chart -->
-        <div class="premium-card">
-          <div class="flex items-center justify-between mb-8">
-            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <div class="w-1.5 h-6 bg-blue-500 rounded-full"></div>
-              Network Availability History
-            </h2>
+          <!-- Right: Meta Info & Trusted Badge -->
+          <div class="flex items-center gap-3 shrink-0">
             <div
-              class="px-3 py-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full text-[10px] font-black tracking-widest uppercase">
-              Full Record
+              class="flex items-center gap-1.5 p-1 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/50 dark:border-slate-700/30 overflow-x-auto whitespace-nowrap shrink-0">
+              <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
+                class="px-3 h-9 rounded-lg flex items-center gap-2 text-xs font-semibold transition-all border-none outline-none cursor-pointer"
+                :class="activeTab === tab.id ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white bg-transparent'">
+                <component :is="tab.icon" class="w-3.5 h-3.5" />
+                <span>{{ tab.name }}</span>
+              </button>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div class="h-64">
-            <apexchart v-if="chartSeries && chartSeries[0].data.length > 0" type="area" height="100%"
-              :options="chartOptions" :series="chartSeries"></apexchart>
-            <div v-else class="h-full flex flex-col items-center justify-center text-slate-400 italic text-sm gap-2">
-              <Loader2 class="w-5 h-5 animate-spin opacity-20" />
-              <span>Collecting historical trend data...</span>
-            </div>
-          </div>
+      <div class="mt-4">
+        <div v-if="activeTab === 'overview'">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          <!-- Detailed Activity Log Table -->
-          <div class="mt-8 pt-8 border-t border-slate-100 dark:border-slate-700/50">
-            <div class="flex items-center justify-between mb-6">
-              <div class="flex items-center gap-4">
-                <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Recent Activity Log
-                </h3>
-                <span class="text-[10px] font-bold text-slate-400">{{ historyTotal }} Events Recorded</span>
-              </div>
-              <div class="flex items-center gap-2" v-if="historyTotal > historyLimit">
-                <button @click="changeHistoryPage(historyPage - 1)" :disabled="historyPage <= 1"
-                  class="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                  <ChevronDown class="w-3 h-3 rotate-90" />
-                </button>
-                <span class="text-[9px] font-bold text-slate-400">
-                  Page {{ historyPage }} of {{ Math.ceil(historyTotal / historyLimit) || 1 }}
-                </span>
-                <button @click="changeHistoryPage(historyPage + 1)"
-                  :disabled="historyPage >= (Math.ceil(historyTotal / historyLimit) || 1)"
-                  class="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                  <ChevronDown class="w-3 h-3 -rotate-90" />
-                </button>
-              </div>
-            </div>
+            <!-- Column 1 & 2: Main Info -->
+            <div class="lg:col-span-2 space-y-6">
 
-            <div class="grid grid-cols-1 gap-2 pr-2">
-              <div v-for="h in history" :key="h.id"
-                class="flex items-center justify-between p-2 rounded-lg bg-white/50 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-800/50 hover:border-blue-500/30 hover:shadow-sm hover:shadow-blue-500/5 transition-all group/item">
-                <div class="flex items-center gap-2.5">
-                  <div :class="h.status === 'online' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'"
-                    class="w-7 h-7 rounded-md flex items-center justify-center shadow-sm shadow-black/5">
-                    <component :is="h.status === 'online' ? Wifi : WifiOff" class="w-3.5 h-3.5" />
+              <!-- Approval Banner -->
+              <div v-if="!device.is_trusted"
+                class="relative overflow-hidden rounded-3xl bg-red-500 dark:bg-red-600 p-6 shadow-xl text-white">
+                <div class="absolute -right-6 -top-6 w-24 h-24 bg-white/20 rounded-full blur-2xl"></div>
+                <div class="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div class="flex items-center gap-4">
+                    <ShieldAlert class="w-10 h-10 text-white/90" />
+                    <div>
+                      <h2 class="text-lg font-bold">Untrusted Device</h2>
+                      <p class="text-sm text-red-100 font-medium">This device has not been verified yet.</p>
+                    </div>
                   </div>
-                  <div>
-                    <span class="text-[9px] font-black uppercase tracking-widest leading-none"
-                      :class="h.status === 'online' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">
-                      {{ h.status }}
-                    </span>
-                    <p class="text-[10px] text-slate-500 font-medium leading-tight">
-                      {{ parseUTC(h.changed_at).toLocal().toFormat('HH:mm') }}
+                  <button @click="approveDevice"
+                    class="btn-primary !bg-white !text-red-600 !px-5 !py-2.5 rounded-xl shadow-lg hover:shadow-xl hover:scale-105 border-none cursor-pointer">
+                    <ShieldCheck class="w-5 h-5"></ShieldCheck> Approve
+                  </button>
+                </div>
+              </div>
+
+              <!-- Metadata Protection Banner -->
+              <div class="relative overflow-hidden rounded-3xl p-5 shadow-xl border transition-all mb-6" :class="device.is_trusted
+                ? 'bg-emerald-500 dark:bg-emerald-600 text-white border-emerald-400/30'
+                : 'bg-blue-500 dark:bg-blue-600 text-white border-blue-400/30'">
+                <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
+                <div class="relative z-10 flex items-center gap-4">
+                  <div class="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+                    <ShieldCheck v-if="device.is_trusted" class="w-6 h-6 text-white"></ShieldCheck>
+                    <Info v-else class="w-6 h-6 text-white" />
+                  </div>
+                  <div class="flex-1">
+                    <h3 class="text-sm font-black uppercase tracking-wider leading-none mb-1">
+                      {{ device.is_trusted ? 'Configuration Locked' : 'Auto-Updates Active' }}
+                    </h3>
+                    <p class="text-xs text-white/90 font-medium leading-relaxed max-w-xl">
+                      {{ device.is_trusted
+                        ? 'This device is verified. All manual edits to the name, icon, and brand are protected from being overwritten by automated system scans.'
+                        : 'The system may automatically update this device\'s name and icon during scans. Mark it as Trusted to lock your manual configuration.'
+                      }}
                     </p>
                   </div>
                 </div>
-                <div class="text-right">
-                  <div class="text-[10px] font-bold text-slate-700 dark:text-slate-300">
-                    {{ parseUTC(h.changed_at).toLocal().toFormat('MMM d') }}
+              </div>
+
+              <!-- Device Info Card -->
+              <div class="card-base group !overflow-visible z-30">
+                <div
+                  class="absolute top-0 right-0 p-8 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity pointer-events-none select-none">
+                  <img v-if="(form.icon || device.icon) && (form.icon || device.icon).startsWith('/static/')"
+                    :src="form.icon || device.icon" class="w-32 h-32 object-contain" />
+                  <component v-else :is="resolveIcon(form.icon || device.icon)" class="w-32 h-32" />
+                </div>
+
+                <div class="flex items-center justify-between mb-6 relative z-10">
+                  <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <div class="w-1.5 h-6 bg-blue-500 rounded-full"></div>
+                    Device Identification
+                  </h2>
+                  <button @click="saveChanges" :disabled="!isChanged || isSaving"
+                    class="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all font-black uppercase tracking-[0.15em] text-[10px] relative z-20 disabled:opacity-50 disabled:bg-slate-400 disabled:shadow-none disabled:cursor-not-allowed border-none cursor-pointer">
+                    <Loader2 v-if="isSaving" class="w-3 h-3 animate-spin" />
+                    <Save v-else class="w-3 h-3" />
+                    <span>{{ isSaving ? 'Saving...' : 'Save Changes' }}</span>
+                  </button>
+                </div>
+
+                <div class="space-y-8">
+                  <!-- Tier 2: Classification & Hostname -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="space-y-3">
+                      <label
+                        class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 ml-1">Classification
+                        Type</label>
+                      <div class="relative w-full group">
+                        <button type="button" @click="toggleCategoryPopover($event)"
+                          class="w-full flex items-center justify-between px-5 py-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 hover:border-blue-500/30 transition-all rounded-2xl cursor-pointer">
+                          <div class="flex items-center gap-3">
+                            <div class="p-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg">
+                              <component :is="resolveIcon(form.icon || systemStore.getIcon(form.device_type))"
+                                class="w-4 h-4" />
+                            </div>
+                            <span class="font-bold text-slate-900 dark:text-white">{{ form.device_type || 'Select Category' }}</span>
+                          </div>
+                          <ChevronDown class="h-4 w-4 text-slate-400 transition-transform duration-200" />
+                        </button>
+
+                        <Popover ref="categoryPopover"
+                          :pt="{ content: 'w-[280px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden p-2 focus:outline-none' }">
+                          <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-700/50 mb-2">
+                            <div
+                              class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900/50 rounded-lg border border-transparent focus-within:border-blue-500/30 transition-colors">
+                              <Search class="w-3.5 h-3.5 text-slate-400" />
+                              <InputText v-model="categorySearch" type="text" placeholder="Search..."
+                                class="bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-200 w-full placeholder:text-slate-400 focus:ring-0 p-0" />
+                            </div>
+                          </div>
+                          <div class="overflow-y-auto max-h-60 custom-scrollbar space-y-1">
+                            <button v-for="type in filteredDeviceTypes" :key="type" type="button"
+                              @click="form.device_type = type; form.icon = systemStore.getIcon(type); categoryPopover.hide(); categorySearch = ''"
+                              class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left rounded-xl hover:bg-blue-600 hover:text-white transition-colors border-none bg-transparent cursor-pointer"
+                              :class="form.device_type === type ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
+                              {{ type }}
+                            </button>
+                          </div>
+                        </Popover>
+                      </div>
+                    </div>
+
+                    <div class="space-y-3">
+                      <label
+                        class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 ml-1">Network
+                        Hostname</label>
+                      <div class="relative group">
+                        <InputText v-model="form.name" type="text"
+                          class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/5 transition-all rounded-2xl px-5 py-3.5 font-mono text-sm font-bold text-slate-700 dark:text-slate-300" />
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2">
+                          <div
+                            class="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-[8px] font-black uppercase tracking-widest text-slate-500">
+                            Local</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Tier 3: Connectivity & Uplink -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="space-y-3">
+                      <label
+                        class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 ml-1">IP
+                        Management</label>
+                      <div class="relative w-full group">
+                        <button type="button" @click="toggleIpPopover($event)"
+                          class="w-full flex items-center justify-between px-5 py-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 hover:border-blue-500/30 transition-all rounded-2xl cursor-pointer">
+                          <span class="font-bold text-slate-900 dark:text-white">{{ getIPAllocationLabel(form.ip_type)
+                          }}</span>
+                          <ChevronDown class="h-4 w-4 text-slate-400 transition-transform duration-200" />
+                        </button>
+
+                        <Popover ref="ipPopover"
+                          :pt="{ content: 'w-[280px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden p-2 focus:outline-none space-y-1' }">
+                          <button type="button" @click="form.ip_type = 'dynamic'; ipPopover.hide()"
+                            class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left rounded-xl hover:bg-blue-600 hover:text-white transition-colors border-none bg-transparent cursor-pointer"
+                            :class="form.ip_type === 'dynamic' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
+                            Dynamic (DHCP)
+                          </button>
+                          <button type="button" @click="form.ip_type = 'static'; ipPopover.hide()"
+                            class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left rounded-xl hover:bg-blue-600 hover:text-white transition-colors border-none bg-transparent cursor-pointer"
+                            :class="form.ip_type === 'static' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
+                            Static Reservation
+                          </button>
+                        </Popover>
+                      </div>
+                    </div>
+
+                    <div class="space-y-3">
+                      <label
+                        class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 ml-1">Upstream
+                        Connection</label>
+                      <div class="relative w-full group">
+                        <button type="button" @click="toggleParentPopover($event)"
+                          class="w-full flex items-center justify-between px-5 py-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 hover:border-blue-500/30 transition-all rounded-2xl cursor-pointer">
+                          <div class="flex items-center gap-2 overflow-hidden">
+                            <component :is="resolveIcon(getParentIcon)" class="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span class="font-bold text-slate-900 dark:text-white truncate">{{ getParentLabel }}</span>
+                          </div>
+                          <ChevronDown class="h-4 w-4 text-slate-400 transition-transform duration-200" />
+                        </button>
+
+                        <Popover ref="parentPopover"
+                          :pt="{ content: 'w-[280px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden p-2 focus:outline-none' }">
+                          <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-700/50 mb-2">
+                            <div
+                              class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900/50 rounded-lg">
+                              <Search class="w-3.5 h-3.5 text-slate-400" />
+                              <InputText v-model="parentSearch" type="text" placeholder="Search devices..."
+                                class="bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-200 w-full placeholder:text-slate-400 focus:ring-0 p-0" />
+                            </div>
+                          </div>
+                          <div class="max-h-60 overflow-y-auto custom-scrollbar space-y-1">
+                            <button type="button" @click="form.parent_id = null; parentPopover.hide()"
+                              class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left rounded-xl hover:bg-blue-600 hover:text-white transition-colors border-none bg-transparent cursor-pointer"
+                              :class="!form.parent_id ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
+                              Main Gateway (Default)
+                            </button>
+                            <button v-for="d in filteredPotentialParents" :key="d.id" type="button"
+                              @click="form.parent_id = d.id; parentPopover.hide()"
+                              class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left rounded-xl hover:bg-blue-600 hover:text-white transition-colors border-none bg-transparent cursor-pointer"
+                              :class="form.parent_id === d.id ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
+                              <img v-if="d.icon && d.icon.startsWith('/static/')" :src="d.icon"
+                                class="w-4 h-4 object-contain opacity-70" />
+                              <component :is="resolveIcon(d.icon)" class="w-4 h-4 opacity-70" />
+                              <span>{{ d.display_name || d.name || d.ip }}</span>
+                            </button>
+                          </div>
+                        </Popover>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Slim & Compact Network Insights Bar -->
+              <div class="card-base !p-4 group">
+                <!-- First Row: General Insights -->
+                <div
+                  class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 lg:divide-x divide-slate-100 dark:divide-slate-800">
+
+                  <!-- Manufacturer -->
+                  <div class="px-6 py-2 lg:py-0 first:pl-0 lg:px-8">
+                    <div class="flex items-center gap-4">
+                      <div class="p-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg">
+                        <Cpu class="w-4 h-4" />
+                      </div>
+                      <div class="min-w-0">
+                        <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Vendor</div>
+                        <div class="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[120px]">{{
+                          device.vendor
+                          || 'Generic' }}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- MAC Signature -->
+                  <div class="px-6 py-2 lg:py-0 lg:px-8">
+                    <div class="flex items-center gap-4">
+                      <div class="p-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-lg">
+                        <Fingerprint class="w-4 h-4" />
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between">
+                          <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">MAC</span>
+                          <div v-if="device.mac" class="flex items-center gap-1">
+                            <button @click="lookupVendor"
+                              class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+                              v-tooltip="'Refresh Vendor & Brand'">
+                              <RefreshCw class="w-2.5 h-2.5 text-slate-400"
+                                :class="{ 'animate-spin': isLookingUpVendor }" />
+                            </button>
+                            <button @click="copyToClipboard(device.mac)"
+                              class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors">
+                              <Copy class="w-2.5 h-2.5 text-slate-400" />
+                            </button>
+                          </div>
+                        </div>
+                        <div class="text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300">{{ device.mac ?
+                          device.mac.toUpperCase() : 'N/A' }}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Discovery -->
+                  <div class="px-6 py-2 lg:py-0 lg:px-8">
+                    <div class="flex items-center gap-4">
+                      <div class="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg">
+                        <Calendar class="w-4 h-4" />
+                      </div>
+                      <div class="min-w-0">
+                        <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Age</div>
+                        <div class="text-xs font-bold text-slate-900 dark:text-white truncate">{{
+                          formatRelativeTime(device.first_seen) }}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Path -->
+                  <div class="px-6 py-2 lg:py-0 lg:px-8 last:pr-0">
+                    <div class="flex items-center gap-4">
+                      <div class="p-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg">
+                        <Globe class="w-4 h-4" />
+                      </div>
+                      <div class="min-w-0">
+                        <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Node</div>
+                        <div class="text-xs font-bold text-slate-900 dark:text-white truncate">{{ device.internet_path
+                          ||
+                          'Local Network' }}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <!-- Second Row: Wireless Link Status -->
+                <div v-if="form.attributes?.connection_type === 'wireless'">
+                  <div class="h-px bg-slate-100 dark:bg-slate-800 my-4 lg:my-4"></div>
+                  <div
+                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 lg:divide-x divide-slate-100 dark:divide-slate-800">
+
+                    <!-- Signal Strength -->
+                    <div class="px-6 py-2 lg:py-0 first:pl-0 lg:px-8">
+                      <div class="flex items-center gap-4">
+                        <div class="p-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg">
+                          <Wifi class="w-4 h-4" />
+                        </div>
+                        <div class="min-w-0">
+                          <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Signal (RSSI)
+                          </div>
+                          <div class="flex items-center gap-2">
+                            <div class="text-xs font-bold text-slate-900 dark:text-white">{{ form.attributes?.wlan_rssi
+                              || '?'
+                            }} dBm</div>
+                            <div v-if="form.attributes?.wlan_rssi" class="flex gap-0.5 h-2 items-end">
+                              <div class="w-0.5 rounded-full bg-current text-blue-500"
+                                :class="form.attributes?.wlan_rssi > -90 ? 'h-1' : 'h-1 opacity-20'"></div>
+                              <div class="w-0.5 rounded-full bg-current text-blue-500"
+                                :class="form.attributes?.wlan_rssi > -80 ? 'h-1.5' : 'h-1.5 opacity-20'"></div>
+                              <div class="w-0.5 rounded-full bg-current text-blue-500"
+                                :class="form.attributes?.wlan_rssi > -70 ? 'h-2' : 'h-2 opacity-20'"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Band -->
+                    <div class="px-6 py-2 lg:py-0 lg:px-8">
+                      <div class="flex items-center gap-4">
+                        <div class="p-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg">
+                          <Radio class="w-4 h-4" />
+                        </div>
+                        <div class="min-w-0">
+                          <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Band</div>
+                          <div class="text-xs font-bold text-slate-900 dark:text-white">{{ form.attributes?.wlan_band ||
+                            'Unknown' }}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- SSID -->
+                    <div class="px-6 py-2 lg:py-0 lg:px-8">
+                      <div class="flex items-center gap-4">
+                        <div class="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg">
+                          <Network class="w-4 h-4" />
+                        </div>
+                        <div class="min-w-0">
+                          <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Network (SSID)
+                          </div>
+                          <div class="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[120px]">{{
+                            form.attributes?.wlan_ssid || 'Unknown' }}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Speed -->
+                    <div class="px-6 py-2 lg:py-0 lg:px-8 last:pr-0">
+                      <div class="flex items-center gap-4">
+                        <div class="p-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg">
+                          <Activity class="w-4 h-4" />
+                        </div>
+                        <div class="min-w-0">
+                          <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Link Rate</div>
+                          <div class="text-xs font-bold text-slate-900 dark:text-white">
+                            <template v-if="form.attributes?.wlan_tx_rate">
+                              {{ (form.attributes.wlan_tx_rate / 1000).toFixed(0) }} <span
+                                class="text-[10px] opacity-60">Mbps</span>
+                            </template>
+                            <template v-else>
+                              Unknown
+                            </template>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               </div>
 
-              <div v-if="history.length === 0" class="py-12 text-center">
-                <p class="text-xs text-slate-400 italic">No historical events recorded for this device yet.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-
-        </div>
-
-      <!-- Overview Sidebar -->
-      <div class="space-y-6">
-        <!-- Availability Metrics -->
-        <div class="premium-card">
-          <div class="flex items-center justify-between mb-8">
-            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <div class="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
-              Device Health
-            </h2>
-          </div>
-          <div class="space-y-4">
-            <div class="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
-              <div class="text-[10px] font-black uppercase text-slate-400 mb-1">Uptime (24h)</div>
-              <div class="text-2xl font-black text-blue-500">{{ uptimePercentage }}%</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div v-else-if="activeTab === 'network'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Column 1 & 2: Performance & Security -->
-      <div class="lg:col-span-2 space-y-6">
-        <div class="premium-card">
-          <div class="flex items-center justify-between mb-8">
-            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <div class="w-1.5 h-6 bg-purple-500 rounded-full"></div>
-              Network Traffic
-            </h2>
-          </div>
-
-          <div class="h-64" v-if="device && device.traffic_history && device.traffic_history.length > 0">
-            <apexchart type="area" height="100%" :options="trafficChartOptions" :series="trafficSeries"></apexchart>
-          </div>
-          <div v-else class="h-64 flex flex-col items-center justify-center text-slate-400 italic text-sm gap-2">
-            <Activity class="w-5 h-5 opacity-20" />
-            <span>No traffic history recorded yet.</span>
-          </div>
-
-          <div class="mt-4 grid grid-cols-2 gap-4"
-            v-if="device && device.traffic_history && device.traffic_history.length > 0">
-            <div
-              class="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 border border-emerald-100 dark:border-emerald-800/30">
-              <div class="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 mb-1">Total Download
-              </div>
-              <div class="text-xl font-bold text-slate-900 dark:text-white">{{ formatBytes(totalTraffic.down) }}</div>
-            </div>
-            <div class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800/30">
-              <div class="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 mb-1">Total Upload</div>
-              <div class="text-xl font-bold text-slate-900 dark:text-white">{{ formatBytes(totalTraffic.up) }}</div>
-            </div>
-          </div>
-        </div>
-
-
-        <!-- DNS Insights Card -->
-        <div class="premium-card relative overflow-hidden">
-          <!-- Background Decor -->
-          <div class="absolute -top-12 -right-12 w-64 h-64 bg-purple-500/10 dark:bg-purple-400/5 rounded-full blur-3xl">
-          </div>
-
-          <div class="flex items-center justify-between mb-8 relative z-10">
-            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <div class="w-1.5 h-6 bg-purple-500 rounded-full"></div>
-              DNS Security Profile
-            </h2>
-            <div class="flex items-center gap-2">
-              <ShieldCheck v-if="dnsDeviceStats && dnsDeviceStats.blocked === 0 && dnsDeviceStats.total > 0" class="w-4 h-4 text-emerald-500"></ShieldCheck>
-              <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Security Audit</span>
-            </div>
-          </div>
-
-          <div v-if="dnsDeviceStats && dnsDeviceStats.total > 0" class="space-y-6 relative z-10">
-            <!-- KPI Row -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div
-                class="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800">
-                <div class="text-[10px] font-black uppercase text-slate-400 mb-1">Total Queries</div>
-                <div class="text-2xl font-bold text-slate-900 dark:text-white">{{ dnsDeviceStats.total }}</div>
-                <div class="text-[10px] text-slate-500 mt-1">Last 24 Hours</div>
-              </div>
-              <div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-100 dark:border-red-800/30">
-                <div class="text-[10px] font-black uppercase text-red-600 dark:text-red-400 mb-1">Blocked</div>
-                <div class="text-2xl font-bold text-red-700 dark:text-red-400">{{ dnsDeviceStats.blocked }}</div>
-                <div class="text-[10px] text-red-500/60 mt-1">Filtered by Policy</div>
-              </div>
-              <div
-                class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800/30">
-                <div class="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 mb-1">Block Rate</div>
-                <div class="text-2xl font-bold text-slate-900 dark:text-white">{{ dnsDeviceStats.block_rate }}%</div>
-                <div class="text-[10px] text-blue-500/60 mt-1">Threat Mitigation</div>
-              </div>
-              <div
-                class="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100 dark:border-emerald-800/30">
-                <div class="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 mb-1">Avg Latency
-                </div>
-                <div class="text-2xl font-bold text-slate-900 dark:text-white">{{ dnsDeviceStats.avg_latency }}<span
-                    class="text-sm font-medium opacity-50 ml-1">ms</span></div>
-                <div class="text-[10px] text-emerald-500/60 mt-1">Response Time</div>
-              </div>
-            </div>
-
-            <!-- Health Score -->
-            <div class="p-5 bg-white/50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700">
-              <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-2">
-                  <span class="text-xs font-bold text-slate-500">DNS Health Score</span>
-                  <div class="w-1 h-1 bg-slate-300 rounded-full"></div>
-                  <span class="text-[10px] font-bold"
-                    :class="dnsDeviceStats.blocked > 0 ? 'text-amber-500' : 'text-emerald-500'">
-                    {{ dnsDeviceStats.block_rate < 5 ? 'Excellent' : dnsDeviceStats.block_rate < 15 ? 'Good'
-                      : 'Needs Review' }} </span>
-                </div>
-                <span class="text-xs font-black"
-                  :class="dnsDeviceStats.blocked > 0 ? 'text-amber-500' : 'text-emerald-500'">
-                  {{ Math.max(0, 100 - dnsDeviceStats.block_rate) }}%
-                </span>
-              </div>
-              <div class="w-full h-2 by-slate-100 dark:bg-slate-700/50 rounded-full overflow-hidden">
-                <div class="h-full rounded-full transition-all duration-1000"
-                  :class="dnsDeviceStats.blocked > 0 ? 'bg-amber-500' : 'bg-emerald-500'"
-                  :style="`width: ${Math.max(10, 100 - dnsDeviceStats.block_rate)}%`"></div>
-              </div>
-            </div>
-
-            <!-- Recent Queries List -->
-            <div class="space-y-4">
-              <div class="flex items-center justify-between px-1">
-                <div class="flex items-center gap-4">
-                  <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400">Live Query Stream</h3>
-                  <span class="text-[10px] font-bold text-slate-400">{{ dnsTotal }} Queries Recorded</span>
-                </div>
-                <div class="flex items-center gap-2" v-if="dnsTotal > dnsLimit">
-                  <button @click="changeDnsPage(dnsPage - 1)" :disabled="dnsPage <= 1"
-                    class="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                    <ChevronDown class="w-3 h-3 rotate-90" />
-                  </button>
-                  <span class="text-[9px] font-bold text-slate-400">
-                    Page {{ dnsPage }} of {{ Math.ceil(dnsTotal / dnsLimit) || 1 }}
+              <!-- Signal Strength & Mesh Node History -->
+              <div v-if="form.attributes?.connection_type === 'wireless' && signalHistory.length > 0" class="card-base">
+                <div class="flex items-center justify-between mb-6">
+                  <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <div class="w-1.5 h-6 bg-teal-500 rounded-full"></div>
+                    Wi-Fi Connection History
+                  </h2>
+                  <span
+                    class="px-2.5 py-1 bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-full text-[10px] font-black tracking-widest uppercase">
+                    Deco Mesh Logs
                   </span>
-                  <button @click="changeDnsPage(dnsPage + 1)"
-                    :disabled="dnsPage >= (Math.ceil(dnsTotal / dnsLimit) || 1)"
-                    class="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                    <ChevronDown class="w-3 h-3 -rotate-90" />
-                  </button>
                 </div>
-              </div>
 
-              <div
-                class="bg-slate-50/50 dark:bg-slate-900/30 rounded-3xl border border-slate-100 dark:border-slate-800/50 overflow-hidden">
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto custom-scrollbar">
                   <table class="w-full text-left border-collapse">
                     <thead>
-                      <tr class="border-b border-slate-100 dark:border-slate-800">
-                        <th class="py-3 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Time</th>
-                        <th class="py-3 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Domain</th>
-                        <th class="py-3 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                        <th class="py-3 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">
-                          Lat</th>
+                      <tr class="border-b border-slate-100 dark:border-slate-800/80">
+                        <th class="py-3 px-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Time</th>
+                        <th class="py-3 px-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Deco Node
+                        </th>
+                        <th class="py-3 px-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Band</th>
+                        <th
+                          class="py-3 px-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">
+                          Signal Strength</th>
                       </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                      <tr v-for="(log, idx) in dnsLogs" :key="idx"
-                        class="hover:bg-white dark:hover:bg-slate-800/50 transition-colors group">
-                        <td class="py-2.5 px-4 whitespace-nowrap text-[10px] font-bold text-slate-400">
-                          {{ formatRelativeTime(log.timestamp) }}
+                    <tbody>
+                      <tr v-for="(log, idx) in signalHistory.slice().reverse()" :key="idx"
+                        class="border-b border-slate-100 dark:border-slate-800/40 last:border-none hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors">
+                        <td class="py-3 px-4">
+                          <span class="text-xs font-bold text-slate-900 dark:text-white">{{ formatLogTime(log.timestamp)
+                          }}</span>
                         </td>
-                        <td class="py-2.5 px-4">
-                          <div class="flex flex-col max-w-[200px] lg:max-w-md">
-                            <span class="truncate font-mono text-xs font-bold text-slate-700 dark:text-slate-200"
-                              :title="log.domain">
-                              {{ log.domain }}
-                            </span>
-                            <span v-if="log.category"
-                              class="text-[8px] text-slate-400 font-bold uppercase tracking-tighter">{{ log.category
-                              }}</span>
-                          </div>
-                        </td>
-                        <td class="py-2.5 px-4">
+                        <td class="py-3 px-4">
                           <div class="flex items-center gap-2">
-                            <span v-if="log.is_blocked"
-                              class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50">
-                              Block
-                            </span>
-                            <span v-else-if="log.status === 'Rewrite'"
-                              class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50">
-                              Rewr
-                            </span>
-                            <span v-else
-                              class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
-                              Allow
-                            </span>
+                            <div class="w-2 h-2 rounded-full bg-teal-500"></div>
+                            <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">{{ log.mesh_node || 'Main Gateway' }}</span>
                           </div>
                         </td>
-                        <td class="py-2.5 px-4 text-right">
-                          <span class="text-xs font-mono font-bold text-slate-500">{{ log.response_time }}<span
-                              class="text-[8px] opacity-70">ms</span></span>
+                        <td class="py-3 px-4">
+                          <span
+                            class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                            {{ log.band || 'Unknown' }}
+                          </span>
+                        </td>
+                        <td class="py-3 px-4 text-right">
+                          <span class="text-xs font-bold mr-2" :class="getRssiClass(log.rssi)">{{ log.rssi }} dBm</span>
+                          <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full"
+                            :class="getRssiBadgeClass(log.rssi)">
+                            {{ getRssiLabel(log.rssi) }}
+                          </span>
                         </td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
-                <div v-if="dnsLogs.length === 0" class="py-16 text-center">
-                  <Loader2 class="w-8 h-8 mx-auto mb-2 text-slate-200 animate-spin" />
-                  <p class="text-xs text-slate-400 italic">Analysing real-time DNS stream...</p>
+              </div>
+
+              <!-- Availability Trend Chart -->
+              <div class="card-base">
+                <div class="flex items-center justify-between mb-8">
+                  <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <div class="w-1.5 h-6 bg-blue-500 rounded-full"></div>
+                    Network Availability History
+                  </h2>
+                  <div
+                    class="px-3 py-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full text-[10px] font-black tracking-widest uppercase">
+                    Full Record
+                  </div>
+                </div>
+
+                <div class="h-64">
+                  <apexchart v-if="chartSeries && chartSeries[0].data.length > 0" type="area" height="100%"
+                    :options="chartOptions" :series="chartSeries"></apexchart>
+                  <div v-else
+                    class="h-full flex flex-col items-center justify-center text-slate-400 italic text-sm gap-2">
+                    <Loader2 class="w-5 h-5 animate-spin opacity-20" />
+                    <span>Collecting historical trend data...</span>
+                  </div>
+                </div>
+
+                <!-- Detailed Activity Log Table -->
+                <div class="mt-8 pt-8 border-t border-slate-100 dark:border-slate-700/50">
+                  <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-4">
+                      <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Recent Activity
+                        Log
+                      </h3>
+                      <span class="text-[10px] font-bold text-slate-400">{{ historyTotal }} Events Recorded</span>
+                    </div>
+                    <div class="flex items-center gap-2" v-if="historyTotal > historyLimit">
+                      <button @click="changeHistoryPage(historyPage - 1)" :disabled="historyPage <= 1"
+                        class="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                        <ChevronDown class="w-3 h-3 rotate-90" />
+                      </button>
+                      <span class="text-[9px] font-bold text-slate-400">
+                        Page {{ historyPage }} of {{ Math.ceil(historyTotal / historyLimit) || 1 }}
+                      </span>
+                      <button @click="changeHistoryPage(historyPage + 1)"
+                        :disabled="historyPage >= (Math.ceil(historyTotal / historyLimit) || 1)"
+                        class="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                        <ChevronDown class="w-3 h-3 -rotate-90" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 gap-2 pr-2">
+                    <div v-for="h in history" :key="h.id"
+                      class="flex items-center justify-between p-2 rounded-lg bg-white/50 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-800/50 hover:border-blue-500/30 hover:shadow-sm hover:shadow-blue-500/5 transition-all group/item">
+                      <div class="flex items-center gap-2.5">
+                        <div :class="h.status === 'online' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'"
+                          class="w-7 h-7 rounded-md flex items-center justify-center shadow-sm shadow-black/5">
+                          <component :is="h.status === 'online' ? Wifi : WifiOff" class="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <span class="text-[9px] font-black uppercase tracking-widest leading-none"
+                            :class="h.status === 'online' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">
+                            {{ h.status }}
+                          </span>
+                          <p class="text-[10px] text-slate-500 font-medium leading-tight">
+                            {{ parseUTC(h.changed_at).toLocal().toFormat('HH:mm') }}
+                          </p>
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <div class="text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                          {{ parseUTC(h.changed_at).toLocal().toFormat('MMM d') }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div v-if="history.length === 0" class="py-12 text-center">
+                      <p class="text-xs text-slate-400 italic">No historical events recorded for this device yet.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+
+            </div>
+
+            <!-- Overview Sidebar -->
+            <div class="space-y-6">
+              <!-- Availability Metrics -->
+              <div class="card-base">
+                <div class="flex items-center justify-between mb-8">
+                  <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <div class="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
+                    Device Health
+                  </h2>
+                </div>
+                <div class="space-y-4">
+                  <div
+                    class="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
+                    <div class="text-[10px] font-black uppercase text-slate-400 mb-1">Uptime (24h)</div>
+                    <div class="text-2xl font-black text-blue-500">{{ uptimePercentage }}%</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-if="activeTab === 'network'">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Column 1 & 2: Performance & Security -->
+            <div class="lg:col-span-2 space-y-6">
+              <div class="card-base">
+                <div class="flex items-center justify-between mb-8">
+                  <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <div class="w-1.5 h-6 bg-purple-500 rounded-full"></div>
+                    Network Traffic
+                  </h2>
+                </div>
+
+                <div class="h-64" v-if="device && device.traffic_history && device.traffic_history.length > 0">
+                  <apexchart type="area" height="100%" :options="trafficChartOptions" :series="trafficSeries">
+                  </apexchart>
+                </div>
+                <div v-else class="h-64 flex flex-col items-center justify-center text-slate-400 italic text-sm gap-2">
+                  <Activity class="w-5 h-5 opacity-20" />
+                  <span>No traffic history recorded yet.</span>
+                </div>
+
+                <div class="mt-4 grid grid-cols-2 gap-4"
+                  v-if="device && device.traffic_history && device.traffic_history.length > 0">
+                  <div
+                    class="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 border border-emerald-100 dark:border-emerald-800/30">
+                    <div class="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 mb-1">Total
+                      Download
+                    </div>
+                    <div class="text-xl font-bold text-slate-900 dark:text-white">{{ formatBytes(totalTraffic.down) }}
+                    </div>
+                  </div>
+                  <div
+                    class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800/30">
+                    <div class="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 mb-1">Total Upload
+                    </div>
+                    <div class="text-xl font-bold text-slate-900 dark:text-white">{{ formatBytes(totalTraffic.up) }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+
+              <!-- DNS Insights Card -->
+              <div class="card-base relative overflow-hidden">
+                <!-- Background Decor -->
+                <div
+                  class="absolute -top-12 -right-12 w-64 h-64 bg-purple-500/10 dark:bg-purple-400/5 rounded-full blur-3xl">
+                </div>
+
+                <div class="flex items-center justify-between mb-8 relative z-10">
+                  <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <div class="w-1.5 h-6 bg-purple-500 rounded-full"></div>
+                    DNS Security Profile
+                  </h2>
+                  <div class="flex items-center gap-2">
+                    <ShieldCheck v-if="dnsDeviceStats && dnsDeviceStats.blocked === 0 && dnsDeviceStats.total > 0"
+                      class="w-4 h-4 text-emerald-500"></ShieldCheck>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Security Audit</span>
+                  </div>
+                </div>
+
+                <div v-if="dnsDeviceStats && dnsDeviceStats.total > 0" class="space-y-6 relative z-10">
+                  <!-- KPI Row -->
+                  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div
+                      class="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                      <div class="text-[10px] font-black uppercase text-slate-400 mb-1">Total Queries</div>
+                      <div class="text-2xl font-bold text-slate-900 dark:text-white">{{ dnsDeviceStats.total }}</div>
+                      <div class="text-[10px] text-slate-500 mt-1">Last 24 Hours</div>
+                    </div>
+                    <div
+                      class="p-4 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-100 dark:border-red-800/30">
+                      <div class="text-[10px] font-black uppercase text-red-600 dark:text-red-400 mb-1">Blocked</div>
+                      <div class="text-2xl font-bold text-red-700 dark:text-red-400">{{ dnsDeviceStats.blocked }}</div>
+                      <div class="text-[10px] text-red-500/60 mt-1">Filtered by Policy</div>
+                    </div>
+                    <div
+                      class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800/30">
+                      <div class="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 mb-1">Block Rate
+                      </div>
+                      <div class="text-2xl font-bold text-slate-900 dark:text-white">{{ dnsDeviceStats.block_rate }}%
+                      </div>
+                      <div class="text-[10px] text-blue-500/60 mt-1">Threat Mitigation</div>
+                    </div>
+                    <div
+                      class="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100 dark:border-emerald-800/30">
+                      <div class="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 mb-1">Avg
+                        Latency
+                      </div>
+                      <div class="text-2xl font-bold text-slate-900 dark:text-white">{{ dnsDeviceStats.avg_latency
+                      }}<span class="text-sm font-medium opacity-50 ml-1">ms</span></div>
+                      <div class="text-[10px] text-emerald-500/60 mt-1">Response Time</div>
+                    </div>
+                  </div>
+
+                  <!-- Health Score -->
+                  <div
+                    class="p-5 bg-white/50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700">
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-slate-500">DNS Health Score</span>
+                        <div class="w-1 h-1 bg-slate-300 rounded-full"></div>
+                        <span class="text-[10px] font-bold"
+                          :class="dnsDeviceStats.blocked > 0 ? 'text-amber-500' : 'text-emerald-500'">
+                          {{ dnsDeviceStats.block_rate < 5 ? 'Excellent' : dnsDeviceStats.block_rate < 15 ? 'Good'
+                            : 'Needs Review' }} </span>
+                      </div>
+                      <span class="text-xs font-black"
+                        :class="dnsDeviceStats.blocked > 0 ? 'text-amber-500' : 'text-emerald-500'">
+                        {{ Math.max(0, 100 - dnsDeviceStats.block_rate) }}%
+                      </span>
+                    </div>
+                    <div class="w-full h-2 by-slate-100 dark:bg-slate-700/50 rounded-full overflow-hidden">
+                      <div class="h-full rounded-full transition-all duration-1000"
+                        :class="dnsDeviceStats.blocked > 0 ? 'bg-amber-500' : 'bg-emerald-500'"
+                        :style="`width: ${Math.max(10, 100 - dnsDeviceStats.block_rate)}%`"></div>
+                    </div>
+                  </div>
+
+                  <!-- Recent Queries List -->
+                  <div class="space-y-4">
+                    <div class="flex items-center justify-between px-1">
+                      <div class="flex items-center gap-4">
+                        <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400">Live Query Stream
+                        </h3>
+                        <span class="text-[10px] font-bold text-slate-400">{{ dnsTotal }} Queries Recorded</span>
+                      </div>
+                      <div class="flex items-center gap-2" v-if="dnsTotal > dnsLimit">
+                        <button @click="changeDnsPage(dnsPage - 1)" :disabled="dnsPage <= 1"
+                          class="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                          <ChevronDown class="w-3 h-3 rotate-90" />
+                        </button>
+                        <span class="text-[9px] font-bold text-slate-400">
+                          Page {{ dnsPage }} of {{ Math.ceil(dnsTotal / dnsLimit) || 1 }}
+                        </span>
+                        <button @click="changeDnsPage(dnsPage + 1)"
+                          :disabled="dnsPage >= (Math.ceil(dnsTotal / dnsLimit) || 1)"
+                          class="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                          <ChevronDown class="w-3 h-3 -rotate-90" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div
+                      class="bg-slate-50/50 dark:bg-slate-900/30 rounded-3xl border border-slate-100 dark:border-slate-800/50 overflow-hidden">
+                      <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                          <thead>
+                            <tr class="border-b border-slate-100 dark:border-slate-800">
+                              <th class="py-3 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Time
+                              </th>
+                              <th class="py-3 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                Domain</th>
+                              <th class="py-3 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                Status</th>
+                              <th
+                                class="py-3 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">
+                                Lat</th>
+                            </tr>
+                          </thead>
+                          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                            <tr v-for="(log, idx) in dnsLogs" :key="idx"
+                              class="hover:bg-white dark:hover:bg-slate-800/50 transition-colors group">
+                              <td class="py-2.5 px-4 whitespace-nowrap text-[10px] font-bold text-slate-400">
+                                {{ formatRelativeTime(log.timestamp) }}
+                              </td>
+                              <td class="py-2.5 px-4">
+                                <div class="flex flex-col max-w-[200px] lg:max-w-md">
+                                  <span class="truncate font-mono text-xs font-bold text-slate-700 dark:text-slate-200"
+                                    :title="log.domain">
+                                    {{ log.domain }}
+                                  </span>
+                                  <span v-if="log.category"
+                                    class="text-[8px] text-slate-400 font-bold uppercase tracking-tighter">{{
+                                      log.category
+                                    }}</span>
+                                </div>
+                              </td>
+                              <td class="py-2.5 px-4">
+                                <div class="flex items-center gap-2">
+                                  <span v-if="log.is_blocked"
+                                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50">
+                                    Block
+                                  </span>
+                                  <span v-else-if="log.status === 'Rewrite'"
+                                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50">
+                                    Rewr
+                                  </span>
+                                  <span v-else
+                                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+                                    Allow
+                                  </span>
+                                </div>
+                              </td>
+                              <td class="py-2.5 px-4 text-right">
+                                <span class="text-xs font-mono font-bold text-slate-500">{{ log.response_time }}<span
+                                    class="text-[8px] opacity-70">ms</span></span>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div v-if="dnsLogs.length === 0" class="py-16 text-center">
+                        <Loader2 class="w-8 h-8 mx-auto mb-2 text-slate-200 animate-spin" />
+                        <p class="text-xs text-slate-400 italic">Analysing real-time DNS stream...</p>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+                <div v-else class="py-20 text-center text-slate-400">
+                  <ShieldAlert class="w-12 h-12 mx-auto mb-4 opacity-10" />
+                  <h3 class="text-slate-900 dark:text-white font-bold">No DNS Activity</h3>
+                  <p class="text-xs mt-1 opacity-60">Wait for this device to make queries or check AdGuard link.</p>
                 </div>
               </div>
             </div>
 
-          </div>
-          <div v-else class="py-20 text-center text-slate-400">
-            <ShieldAlert class="w-12 h-12 mx-auto mb-4 opacity-10" />
-            <h3 class="text-slate-900 dark:text-white font-bold">No DNS Activity</h3>
-            <p class="text-xs mt-1 opacity-60">Wait for this device to make queries or check AdGuard link.</p>
+            <!-- Column 3: Network Services (Sidebar) -->
+            <div class="space-y-6">
+              <!-- Health & Uptime Metrics (Sidebar Stack) -->
+              <div class="space-y-4">
+                <div
+                  class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-700/50 p-6 shadow-xl">
+                  <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Longest Streak</div>
+                  <div class="text-2xl font-black text-emerald-500">{{ longestOnlineStreak }} <span
+                      class="text-xs font-medium text-slate-400">hours</span></div>
+                </div>
+                <div class="card-base">
+                  <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Avg Offline</div>
+                  <div class="text-2xl font-black text-rose-500">{{ avgOfflineDuration }} <span
+                      class="text-xs font-medium text-slate-400">mins</span></div>
+                </div>
+                <div class="card-base">
+                  <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Uptime</div>
+                  <div class="text-2xl font-black text-blue-500">{{ uptimePercentage }}%</div>
+                </div>
+              </div>
+
+              <div class="card-base">
+                <!-- Background Decoration -->
+                <div
+                  class="absolute -bottom-12 -right-12 w-48 h-48 bg-blue-500/10 dark:bg-blue-400/5 rounded-full blur-3xl pointer-events-none">
+                </div>
+
+                <div class="flex items-center justify-between mb-6 relative z-10">
+                  <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <div class="w-1.5 h-6 bg-blue-500 rounded-full"></div>
+                    Port Lookup Results
+                  </h2>
+                  <button @click="runDeepScan" :disabled="isScanning"
+                    v-tooltip="'Run comprehensive port & service discovery'"
+                    class="group flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/50 hover:bg-blue-600 hover:text-white transition-all disabled:opacity-50 relative z-20">
+                    <component :is="isScanning ? Loader2 : ScanSearch"
+                      class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 group-hover:text-white"
+                      :class="{ 'animate-spin': isScanning }" />
+                    <span
+                      class="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 group-hover:text-white">{{
+                        isScanning ? 'Auditing...' : 'Deep Audit' }}</span>
+                  </button>
+                </div>
+
+                <div v-if="parsedPorts.length > 0" class="space-y-3 relative z-10">
+                  <div v-for="port in parsedPorts" :key="port.port"
+                    class="group flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50 hover:border-blue-500/30 rounded-2xl transition-all">
+                    <div class="flex items-center gap-4">
+                      <div class="flex flex-col items-center justify-center">
+                        <div class="text-xs font-black text-blue-600 dark:text-blue-400 tracking-tighter">{{ port.port
+                        }}
+                        </div>
+                        <div class="text-[8px] font-black text-slate-500 uppercase">{{ port.protocol || 'TCP' }}</div>
+                      </div>
+                      <div>
+                        <div class="text-sm font-bold text-slate-900 dark:text-white">{{ port.service || 'Unknown' }}
+                        </div>
+                        <div class="text-[10px] text-slate-500 font-medium">Service Active</div>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                      <button v-if="port.port === 22" @click="openSSH(port.port)"
+                        class="p-2 transition-all rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-900 hover:text-white text-slate-600 dark:text-slate-300"
+                        v-tooltip="'Terminal Access'">
+                        <Terminal class="w-4 h-4" />
+                      </button>
+                      <a v-if="[80, 443, 8080, 8000, 3000].includes(port.port)"
+                        :href="`http://${device.ip}:${port.port}`" target="_blank"
+                        class="p-2 transition-all rounded-lg bg-blue-500/10 hover:bg-blue-500 text-blue-600 dark:text-blue-400 hover:text-white"
+                        v-tooltip="'Open Interface'">
+                        <ExternalLink class="w-4 h-4" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-else class="flex flex-col items-center justify-center py-20 text-center space-y-4">
+                  <div class="p-6 bg-slate-50 dark:bg-slate-900/50 rounded-full">
+                    <ShieldAlert class="w-12 h-12 text-slate-300 dark:text-slate-600" />
+                  </div>
+                  <div>
+                    <p class="text-slate-900 dark:text-white font-bold">No Open Ports</p>
+                    <p class="text-xs text-slate-500 mt-1 max-w-[180px]">Run a Deep Scan to audit common network
+                      services.</p>
+                  </div>
+                </div>
+
+                <div class="mt-8 pt-8 border-t border-slate-100 dark:border-slate-700/50">
+                  <div
+                    class="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    <span>Last Audit Scan</span>
+                    <span class="text-slate-400">{{ formatRelativeTime(device.last_seen) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+      <div v-if="activeTab === 'access'">
+        <!-- Top-Level Access Status & Override -->
+        <div class="mb-8 p-5 rounded-2xl border" :class="(accessStatus && !accessStatus.is_manual_unblock && (accessStatus.is_exceeded || accessStatus.is_manual_block || accessStatus.is_scheduled_block)) ? 'bg-amber-500/5 border-amber-500/10' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-start gap-3">
+              <AlertTriangle v-if="accessStatus && !accessStatus.is_manual_unblock && (accessStatus.is_exceeded || accessStatus.is_manual_block || accessStatus.is_scheduled_block)" class="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+              <ShieldCheck v-else class="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" />
+              <div class="text-xs">
+                <span v-if="accessStatus && accessStatus.is_manual_unblock" class="font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mr-3">Access Permitted (Override Active)</span>
+                <span v-else-if="accessStatus && (accessStatus.is_exceeded || accessStatus.is_manual_block || accessStatus.is_scheduled_block)" class="font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest mr-3">Active Blocks:</span>
+                <span v-else class="font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mr-3">Access Permitted</span>
+                
+                <div class="flex flex-wrap gap-2 mt-2" v-if="accessStatus && (accessStatus.is_exceeded || accessStatus.is_manual_block || accessStatus.is_scheduled_block)">
+                  <span v-if="accessStatus.is_exceeded" class="px-2 py-1 rounded font-black text-[9px]"
+                        :class="accessStatus.is_manual_unblock ? 'bg-slate-500/10 text-slate-500 dark:text-slate-400 line-through' : 'bg-rose-500/10 text-rose-500'">
+                    QUOTA EXCEEDED
+                  </span>
+                  <span v-if="accessStatus.is_manual_block" class="px-2 py-1 rounded font-black text-[9px]"
+                        :class="accessStatus.is_manual_unblock ? 'bg-slate-500/10 text-slate-500 dark:text-slate-400 line-through' : 'bg-amber-500/10 text-amber-500'">
+                    MANUAL BLOCK
+                  </span>
+                  <span v-if="accessStatus.is_scheduled_block" class="px-2 py-1 rounded font-black text-[9px]"
+                        :class="accessStatus.is_manual_unblock ? 'bg-slate-500/10 text-slate-500 dark:text-slate-400 line-through' : 'bg-amber-500/10 text-amber-500'">
+                    SCHEDULED DOWNTIME
+                  </span>
+                </div>
+                <p v-else-if="!accessStatus || !accessStatus.is_manual_unblock" class="text-slate-500 mt-1 font-medium">No active restrictions on this device.</p>
+                <p v-if="accessStatus && accessStatus.is_manual_unblock" class="text-slate-500 mt-1.5 font-medium">
+                  Restrictions are temporarily bypassed until the next scheduled window transition or quota reset cycle.
+                </p>
+              </div>
+            </div>
 
-      <!-- Column 3: Network Services (Sidebar) -->
-      <div class="space-y-6">
-        <!-- Health & Uptime Metrics (Sidebar Stack) -->
-        <div class="space-y-4">
-          <div
-            class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-700/50 p-6 shadow-xl">
-            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Longest Streak</div>
-            <div class="text-2xl font-black text-emerald-500">{{ longestOnlineStreak }} <span
-                class="text-xs font-medium text-slate-400">hours</span></div>
-          </div>
-          <div class="card-base">
-            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Avg Offline</div>
-            <div class="text-2xl font-black text-rose-500">{{ avgOfflineDuration }} <span
-                class="text-xs font-medium text-slate-400">mins</span></div>
-          </div>
-          <div class="card-base">
-            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Uptime</div>
-            <div class="text-2xl font-black text-blue-500">{{ uptimePercentage }}%</div>
-          </div>
-        </div>
-
-        <div class="premium-card">
-          <!-- Background Decoration -->
-          <div class="absolute -bottom-12 -right-12 w-48 h-48 bg-blue-500/10 dark:bg-blue-400/5 rounded-full blur-3xl pointer-events-none">
-          </div>
-
-          <div class="flex items-center justify-between mb-6 relative z-10">
-            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <div class="w-1.5 h-6 bg-blue-500 rounded-full"></div>
-              Port Lookup Results
-            </h2>
-            <button @click="runDeepScan" :disabled="isScanning" v-tooltip="'Run comprehensive port & service discovery'"
-              class="group flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/50 hover:bg-blue-600 hover:text-white transition-all disabled:opacity-50 relative z-20">
-              <component :is="isScanning ? Loader2 : ScanSearch" class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 group-hover:text-white" :class="{ 'animate-spin': isScanning }" />
-              <span class="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 group-hover:text-white">{{ isScanning ? 'Auditing...' : 'Deep Audit' }}</span>
+            <button type="button"
+              v-if="accessStatus && (accessStatus.is_exceeded || accessStatus.is_scheduled_block) && !accessStatus.is_manual_unblock"
+              @click.stop="isManualOverrideModalOpen = true"
+              class="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-wider shadow-lg shadow-emerald-900/20 shrink-0 border-none cursor-pointer">
+              <ShieldCheck class="w-4 h-4" />
+              <span>Manually Restore Access</span>
+            </button>
+            <button type="button"
+              v-else-if="accessStatus && accessStatus.is_manual_unblock"
+              @click.stop="isUndoOverrideModalOpen = true"
+              class="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-wider shadow-lg shadow-amber-900/20 shrink-0 border-none cursor-pointer">
+              <Ban class="w-4 h-4" />
+              <span>Undo Override</span>
             </button>
           </div>
+        </div>
 
-          <div v-if="parsedPorts.length > 0" class="space-y-3 relative z-10">
-            <div v-for="port in parsedPorts" :key="port.port"
-              class="group flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50 hover:border-blue-500/30 rounded-2xl transition-all">
-              <div class="flex items-center gap-4">
-                <div class="flex flex-col items-center justify-center">
-                  <div class="text-xs font-black text-blue-600 dark:text-blue-400 tracking-tighter">{{ port.port }}
-                  </div>
-                  <div class="text-[8px] font-black text-slate-500 uppercase">{{ port.protocol || 'TCP' }}</div>
-                </div>
-                <div>
-                  <div class="text-sm font-bold text-slate-900 dark:text-white">{{ port.service || 'Unknown' }}</div>
-                  <div class="text-[10px] text-slate-500 font-medium">Service Active</div>
-                </div>
-              </div>
+        <div class="space-y-12">
+          <InternetSchedules :device="device" />
 
-              <div class="flex items-center gap-2">
-                <button v-if="port.port === 22" @click="openSSH(port.port)"
-                  class="p-2 transition-all rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-900 hover:text-white text-slate-600 dark:text-slate-300"
-                  v-tooltip="'Terminal Access'">
-                  <Terminal class="w-4 h-4" />
-                </button>
-                <a v-if="[80, 443, 8080, 8000, 3000].includes(port.port)" :href="`http://${device.ip}:${port.port}`"
-                  target="_blank"
-                  class="p-2 transition-all rounded-lg bg-blue-500/10 hover:bg-blue-500 text-blue-600 dark:text-blue-400 hover:text-white"
-                  v-tooltip="'Open Interface'">
-                  <ExternalLink class="w-4 h-4" />
-                </a>
-              </div>
-            </div>
+          <div class="border-t border-white/5 pt-12">
+            <DeviceQuotaManager :deviceId="device.id" />
           </div>
-
-          <div v-else class="flex flex-col items-center justify-center py-20 text-center space-y-4">
-            <div class="p-6 bg-slate-50 dark:bg-slate-900/50 rounded-full">
-              <ShieldAlert class="w-12 h-12 text-slate-300 dark:text-slate-600" />
-            </div>
-            <div>
-              <p class="text-slate-900 dark:text-white font-bold">No Open Ports</p>
-              <p class="text-xs text-slate-500 mt-1 max-w-[180px]">Run a Deep Scan to audit common network services.</p>
-            </div>
-          </div>
-
-          <div class="mt-8 pt-8 border-t border-slate-100 dark:border-slate-700/50">
-            <div
-              class="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-500">
-              <span>Last Audit Scan</span>
-              <span class="text-slate-400">{{ formatRelativeTime(device.last_seen) }}</span>
-            </div>
         </div>
       </div>
     </div>
-    </div>
-
-    <div v-else-if="activeTab === 'access'" class="space-y-12">
-      <InternetSchedules :device="device" />
-      
-      <div class="border-t border-white/5 pt-12">
-        <DeviceQuotaManager :deviceId="device.id" />
-      </div>
-    </div>
-
-    <TerminalModal v-if="showTerminal" :device="device" :port="sshPort" @close="showTerminal = false" />
-    
-    <ConfirmationModal
-      :isOpen="showVendorConfirmModal"
-      title="Save Vendor & Update Branding"
-      :message="`Fetched Vendor: &quot;${pendingVendorName}&quot;\n\nWould you like to save this vendor name and update device branding?`"
-      confirmText="Save & Update"
-      :loading="isLookingUpVendor"
-      @close="showVendorConfirmModal = false"
-      @confirm="saveVendorLookup"
-    />
   </div>
+
+  <TerminalModal v-if="showTerminal" :device="device" :port="sshPort" @close="showTerminal = false" />
+
+  <ConfirmationModal :isOpen="showVendorConfirmModal" title="Save Vendor & Update Branding"
+    :message="`Fetched Vendor: &quot;${pendingVendorName}&quot;\n\nWould you like to save this vendor name and update device branding?`"
+    confirmText="Save & Update" :loading="isLookingUpVendor" @close="showVendorConfirmModal = false"
+    @confirm="saveVendorLookup" />
+
+  <ConfirmationModal :isOpen="isManualOverrideModalOpen" title="Administrator Override"
+    message="You are about to manually restore internet access for this device. This bypasses both active quotas and schedules. This override is of the HIGHEST PRIORITY but will automatically expire on the next quota reset period."
+    confirmText="Apply Override" :loading="processingOverride" @close="isManualOverrideModalOpen = false"
+    @confirm="confirmManualOverride" />
+
+  <ConfirmationModal :isOpen="isUndoOverrideModalOpen" title="Remove Override"
+    message="This will remove the manual access override. The device will return to being governed by its active schedule and quota rules. If a schedule or quota block is currently in effect, the device will be blocked again."
+    confirmText="Remove Override" type="danger" :loading="processingOverride" @close="isUndoOverrideModalOpen = false"
+    @confirm="undoManualOverride" />
 </template>
 
 <script setup>
-import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue'
+import Popover from 'primevue/popover'
+import InputText from 'primevue/inputtext'
 import { ref, onMounted, onUnmounted, reactive, computed, watch } from 'vue'
 import {
   ArrowLeft, Loader2, ScanSearch, Save, Search, ChevronDown, Activity, Terminal, ExternalLink, ShieldAlert, ShieldCheck,
-  Wifi, WifiOff, Pencil, Info, X, Fingerprint, Globe, Calendar, Cpu, Copy, Check, Ban, Radio, Network, Clock, RefreshCw
+  Wifi, WifiOff, Pencil, Info, X, Fingerprint, Globe, Calendar, Cpu, Copy, Check, Ban, Radio, Network, Clock, RefreshCw,
+  AlertTriangle, Zap
 } from 'lucide-vue-next'
 import { useRoute } from 'vue-router'
 import api from '@/utils/api'
@@ -1043,16 +1222,16 @@ const showTerminal = ref(false)
 const sshPort = ref(22)
 
 const allDevices = ref([])
-const form = reactive({ 
-  display_name: '', 
-  name: '', 
-  device_type: '', 
-  icon: '', 
-  brand: '', 
-  brand_icon: '', 
-  ip_type: '', 
-  parent_id: null, 
-  attributes: {} 
+const form = reactive({
+  display_name: '',
+  name: '',
+  device_type: '',
+  icon: '',
+  brand: '',
+  brand_icon: '',
+  ip_type: '',
+  parent_id: null,
+  attributes: {}
 })
 
 const isScanning = ref(false)
@@ -1067,10 +1246,25 @@ const isLookingUpVendor = ref(false)
 const showVendorConfirmModal = ref(false)
 const pendingVendorName = ref('')
 const signalHistory = ref([])
+const isManualOverrideModalOpen = ref(false)
+const isUndoOverrideModalOpen = ref(false)
+const processingOverride = ref(false)
+const accessStatus = ref(null)
 
-const isCategoryOpen = ref(false)
-const isIPOpen = ref(false)
-const isParentOpen = ref(false)
+const iconPopover = ref(null)
+const categoryInnerPopover = ref(null)
+const brandPopover = ref(null)
+const categoryPopover = ref(null)
+const ipPopover = ref(null)
+const parentPopover = ref(null)
+
+const toggleIconPopover = (event) => iconPopover.value.toggle(event)
+const toggleCategoryInnerPopover = (event) => categoryInnerPopover.value.toggle(event)
+const toggleBrandPopover = (event) => brandPopover.value.toggle(event)
+const toggleCategoryPopover = (event) => categoryPopover.value.toggle(event)
+const toggleIpPopover = (event) => ipPopover.value.toggle(event)
+const toggleParentPopover = (event) => parentPopover.value.toggle(event)
+
 const categorySearch = ref('')
 const iconSearch = ref('')
 const parentSearch = ref('')
@@ -1086,8 +1280,8 @@ const filteredDeviceTypes = computed(() => {
 const filteredIcons = computed(() => {
   if (!iconSearch.value) return availableIcons.value
   const s = iconSearch.value.toLowerCase()
-  return availableIcons.value.filter(icon => 
-    (icon.label || '').toLowerCase().includes(s) || 
+  return availableIcons.value.filter(icon =>
+    (icon.label || '').toLowerCase().includes(s) ||
     (icon.category || '').toLowerCase().includes(s) ||
     (icon.name || '').toLowerCase().includes(s)
   )
@@ -1209,14 +1403,14 @@ const toggleBlock = async () => {
     let reasons = []
     if (device.value.is_scheduled_block) reasons.push('an active schedule')
     if (device.value.is_quota_exceeded) reasons.push('an exceeded data quota')
-    
+
     const confirmMsg = `This device is currently restricted by ${reasons.join(' and ')}. ` +
-                       `Manually unblocking will override these restrictions until the next cycle or reset. ` +
-                       `Do you want to continue?`
-                       
+      `Manually unblocking will override these restrictions until the next cycle or reset. ` +
+      `Do you want to continue?`
+
     if (!confirm(confirmMsg)) return
   }
-  
+
   try {
     const res = await api.post(`/integrations/openwrt/devices/${device.value.mac}/${action}`)
     if (res.data.status === 'success') {
@@ -1264,6 +1458,51 @@ const saveVendorLookup = async () => {
     notifyError(err.response?.data?.detail || 'Failed to update MAC vendor')
   } finally {
     isLookingUpVendor.value = false
+  }
+}
+
+const confirmManualOverride = async () => {
+  processingOverride.value = true
+  try {
+    await api.patch(`/devices/${route.params.id}`, {
+      is_manual_unblock: true
+    })
+    await fetchDevice()
+    await fetchAccessStatus()
+    isManualOverrideModalOpen.value = false
+    notifySuccess('Manual override applied successfully')
+  } catch (err) {
+    notifyError('Failed to apply manual override')
+  } finally {
+    processingOverride.value = false
+  }
+}
+
+const undoManualOverride = async () => {
+  processingOverride.value = true
+  try {
+    await api.patch(`/devices/${route.params.id}`, {
+      is_manual_unblock: false
+    })
+    await fetchDevice()
+    await fetchAccessStatus()
+    isUndoOverrideModalOpen.value = false
+    notifySuccess('Override removed — device returned to policy rules')
+  } catch (err) {
+    notifyError('Failed to remove override')
+  } finally {
+    processingOverride.value = false
+  }
+}
+
+const fetchAccessStatus = async () => {
+  try {
+    const res = await api.get(`/devices/${route.params.id}/access-status`)
+    const data = res.data
+    data.is_exceeded = data.is_quota_exceeded
+    accessStatus.value = data
+  } catch (e) {
+    // Silently handle - status will remain null
   }
 }
 
@@ -1733,6 +1972,7 @@ onMounted(async () => {
   await fetchDevice()
   fetchHistory()
   fetchDeviceDns()
+  fetchAccessStatus()
   await fetchSignalHistory()
   await fetchAllDevices()
 
@@ -1743,6 +1983,7 @@ onMounted(async () => {
       await fetchDevice()
       await fetchDeviceDns()
       await fetchSignalHistory()
+      fetchAccessStatus()
     }
   }, 10000)
 })

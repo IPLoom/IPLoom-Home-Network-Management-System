@@ -115,6 +115,28 @@ def trigger_sync(background_tasks: BackgroundTasks):
     finally:
         conn.close()
 
+class ProtectionState(BaseModel):
+    enabled: bool
+
+@router.post("/protection")
+def set_protection_status(state: ProtectionState):
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT config FROM integrations WHERE name = 'adguard'").fetchone()
+        if not row:
+            raise HTTPException(status_code=400, detail="Adguard not configured")
+        
+        conf = json.loads(row[0])
+        client = AdguardClient(conf["url"], conf.get("username"), conf.get("password"))
+        
+        client.set_protection(state.enabled)
+        return {"status": "success", "protection_enabled": state.enabled}
+    except Exception as e:
+        logger.error(f"Failed to toggle Adguard protection: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
 
 @router.get("/data")
 def get_adguard_data():
@@ -167,7 +189,7 @@ def get_adguard_data():
                 JOIN dns_domains d ON l.domain_id = d.id
                 WHERE l.is_blocked = TRUE
                 ORDER BY l.timestamp DESC
-                LIMIT 10
+                LIMIT 100
                 """
             ).fetchall()
             
@@ -182,9 +204,18 @@ def get_adguard_data():
                 for r in blocked_rows
             ]
 
+            # Get protection status
+            protection_enabled = False
+            try:
+                client = AdguardClient(config["url"], config.get("username"), config.get("password"))
+                protection_enabled = client.get_protection_status()
+            except Exception as e:
+                logger.warning(f"Failed to get protection status: {e}")
+
             return {
                 "verified": verified,
                 "enabled": config.get("enabled", True),
+                "protection_enabled": protection_enabled,
                 "last_run": config.get("last_run"),
                 "url": config.get("url"),
                 "stats": {
@@ -209,4 +240,40 @@ def get_adguard_data():
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         conn.close()
+
+class DomainRuleRequest(BaseModel):
+    domain: str
+    action: str # "block", "allow", "remove"
+
+@router.post("/rules")
+def update_domain_rule(request: DomainRuleRequest):
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT config FROM integrations WHERE name = 'adguard'").fetchone()
+        if not row:
+            raise HTTPException(status_code=400, detail="Adguard not configured")
+        
+        conf = json.loads(row[0])
+        client = AdguardClient(conf["url"], conf.get("username"), conf.get("password"))
+        
+        # Get existing rules
+        rules = client.get_custom_rules()
+        domain = request.domain.strip().lower()
+        
+        # Clean existing rules for this domain
+        rules = [r for r in rules if domain not in r.lower()]
+        
+        if request.action == "block":
+            rules.append(f"||{domain}^")
+        elif request.action == "allow":
+            rules.append(f"@@||{domain}^")
+        
+        client.set_custom_rules(rules)
+        return {"status": "success", "domain": domain, "action": request.action}
+    except Exception as e:
+        logger.error(f"Failed to update Adguard rules: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
 

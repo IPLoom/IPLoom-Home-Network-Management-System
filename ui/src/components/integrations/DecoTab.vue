@@ -23,15 +23,9 @@
         <button 
           @click="syncDeco" 
           :disabled="syncing || !isConfigured"
-          class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white rounded-xl text-sm font-medium transition-all shadow-sm active:scale-95"
+          class="btn-primary !px-4 !py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm flex items-center gap-2 border-none"
         >
-          <svg v-if="syncing" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89H18v3" />
-          </svg>
+          <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': syncing }" />
           <span>{{ syncing ? 'Syncing...' : 'Sync Now' }}</span>
         </button>
       </div>
@@ -39,9 +33,7 @@
 
     <!-- Error State -->
     <div v-if="error" class="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-2xl p-4 text-red-700 dark:text-red-400 text-sm flex items-start gap-3">
-      <svg class="h-5 w-5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-      </svg>
+      <AlertTriangle class="h-5 w-5 mt-0.5 shrink-0 text-red-600 dark:text-red-450" />
       <div>
         <h4 class="font-semibold">Integration Error</h4>
         <p class="mt-0.5">{{ error }}</p>
@@ -60,17 +52,13 @@
       <!-- Mesh Nodes Grid -->
       <div class="space-y-4">
         <h3 class="text-lg font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-          <svg class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-          </svg>
+          <Cpu class="h-5 w-5 text-blue-500" />
           <span>Mesh Nodes ({{ nodes.length }})</span>
         </h3>
 
         <!-- Only 1 Node Warning Notice -->
         <div v-if="nodes.length === 1" class="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-2xl flex items-start gap-3">
-          <svg class="h-5 w-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
+          <AlertTriangle class="h-5 w-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
           <div class="text-sm text-amber-800 dark:text-amber-300 leading-normal">
             <strong class="font-semibold">Only 1 Deco Node showing?</strong>
             <p class="mt-1">Satellite (slave) Deco nodes only return their local state. To retrieve the entire mesh network structure and all connected clients, make sure to configure the <strong>Master/Main Deco Router's IP address</strong> in Settings.</p>
@@ -87,10 +75,8 @@
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform overflow-hidden">
                   <img v-if="node.icon && node.icon.startsWith('/static/')" :src="node.icon" class="h-6 w-6 object-contain" />
-                  <component v-else-if="node.icon" :is="getIcon(node.icon)" class="h-6 w-6" />
-                  <svg v-else class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071a9 9 0 0114.14 0M2.006 8.502a13 13 0 0119.988 0" />
-                  </svg>
+                  <component :is="getIcon(node.icon)" v-else-if="node.icon" class="h-6 w-6" />
+                  <Wifi v-else class="w-6 h-6" />
                 </div>
                 <div>
                   <h4 class="font-bold text-slate-800 dark:text-slate-100">{{ node.display_name || node.attributes.deco_node_name || node.name }}</h4>
@@ -128,27 +114,26 @@
           </div>
         </div>
       </div>
+
       <!-- Connected Clients List -->
       <div class="space-y-4 pt-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h3 class="text-lg font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-            <svg class="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
+            <Users class="h-5 w-5 text-indigo-500" />
             <span>Connected Clients ({{ filteredClients.length }})</span>
           </h3>
           
-          <div class="relative w-full sm:max-w-xs">
-            <input 
-              v-model="searchQuery" 
-              type="text" 
-              placeholder="Search clients..." 
-              class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          <IconField class="w-full sm:max-w-xs">
+            <InputIcon>
+              <Search class="h-4 w-4 text-slate-400" />
+            </InputIcon>
+            <InputText 
+              v-model="searchQuery"
+              placeholder="Search clients..."
+              class="w-full"
+              :pt="{ root: 'input-base' }"
             />
-            <svg class="absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
+          </IconField>
         </div>
 
         <div class="content-panel">
@@ -258,9 +243,7 @@
     <div v-else class="bg-white dark:bg-slate-800 rounded-2xl p-8 border border-slate-200/60 dark:border-slate-700/60 text-center shadow-sm">
       <div class="max-w-md mx-auto space-y-4">
         <div class="w-16 h-16 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center mx-auto">
-          <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
+          <AlertTriangle class="h-8 w-8 text-amber-600 dark:text-amber-450" />
         </div>
         <div>
           <h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">TP-Link Deco integration is inactive</h3>
@@ -271,7 +254,7 @@
         <div>
           <router-link 
             to="/settings" 
-            class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-all active:scale-95 shadow-sm"
+            class="btn-primary !px-4 !py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 shadow-sm inline-flex items-center justify-center cursor-pointer border-none"
           >
             Go to Settings
           </router-link>
@@ -289,6 +272,21 @@ import { getIcon } from '@/utils/icons'
 import DeviceTable from '@/components/DeviceTable.vue'
 import ConfirmationModal from '@/components/ConfirmationModal.vue'
 import EditDeviceModal from '@/components/EditDeviceModal.vue'
+
+// PrimeVue components
+import Button from 'primevue/button'
+import IconField from 'primevue/iconfield'
+import InputIcon from 'primevue/inputicon'
+import InputText from 'primevue/inputtext'
+
+import {
+  RefreshCw,
+  AlertTriangle,
+  Cpu,
+  Wifi,
+  Users,
+  Search
+} from 'lucide-vue-next'
 
 const { notifySuccess, notifyError } = useNotifications()
 

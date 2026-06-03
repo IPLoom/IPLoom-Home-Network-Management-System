@@ -1,94 +1,89 @@
 <template>
-    <div class="space-y-6 overflow-hidden">
+    <div class="space-y-6 !overflow-visible">
         <!-- Header -->
-        <div class="page-header relative z-20">
+        <div class="page-header flex-col lg:flex-row lg:items-center relative z-20">
             <div>
                 <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">IP Occupancy</h1>
                 <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Network map for {{ selectedSubnet }}.0/24</p>
             </div>
-            <div
-                class="relative flex flex-col sm:flex-row items-start sm:items-center gap-3 glass-panel !px-4 !py-3 shadow-sm hover:border-blue-400/50 group w-full sm:w-auto">
-                <div class="hidden sm:block">
-                    <Network class="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-colors" />
-                </div>
-                <div class="flex flex-col w-full sm:w-auto">
-                    <span
-                        class="text-[10px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 leading-none mb-2 sm:mb-1">Select
-                        Network</span>
-                    <div class="relative flex flex-col md:flex-row items-stretch md:items-center gap-2 w-full">
-                        <!-- Filter Dropdown -->
-                        <div class="relative flex-1 md:flex-none md:min-w-[140px]"
-                            v-click-outside="() => isFilterOpen = false">
-                            <button @click="isFilterOpen = !isFilterOpen"
-                                class="btn-action w-full flex items-center justify-between !py-2 !px-3 font-medium">
-                                <span class="truncate mr-2">
-                                    {{ filterStatus === 'all' ? 'All' : (filterStatus === 'online'
-                                        ? 'Online'
-                                        : (filterStatus === 'offline' ? 'Offline' : 'Avail.')) }}
-                                </span>
-                                <ChevronDown class="w-4 h-4 text-slate-400 transition-transform duration-200"
-                                    :class="{ 'rotate-180': isFilterOpen }" />
-                            </button>
 
-                            <transition enter-active-class="transition duration-100 ease-out"
-                                enter-from-class="transform scale-95 opacity-0"
-                                enter-to-class="transform scale-100 opacity-100"
-                                leave-active-class="transition duration-75 ease-in"
-                                leave-from-class="transform scale-100 opacity-100"
-                                leave-to-class="transform scale-95 opacity-0">
-                                <div v-if="isFilterOpen" class="dropdown-menu top-full left-0 w-full min-w-[140px]">
-                                    <button v-for="opt in ['all', 'online', 'offline', 'available']" :key="opt"
-                                        @click="filterStatus = opt; isFilterOpen = false" class="dropdown-item group"
-                                        :class="filterStatus === opt ? 'text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/10' : 'text-slate-600 dark:text-slate-300'">
-                                        <span class="capitalize">{{ opt }}</span>
-                                        <Check v-if="filterStatus === opt" class="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-                            </transition>
-                        </div>
-
-
-                        <div class="relative flex-1 md:flex-none md:min-w-[180px]"
-                            v-click-outside="() => isSubnetOpen = false">
-                            <button @click="isSubnetOpen = !isSubnetOpen"
-                                class="btn-action w-full flex items-center justify-between !py-2 !px-4 font-medium">
-                                <span class="truncate mr-2">
-                                    {{ selectedSubnet ? `${selectedSubnet}.0/24` : 'Subnet' }}
-                                </span>
-                                <ChevronDown class="w-4 h-4 text-slate-400 transition-transform duration-200"
-                                    :class="{ 'rotate-180': isSubnetOpen }" />
-                            </button>
-
-                            <transition enter-active-class="transition duration-100 ease-out"
-                                enter-from-class="transform scale-95 opacity-0"
-                                enter-to-class="transform scale-100 opacity-100"
-                                leave-active-class="transition duration-75 ease-in"
-                                leave-from-class="transform scale-100 opacity-100"
-                                leave-to-class="transform scale-95 opacity-0">
-                                <div v-if="isSubnetOpen"
-                                    class="dropdown-menu top-full left-0 w-full min-w-[200px] max-h-60 overflow-y-auto custom-scrollbar">
-                                    <button v-for="sub in availableSubnets" :key="sub"
-                                        @click="selectedSubnet = sub; isSubnetOpen = false" class="dropdown-item group"
-                                        :class="selectedSubnet === sub ? 'text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/10' : 'text-slate-600 dark:text-slate-300'">
-                                        <span class="font-mono">{{ sub }}.0/24</span>
-                                        <Check v-if="selectedSubnet === sub" class="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-                            </transition>
-                        </div>
-                        <button @click="fetchOccupancy" :disabled="loading"
-                            class="btn-action whitespace-nowrap flex-none !px-3" v-tooltip="'Refresh Occupancy Data'">
-                            <component :is="refreshIcon" class="w-5 h-5"
-                                :class="{ 'animate-spin': loading, 'text-emerald-500': showSuccess }" />
+            <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto mt-4 lg:mt-0">
+                <div class="flex p-1 bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/30 rounded-xl items-center gap-2 w-full sm:w-auto">
+                    <!-- Filter Dropdown -->
+                    <div class="relative flex-1 sm:flex-none sm:min-w-[120px]"
+                        v-click-outside="() => isFilterOpen = false">
+                        <button @click="isFilterOpen = !isFilterOpen"
+                            class="w-full flex items-center justify-between px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200/50 dark:border-slate-700/30 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm transition-all">
+                            <span class="truncate mr-2">
+                                {{ filterStatus === 'all' ? 'All Status' : (filterStatus === 'online'
+                                    ? 'Online'
+                                    : (filterStatus === 'offline' ? 'Offline' : 'Available')) }}
+                            </span>
+                            <ChevronDown class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200"
+                                :class="{ 'rotate-180': isFilterOpen }" />
                         </button>
+
+                        <transition enter-active-class="transition duration-100 ease-out"
+                            enter-from-class="transform scale-95 opacity-0"
+                            enter-to-class="transform scale-100 opacity-100"
+                            leave-active-class="transition duration-75 ease-in"
+                            leave-from-class="transform scale-100 opacity-100"
+                            leave-to-class="transform scale-95 opacity-0">
+                            <div v-if="isFilterOpen" class="dropdown-menu top-full mt-1.5 left-0 w-full min-w-[140px]">
+                                <button v-for="opt in ['all', 'online', 'offline', 'available']" :key="opt"
+                                    @click="filterStatus = opt; isFilterOpen = false" class="dropdown-item group"
+                                    :class="filterStatus === opt ? 'text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/10 font-bold' : 'text-slate-600 dark:text-slate-300'">
+                                    <span class="capitalize text-xs">{{ opt }}</span>
+                                    <Check v-if="filterStatus === opt" class="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        </transition>
                     </div>
+
+                    <!-- Subnet Dropdown -->
+                    <div class="relative flex-1 sm:flex-none sm:min-w-[160px]"
+                        v-click-outside="() => isSubnetOpen = false">
+                        <button @click="isSubnetOpen = !isSubnetOpen"
+                            class="w-full flex items-center justify-between px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200/50 dark:border-slate-700/30 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm transition-all">
+                            <span class="truncate mr-2 font-mono">
+                                {{ selectedSubnet ? `${selectedSubnet}.0/24` : 'Subnet' }}
+                            </span>
+                            <ChevronDown class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200"
+                                :class="{ 'rotate-180': isSubnetOpen }" />
+                        </button>
+
+                        <transition enter-active-class="transition duration-100 ease-out"
+                            enter-from-class="transform scale-95 opacity-0"
+                            enter-to-class="transform scale-100 opacity-100"
+                            leave-active-class="transition duration-75 ease-in"
+                            leave-from-class="transform scale-100 opacity-100"
+                            leave-to-class="transform scale-95 opacity-0">
+                            <div v-if="isSubnetOpen"
+                                class="dropdown-menu top-full mt-1.5 left-0 w-full min-w-[200px] max-h-60 overflow-y-auto custom-scrollbar">
+                                <button v-for="sub in availableSubnets" :key="sub"
+                                    @click="selectedSubnet = sub; isSubnetOpen = false" class="dropdown-item group"
+                                    :class="selectedSubnet === sub ? 'text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/10 font-bold' : 'text-slate-600 dark:text-slate-300'">
+                                    <span class="font-mono text-xs">{{ sub }}.0/24</span>
+                                    <Check v-if="selectedSubnet === sub" class="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        </transition>
+                    </div>
+
+                    <!-- Refresh Button -->
+                    <button @click="fetchOccupancy" :disabled="loading"
+                        class="p-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg border border-slate-200/50 dark:border-slate-700/30 transition-all flex items-center justify-center shadow-sm disabled:opacity-50"
+                        v-tooltip="'Refresh Occupancy Data'">
+                        <component :is="refreshIcon" class="w-4 h-4"
+                            :class="{ 'animate-spin': loading, 'text-emerald-500': showSuccess }" />
+                    </button>
                 </div>
             </div>
         </div>
 
         <!-- Summary Stats -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div v-for="stat in summaryStats" :key="stat.label" class="card-stat min-w-0">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div v-for="stat in summaryStats" :key="stat.label" class="card-base flex flex-col justify-between relative overflow-hidden min-h-[110px] group">
 
                 <!-- Sparkline Background -->
                 <Sparkline :data="stat.trend" :color="stat.color" class="opacity-15" />
@@ -98,7 +93,7 @@
                     <div :class="[stat.bgClass, 'p-1.5 rounded-lg shadow-sm border border-white/10']">
                         <component :is="stat.icon" class="h-4 w-4" />
                     </div>
-                    <div class="badge-pill !px-2 !py-0.5">
+                    <div class="px-2 py-0.5 rounded-full bg-slate-100/50 dark:bg-slate-900/40 border border-slate-200/50 dark:border-slate-700/50 text-[10px] font-bold">
                         <span
                             :class="[stat.changeType === 'up' ? 'text-emerald-600' : 'text-rose-500', 'text-[10px] font-bold']">
                             {{ stat.changeType === 'down' ? '↓' : '↑' }} {{ stat.change }}
@@ -108,10 +103,10 @@
 
                 <!-- Center Content: Metric & Label -->
                 <div class="relative z-10 flex flex-col items-center text-center -mt-1">
-                    <p class="heading-xl">
+                    <p class="text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-none">
                         {{ stat.value }}
                     </p>
-                    <p :class="stat.textColor" class="subtext-caps">
+                    <p :class="stat.textColor" class="text-[9px] font-black uppercase tracking-[0.2em] opacity-80 mt-1.5">
                         {{ stat.label }}
                     </p>
                 </div>
@@ -119,18 +114,18 @@
         </div>
 
         <!-- IP Grid -->
-        <div class="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-2 md:p-6">
+        <div class="card-base !p-6 !rounded-2xl !overflow-visible">
             <div class="space-y-6">
                 <div v-for="rowIndex in 8" :key="rowIndex">
                     <div class="flex items-center gap-3 mb-3">
                         <span class="text-xs font-medium text-slate-500 dark:text-slate-400">.{{ (rowIndex - 1) * 32 + 1
                             }} - .{{ Math.min(rowIndex * 32, 254) }}</span>
-                        <div class="flex-1 h-px bg-slate-200 dark:bg-slate-700"></div>
+                        <div class="flex-1 h-px bg-slate-200/50 dark:bg-slate-700/30"></div>
                     </div>
                     <div class="grid grid-cols-4 min-[480px]:grid-cols-5 sm:grid-cols-8 md:grid-cols-16 gap-1 sm:gap-2">
                         <template v-for="i in 32" :key="i">
-                            <div v-if="((rowIndex - 1) * 32 + i) <= 254" class="relative group min-w-0">
-                                <div :class="['h-10 flex flex-col items-center justify-center text-[10px] font-mono leading-none rounded cursor-pointer transition-all gap-0.5 px-0.5', getStatusClass((rowIndex - 1) * 32 + i)]"
+                            <div v-if="((rowIndex - 1) * 32 + i) <= 254" class="relative group min-w-0 hover:z-30">
+                                <div :class="['h-10 flex flex-col items-center justify-center text-[10px] font-mono leading-none rounded-lg cursor-pointer transition-all gap-0.5 px-0.5', getStatusClass((rowIndex - 1) * 32 + i)]"
                                     @click="goToDevice((rowIndex - 1) * 32 + i)">
                                     <span class="opacity-40 text-[9px] font-bold">{{ (rowIndex - 1) * 32 + i }}</span>
                                     <span v-if="getDevice((rowIndex - 1) * 32 + i)"
@@ -140,28 +135,28 @@
                                     </span>
                                 </div>
                                 <div v-if="getDevice((rowIndex - 1) * 32 + i)"
-                                    class="hover-popover bottom-full mb-2 left-1/2 -translate-x-1/2 w-52">
-                                    <div class="font-semibold truncate text-xs">{{ getDevice((rowIndex - 1) * 32 +
+                                    class="hover-popover bottom-full mb-2 left-1/2 -translate-x-1/2 w-52 !pointer-events-none">
+                                    <div class="font-bold truncate text-xs">{{ getDevice((rowIndex - 1) * 32 +
                                         i).display_name || getDevice((rowIndex - 1) * 32 + i).ip }}</div>
-                                    <div class="text-[10px] opacity-75 font-mono truncate mt-1">{{ getDevice((rowIndex -
+                                    <div class="text-[9px] font-mono opacity-60 truncate mt-0.5">{{ getDevice((rowIndex -
                                         1) * 32 + i).mac || 'N/A' }}</div>
 
-                                    <div class="mt-2 space-y-1 border-t border-white/10 dark:border-slate-200 pt-2">
+                                    <div class="mt-2.5 space-y-1.5 border-t border-white/10 dark:border-slate-200/50 pt-2">
                                         <div class="flex justify-between items-center">
-                                            <span class="opacity-75">Status:</span>
+                                            <span class="opacity-60">Status</span>
                                             <span
-                                                :class="getDevice((rowIndex - 1) * 32 + i).status === 'online' ? 'text-emerald-400 dark:text-emerald-600' : 'text-slate-400 dark:text-slate-500'">
+                                                :class="getDevice((rowIndex - 1) * 32 + i).status === 'online' ? 'text-emerald-400 dark:text-emerald-600 font-bold' : 'text-slate-400 dark:text-slate-500 font-bold'">
                                                 {{ getDevice((rowIndex - 1) * 32 + i).status }}
                                             </span>
                                         </div>
                                         <div class="flex justify-between items-center">
-                                            <span class="opacity-75">Last Seen:</span>
-                                            <span>{{ formatRelativeTime(getDevice((rowIndex - 1) * 32 + i).last_seen)
+                                            <span class="opacity-60">Last Seen</span>
+                                            <span class="font-semibold">{{ formatRelativeTime(getDevice((rowIndex - 1) * 32 + i).last_seen)
                                             }}</span>
                                         </div>
                                         <div class="flex justify-between items-center">
-                                            <span class="opacity-75">Open Ports:</span>
-                                            <span class="font-mono text-blue-400 dark:text-blue-600">
+                                            <span class="opacity-60">Open Ports</span>
+                                            <span class="font-mono text-blue-400 dark:text-blue-600 font-bold">
                                                 {{ parsePortsCount(getDevice((rowIndex - 1) * 32 + i).open_ports) }}
                                             </span>
                                         </div>
@@ -282,18 +277,18 @@ const getStatusClass = (suffix) => {
             opacityClass = 'opacity-5 grayscale blur-[1px] transition-all duration-500'
         } else {
             // Highlight available slots
-            highlightClass = 'ring-2 ring-blue-500 bg-blue-100 scale-105 z-10 shadow-md font-bold'
+            highlightClass = 'ring-2 ring-blue-500/50 bg-blue-500/10 scale-105 z-10 shadow-md font-bold'
         }
     }
 
-    // Non-used IP: Blue accent
-    if (!d) return `bg-blue-50 dark:bg-blue-900/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 border-blue-100/50 dark:border-blue-800/20 shadow-sm ${opacityClass} ${highlightClass}`
+    // Non-used IP: Slate/gray accent
+    if (!d) return `bg-slate-500/[0.03] dark:bg-slate-400/[0.05] text-slate-500 dark:text-slate-400 hover:bg-slate-500/[0.08] dark:hover:bg-slate-400/[0.1] border border-slate-200/50 dark:border-slate-700/30 shadow-sm ${opacityClass} ${highlightClass}`
 
     // Online Device: Emerald accent
-    if (d.status === 'online') return `bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 ring-1 ring-emerald-200 dark:ring-emerald-800/50 ${opacityClass}`
+    if (d.status === 'online') return `bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 dark:hover:bg-emerald-500/30 border border-emerald-500/20 dark:border-emerald-500/30 ${opacityClass}`
 
     // Offline Device: Red accent
-    return `bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 ring-1 ring-red-200 dark:ring-red-800/50 ${opacityClass}`
+    return `bg-rose-500/10 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400 hover:bg-rose-500/20 dark:hover:bg-rose-500/30 border border-rose-500/20 dark:border-rose-500/30 ${opacityClass}`
 }
 
 const goToDevice = (suffix) => {
