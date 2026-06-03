@@ -4,8 +4,8 @@ from app.core.db import get_connection, commit
 from app.models.internet_quotas import DeviceQuota, DeviceQuotaCreate, DeviceQuotaUpdate, DeviceQuotaStatus
 from app.services.internet_quotas import get_quota_status
 from app.services.policy import update_policy_flag
+from app.core.date_utils import now as utc_now
 import uuid
-from datetime import datetime
 
 from app.core.auth import get_current_user
 
@@ -44,12 +44,13 @@ async def set_device_quota(device_id: str, quota: DeviceQuotaCreate, current_use
             raise HTTPException(status_code=404, detail="Device not found")
             
         q_id = str(uuid.uuid4())
-        now = datetime.utcnow()
+        now = utc_now()
         
         # Insert or update
         conn.execute("""
             INSERT INTO device_quotas (id, device_id, limit_bytes, period_hours, enabled, last_reset_at)
             VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT (device_id) DO UPDATE SET
             ON CONFLICT (device_id) DO UPDATE SET
                 limit_bytes = excluded.limit_bytes,
                 period_hours = excluded.period_hours,
@@ -91,7 +92,7 @@ async def delete_device_quota(device_id: str, current_user: dict = Depends(get_c
 async def reset_device_quota_manually(device_id: str, current_user: dict = Depends(get_current_user)):
     conn = get_connection()
     try:
-        now = datetime.utcnow()
+        now = utc_now()
         conn.execute("""
             UPDATE device_quotas 
             SET current_usage = 0, last_reset_at = ?, is_exceeded = FALSE 

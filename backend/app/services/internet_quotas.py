@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timedelta
 from app.core.db import get_connection, commit
 from app.services.policy import update_policy_flag, update_policy_flags
+from app.core.date_utils import now as utc_now
 import json
 
 logger = logging.getLogger(__name__)
@@ -14,7 +15,7 @@ async def check_and_apply_quotas():
     """
     conn = get_connection()
     try:
-        now = datetime.utcnow()
+        now = utc_now()
         
         # 1. Reset expired quotas
         # Using epoch comparison or standard timestamp math
@@ -28,6 +29,11 @@ async def check_and_apply_quotas():
             # last_reset might be string or datetime depending on duckdb version/adapter
             if isinstance(last_reset, str):
                 last_reset = datetime.fromisoformat(last_reset.replace('Z', '+00:00')).replace(tzinfo=None)
+            
+            # Make timezone aware for comparison if duckdb parsed it naive
+            if last_reset.tzinfo is None:
+                from datetime import timezone
+                last_reset = last_reset.replace(tzinfo=timezone.utc)
             
             reset_time = last_reset + timedelta(hours=period)
             
@@ -90,8 +96,8 @@ def get_quota_status(device_id: str):
                 "current_usage": 0,
                 "percent_used": 0,
                 "is_exceeded": False,
-                "last_reset_at": datetime.utcnow(),
-                "next_reset_at": datetime.utcnow() + timedelta(hours=24),
+                "last_reset_at": utc_now(),
+                "next_reset_at": utc_now() + timedelta(hours=24),
                 "is_manual_block": bool(manual),
                 "is_scheduled_block": bool(scheduled),
                 "is_manual_unblock": bool(manual_unblock),

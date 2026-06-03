@@ -35,6 +35,7 @@ def get_dns_connection() -> duckdb.DuckDBPyConnection:
             _shared_conn.execute("SET threads TO 4")
             # Maybe lower memory limit if main DB is heavy
             _shared_conn.execute("SET memory_limit = '256MB'") 
+            _shared_conn.execute("SET TimeZone='UTC'")
             
             _init_schema(_shared_conn)
         
