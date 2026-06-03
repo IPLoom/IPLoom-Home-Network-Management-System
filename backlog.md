@@ -56,3 +56,4 @@ This document tracks the planned features and improvements for the IPLoom Home N
 - [ ] **Network Topology Map**: Visual graph showing physical connections (Port 1, 2, etc.) and Wi-Fi Mesh relationships.
 - [ ] **Dynamic DNS (DDNS) Status**: Monitor and update public-facing IP status for remote access.
 - [ ] **Premium Theme Engine**: Allow users to choose between various glassmorphism accents (Indigo, Emerald, Rose).
+- [ ] **Enrich MQTT Home Assistant Sensors**: Expand published MQTT data attributes for HA (`deco_node` satellite, Wi-Fi band, RSSI, OpenWrt speed rates, quota limits, blocking schedules) instead of just the `online`/`offline` status tracker.
