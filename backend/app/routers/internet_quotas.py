@@ -25,12 +25,14 @@ async def get_device_quota(device_id: str, current_user: dict = Depends(get_curr
     finally:
         conn.close()
 
+
 @router.get("/devices/{device_id}/status", response_model=Optional[DeviceQuotaStatus])
 async def get_device_quota_status_api(device_id: str, current_user: dict = Depends(get_current_user)):
     status = get_quota_status(device_id)
     if not status:
         return None
     return status
+
 
 @router.post("/devices/{device_id}", response_model=DeviceQuota)
 async def set_device_quota(device_id: str, quota: DeviceQuotaCreate, current_user: dict = Depends(get_current_user)):
@@ -56,13 +58,11 @@ async def set_device_quota(device_id: str, quota: DeviceQuotaCreate, current_use
         
         commit()
         
-        # Re-evaluate policy immediately (in case they set a limit lower than current usage)
-        # But wait, ON CONFLICT update doesn't reset current_usage.
-        # We should check if current usage > new limit
-        row = conn.execute("SELECT current_usage, limit_bytes FROM device_quotas WHERE device_id = ?", [device_id]).fetchone()
+        # Re-evaluate policy immediately (in case they set a limit lower than current usage or disabled the quota)
+        row = conn.execute("SELECT current_usage, limit_bytes, enabled FROM device_quotas WHERE device_id = ?", [device_id]).fetchone()
         if row:
-            usage, limit = row
-            if usage >= limit:
+            usage, limit, enabled = row
+            if enabled and usage >= limit:
                 conn.execute("UPDATE device_quotas SET is_exceeded = TRUE WHERE device_id = ?", [device_id])
                 commit()
                 await update_policy_flag(device_id, "is_quota_exceeded", True)

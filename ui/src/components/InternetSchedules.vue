@@ -29,9 +29,10 @@
         <div class="p-4 bg-rose-50 dark:bg-rose-900/20 rounded-2xl border border-rose-100 dark:border-rose-800/30">
           <div class="text-[10px] font-black uppercase text-rose-600 dark:text-rose-400 mb-1">Current Status</div>
           <div class="flex items-center gap-2">
-            <div :class="(device.is_blocked || isCurrentlyBlockedBySchedule) ? 'bg-rose-500' : 'bg-emerald-500'" class="w-2.5 h-2.5 rounded-full"></div>
+            <div :class="(device.is_blocked || (isCurrentlyBlockedBySchedule && !device.is_manual_unblock)) ? 'bg-rose-500' : 'bg-emerald-500'" class="w-2.5 h-2.5 rounded-full"></div>
             <div class="text-lg font-bold text-slate-900 dark:text-white">
-              <span v-if="device.is_manual_block">Manually Blocked</span>
+              <span v-if="device.is_manual_unblock">Allowed (Override)</span>
+              <span v-else-if="device.is_manual_block">Manually Blocked</span>
               <span v-else-if="device.is_quota_exceeded">Blocked by Quota</span>
               <span v-else-if="isCurrentlyBlockedBySchedule">Blocked by Schedule</span>
               <span v-else-if="device.is_blocked">Blocked</span>
@@ -141,8 +142,8 @@
             </div>
           </div>
 
-          <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
-            <div class="flex items-center gap-4">
+          <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden gap-3">
+            <div class="flex items-center gap-4 min-w-0">
               <div>
                 <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-0.5">Start</span>
                 <span class="text-sm font-black text-slate-700 dark:text-slate-200">{{ s.start_time }}</span>
@@ -153,19 +154,8 @@
                 <span class="text-sm font-black text-slate-700 dark:text-slate-200">{{ s.end_time }}</span>
               </div>
             </div>
-            <div class="text-right flex items-center justify-end">
-              <ToggleSwitch v-model="s.enabled" @change="toggleSchedule(s)"
-                :pt="{
-                  slider: ({ props }) => [
-                    'h-5 w-10 rounded-full transition-colors duration-200 border-2 border-transparent relative flex items-center cursor-pointer',
-                    props.modelValue ? 'bg-rose-500' : 'bg-slate-200 dark:bg-slate-700'
-                  ],
-                  handle: ({ props }) => [
-                    'h-4 w-4 rounded-full bg-white shadow-md transform transition duration-200 ease-in-out block',
-                    props.modelValue ? 'translate-x-5' : 'translate-x-0'
-                  ]
-                }"
-              />
+            <div class="flex items-center justify-end shrink-0">
+              <ToggleSwitch v-model="s.enabled" @change="toggleSchedule(s)" />
             </div>
           </div>
         </div>
@@ -267,6 +257,8 @@ import ToggleSwitch from 'primevue/toggleswitch'
 import api from '@/utils/api'
 import { useNotifications } from '@/composables/useNotifications'
 import { DateTime } from 'luxon'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+
 
 const props = defineProps({
   device: {
@@ -477,8 +469,6 @@ const toggleSchedule = async (s) => {
   }
 }
 
-import ConfirmationModal from '@/components/ConfirmationModal.vue'
-
 // ... existing refs ...
 const isDeleteModalOpen = ref(false)
 const scheduleToDelete = ref(null)
@@ -512,10 +502,13 @@ const getHourStatusClass = (day, hour) => {
   
   const isBlocked = schedules.value.some(s => {
     if (!s.enabled) return false
-    if (!s.days.split(',').includes(dayStr)) return false
+    if (!s.days || !s.days.split(',').includes(dayStr)) return false
     
-    const start = s.start_time
-    const end = s.end_time
+    // Slice to 5 characters (HH:MM) to handle any backend/DB format differences (e.g. HH:MM:SS)
+    const start = (s.start_time || '').slice(0, 5)
+    const end = (s.end_time || '').slice(0, 5)
+    
+    if (!start || !end) return false
     
     // Check if the START of this hour is within the block window
     if (start <= end) {
@@ -526,8 +519,8 @@ const getHourStatusClass = (day, hour) => {
   })
   
   return isBlocked 
-    ? 'bg-rose-500 hover:bg-rose-600 shadow-[inset_0_0_10px_rgba(0,0,0,0.1)]' 
-    : 'bg-emerald-500/10 dark:bg-emerald-500/5 hover:bg-emerald-500/20'
+    ? '!bg-rose-500 hover:!bg-rose-600 shadow-[inset_0_0_10px_rgba(0,0,0,0.1)]' 
+    : '!bg-emerald-500/10 dark:!bg-emerald-500/5 hover:!bg-emerald-500/20'
 }
 
 const getHourTooltip = (day, hour) => {
@@ -536,9 +529,10 @@ const getHourTooltip = (day, hour) => {
   
   const activeScheds = schedules.value.filter(s => {
     if (!s.enabled) return false
-    if (!s.days.split(',').includes(String(day))) return false
-    const start = s.start_time
-    const end = s.end_time
+    if (!s.days || !s.days.split(',').includes(String(day))) return false
+    const start = (s.start_time || '').slice(0, 5)
+    const end = (s.end_time || '').slice(0, 5)
+    if (!start || !end) return false
     if (start <= end) return timeStr >= start && timeStr < end
     else return timeStr >= start || timeStr < end
   })

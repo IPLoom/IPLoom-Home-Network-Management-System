@@ -44,6 +44,8 @@ class DeviceUpdate(BaseModel):
     parent_id: Optional[str] = None
     open_ports: Optional[list] = None
     is_blocked: Optional[bool] = None
+    is_manual_block: Optional[bool] = None
+    is_manual_unblock: Optional[bool] = None
 
 class PaginatedDevicesResponse(BaseModel):
     items: list[DeviceRead]
@@ -52,3 +54,14 @@ class PaginatedDevicesResponse(BaseModel):
     limit: int
     total_pages: int
     global_stats: Optional[dict] = None
+
+class DeviceAccessStatus(BaseModel):
+    device_id: str
+    mac: Optional[str] = None
+    ip: str
+    is_blocked: bool
+    is_manual_block: bool
+    is_scheduled_block: bool
+    is_quota_exceeded: bool
+    is_manual_unblock: bool
+    active_blocks: list[str]

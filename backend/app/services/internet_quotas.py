@@ -69,18 +69,36 @@ def get_quota_status(device_id: str):
     """Returns detailed quota status for a device."""
     conn = get_connection()
     try:
+        # Get device first to see if it exists
+        dev = conn.execute("SELECT is_manual_block, is_scheduled_block, is_manual_unblock FROM devices WHERE id = ?", [device_id]).fetchone()
+        if not dev:
+            return None
+        
+        manual, scheduled, manual_unblock = dev
+        
         row = conn.execute("""
-            SELECT q.limit_bytes, q.current_usage, q.is_exceeded, q.last_reset_at, q.period_hours,
-                   d.is_manual_block, d.is_scheduled_block
-            FROM device_quotas q
-            JOIN devices d ON q.device_id = d.id
-            WHERE q.device_id = ?
+            SELECT limit_bytes, current_usage, is_exceeded, last_reset_at, period_hours
+            FROM device_quotas
+            WHERE device_id = ?
         """, [device_id]).fetchone()
         
         if not row:
-            return None
+            # Return default status when no quota is set
+            return {
+                "device_id": device_id,
+                "limit_bytes": 0,
+                "current_usage": 0,
+                "percent_used": 0,
+                "is_exceeded": False,
+                "last_reset_at": datetime.utcnow(),
+                "next_reset_at": datetime.utcnow() + timedelta(hours=24),
+                "is_manual_block": bool(manual),
+                "is_scheduled_block": bool(scheduled),
+                "is_manual_unblock": bool(manual_unblock),
+                "has_quota": False
+            }
             
-        limit, usage, exceeded, last_reset, period, manual, scheduled = row
+        limit, usage, exceeded, last_reset, period = row
         
         if isinstance(last_reset, str):
             last_reset = datetime.fromisoformat(last_reset.replace('Z', '+00:00')).replace(tzinfo=None)
@@ -94,7 +112,9 @@ def get_quota_status(device_id: str):
             "last_reset_at": last_reset,
             "next_reset_at": last_reset + timedelta(hours=period),
             "is_manual_block": bool(manual),
-            "is_scheduled_block": bool(scheduled)
+            "is_scheduled_block": bool(scheduled),
+            "is_manual_unblock": bool(manual_unblock),
+            "has_quota": True
         }
     finally:
         conn.close()

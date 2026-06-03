@@ -138,28 +138,36 @@ async def check_and_apply_schedules():
         if not ow_config.get("url") or not ow_config.get("username"):
             return
 
-        # 1. Fetch all active schedules
-        schedules = conn.execute("SELECT device_id, start_time, end_time, days FROM device_block_schedules WHERE enabled = TRUE").fetchall()
-        
-        # 2. Determine desired window state for each device that has at least one schedule
-        devices_in_window = {} # {device_id: bool}
-        for device_id, start, end, days in schedules:
-            if device_id not in devices_in_window:
-                devices_in_window[device_id] = False
+        # 1. Fetch all devices that have schedules or are currently marked as scheduled_blocked
+        devices_to_check = conn.execute("""
+            SELECT DISTINCT d.id, d.is_scheduled_block, d.display_name, d.mac
+            FROM devices d
+            LEFT JOIN device_block_schedules s ON d.id = s.device_id AND s.enabled = TRUE
+            WHERE d.is_scheduled_block = TRUE OR s.id IS NOT NULL
+        """).fetchall()
+
+        # 2. Determine desired window state for each device
+        devices_in_window = {} # {device_id: (in_window, db_is_scheduled, name, mac)}
+        for device_id, db_is_scheduled, name, mac in devices_to_check:
+            # Fetch active schedules for this device
+            schedules = conn.execute("""
+                SELECT start_time, end_time, days 
+                FROM device_block_schedules 
+                WHERE device_id = ? AND enabled = TRUE
+            """, [device_id]).fetchall()
             
-            if current_day in days.split(','):
-                if is_time_in_range(start, end, current_time):
-                    devices_in_window[device_id] = True
+            in_window = False
+            for start, end, days in schedules:
+                if current_day in days.split(','):
+                    if is_time_in_range(start, end, current_time):
+                        in_window = True
+                        break
+            devices_in_window[device_id] = (in_window, db_is_scheduled, name, mac)
 
         # 3. Process transitions
         from app.services.policy import update_policy_flag, update_policy_flags
-        for device_id, in_window in devices_in_window.items():
+        for device_id, (in_window, db_is_scheduled, name, mac) in devices_in_window.items():
             prev_in_window = _last_window_state.get(device_id)
-            
-            # Fetch device current DB status for baseline
-            dev_row = conn.execute("SELECT is_scheduled_block, display_name, mac FROM devices WHERE id = ?", [device_id]).fetchone()
-            if not dev_row: continue
-            db_is_scheduled, name, mac = dev_row
             
             # If first run for this device, use DB state as baseline
             if prev_in_window is None:

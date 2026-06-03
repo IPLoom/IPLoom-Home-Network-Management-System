@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import List, Annotated, Optional, Dict, Any
 from app.core.db import get_connection
-from app.models.devices import DeviceRead, DeviceUpdate, PaginatedDevicesResponse
+from app.models.devices import DeviceRead, DeviceUpdate, PaginatedDevicesResponse, DeviceAccessStatus
 from app.services.devices import update_device_fields
 from app.core.auth import get_current_user
 import json, asyncio, math
@@ -451,4 +451,47 @@ async def lookup_device_vendor(device_id: str, save: bool = Query(False), curren
         await asyncio.to_thread(save_vendor)
 
     return {"status": "success", "vendor": vendor}
+
+
+@router.get("/{device_id}/access-status", response_model=DeviceAccessStatus)
+async def get_device_access_status(device_id: str):
+    def query():
+        conn = get_connection()
+        try:
+            row = conn.execute("""
+                SELECT ip, mac, is_blocked, is_manual_block, is_scheduled_block, is_quota_exceeded, is_manual_unblock
+                FROM devices
+                WHERE id = ?
+            """, [device_id]).fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Device not found")
+            
+            ip, mac, is_blocked, manual, scheduled, quota, manual_unblock = row
+            
+            active_blocks = []
+            if manual:
+                active_blocks.append("MANUAL")
+            if scheduled:
+                active_blocks.append("SCHEDULE")
+            if quota:
+                active_blocks.append("QUOTA")
+                
+            return DeviceAccessStatus(
+                device_id=device_id,
+                mac=mac,
+                ip=ip,
+                is_blocked=bool(is_blocked),
+                is_manual_block=bool(manual),
+                is_scheduled_block=bool(scheduled),
+                is_quota_exceeded=bool(quota),
+                is_manual_unblock=bool(manual_unblock),
+                active_blocks=active_blocks
+            )
+        finally:
+            conn.close()
+            
+    try:
+        return await asyncio.to_thread(query)
+    except HTTPException as e:
+        raise e
 

@@ -202,84 +202,55 @@ onMounted(fetchQuota)
 
       <!-- Center Section: Real-time Stats & Progress -->
       <div v-if="status" class="px-8 pb-8 space-y-8 relative z-10">
-        <!-- Stats Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div class="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-slate-800/50">
-            <div class="text-[10px] font-black uppercase text-slate-400 mb-1.5 tracking-widest">Usage</div>
-            <div class="flex items-baseline gap-2">
-              <span class="text-2xl font-black text-slate-900 dark:text-white">{{ formatBytes(status.current_usage) }}</span>
-              <span class="text-[10px] font-bold text-slate-500 uppercase">/ {{ formatBytes(status.limit_bytes) }}</span>
-            </div>
-          </div>
-
-          <div class="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-slate-800/50">
-            <div class="text-[10px] font-black uppercase text-slate-400 mb-1.5 tracking-widest">Status</div>
-            <div class="flex items-center gap-2">
-              <div :class="status.is_exceeded ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'" class="w-2.5 h-2.5 rounded-full shadow-lg"></div>
-              <div class="text-sm font-black text-slate-900 dark:text-white uppercase">
-                {{ status.is_exceeded ? 'Quota Exceeded' : 'Under Limit' }}
+        <!-- Quota Stats and Progress (Only if quota configured) -->
+        <div v-if="quota" class="space-y-8">
+          <!-- Stats Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-slate-800/50">
+              <div class="text-[10px] font-black uppercase text-slate-400 mb-1.5 tracking-widest">Usage</div>
+              <div class="flex items-baseline gap-2">
+                <span class="text-2xl font-black text-slate-900 dark:text-white">{{ formatBytes(status.current_usage) }}</span>
+                <span class="text-[10px] font-bold text-slate-500 uppercase">/ {{ formatBytes(status.limit_bytes) }}</span>
               </div>
             </div>
-          </div>
 
-          <div class="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-slate-800/50">
-            <div class="text-[10px] font-black uppercase text-slate-400 mb-1.5 tracking-widest">Resets</div>
-            <div class="text-sm font-black text-slate-700 dark:text-slate-300 truncate">
-               {{ formatDate(status.next_reset_at) }}
-            </div>
-          </div>
-        </div>
-
-        <!-- Progress Bar -->
-        <div class="space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Consumption Percentage</h3>
-            <span class="text-xl font-black" :class="status.is_exceeded ? 'text-rose-500' : 'text-indigo-500'">
-              {{ Math.round(status.percent_used) }}%
-            </span>
-          </div>
-          
-          <div class="h-4 bg-slate-100 dark:bg-slate-950 rounded-full border border-slate-200 dark:border-slate-800 p-0.5 relative overflow-hidden">
-            <div 
-              class="h-full rounded-full transition-all duration-1000 ease-out shadow-sm relative overflow-hidden"
-              :class="[
-                status.is_exceeded ? 'bg-gradient-to-r from-rose-600 to-rose-400' : (status.percent_used > 85 ? 'bg-gradient-to-r from-amber-500 to-amber-300' : 'bg-gradient-to-r from-indigo-600 to-cyan-400')
-              ]"
-              :style="{ width: Math.min(status.percent_used, 100) + '%' }"
-            >
-              <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_2s_infinite]"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Warning Area & Manual Override -->
-        <div v-if="status.is_exceeded || status.is_manual_block || status.is_scheduled_block" class="p-6 rounded-2xl bg-amber-500/5 border border-amber-500/10">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div class="flex items-start gap-3">
-              <AlertTriangle class="w-5 h-5 text-amber-500 mt-0.5" />
-              <div class="text-xs">
-                <span class="font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest mr-3">Active Blocks:</span>
-                <div class="flex flex-wrap gap-2 mt-2">
-                  <span v-if="status.is_exceeded" class="px-2 py-1 bg-rose-500/10 text-rose-500 rounded font-black text-[9px]">QUOTA EXCEEDED</span>
-                  <span v-if="status.is_manual_block" class="px-2 py-1 bg-amber-500/10 text-amber-500 rounded font-black text-[9px]">MANUAL BLOCK</span>
-                  <span v-if="status.is_scheduled_block" class="px-2 py-1 bg-amber-500/10 text-amber-500 rounded font-black text-[9px]">SCHEDULED DOWNTIME</span>
+            <div class="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-slate-800/50">
+              <div class="text-[10px] font-black uppercase text-slate-400 mb-1.5 tracking-widest">Status</div>
+              <div class="flex items-center gap-2">
+                <div :class="status.is_exceeded ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'" class="w-2.5 h-2.5 rounded-full shadow-lg"></div>
+                <div class="text-sm font-black text-slate-900 dark:text-white uppercase">
+                  {{ status.is_exceeded ? 'Quota Exceeded' : 'Under Limit' }}
                 </div>
               </div>
             </div>
 
-            <!-- Manual Unblock Button (Administrator Override) -->
-            <button 
-              type="button"
-              v-if="(status.is_exceeded || status.is_scheduled_block) && !status.is_manual_unblock"
-              @click.stop="isUnblockModalOpen = true"
-              class="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-wider shadow-lg shadow-emerald-900/20"
-            >
-              <ShieldCheck class="w-4 h-4" />
-              <span>Manually Restore Access</span>
-            </button>
-            <div v-else-if="status.is_manual_unblock" class="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-500 rounded-xl font-black text-[10px] uppercase tracking-wider">
-               <ShieldCheck class="w-4 h-4" />
-               <span>Override Active</span>
+            <div class="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-slate-800/50">
+              <div class="text-[10px] font-black uppercase text-slate-400 mb-1.5 tracking-widest">Resets</div>
+              <div class="text-sm font-black text-slate-700 dark:text-slate-300 truncate">
+                 {{ formatDate(status.next_reset_at) }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Consumption Percentage</h3>
+              <span class="text-xl font-black" :class="status.is_exceeded ? 'text-rose-500' : 'text-indigo-500'">
+                {{ Math.round(status.percent_used) }}%
+              </span>
+            </div>
+            
+            <div class="h-4 bg-slate-100 dark:bg-slate-950 rounded-full border border-slate-200 dark:border-slate-800 p-0.5 relative overflow-hidden">
+              <div 
+                class="h-full rounded-full transition-all duration-1000 ease-out shadow-sm relative overflow-hidden"
+                :class="[
+                  status.is_exceeded ? 'bg-gradient-to-r from-rose-600 to-rose-400' : (status.percent_used > 85 ? 'bg-gradient-to-r from-amber-500 to-amber-300' : 'bg-gradient-to-r from-indigo-600 to-cyan-400')
+                ]"
+                :style="{ width: Math.min(status.percent_used, 100) + '%' }"
+              >
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_2s_infinite]"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -305,16 +276,6 @@ onMounted(fetchQuota)
       :loading="processingAction"
       @close="isResetModalOpen = false"
       @confirm="confirmReset"
-    />
-
-    <ConfirmationModal 
-      :isOpen="isUnblockModalOpen"
-      title="Administrator Override"
-      message="You are about to manually restore internet access for this device. This bypasses both active quotas and schedules. This override is of the HIGHEST PRIORITY but will automatically expire on the next quota reset period."
-      confirmText="Apply Override"
-      :loading="processingAction"
-      @close="isUnblockModalOpen = false"
-      @confirm="confirmUnblock"
     />
 
       <!-- Divider -->

@@ -514,8 +514,8 @@ const toggleBlockList = async (device) => {
   try {
     const res = await api.post(`/integrations/openwrt/devices/${device.mac}/${action}`)
     if (res.data.status === 'success') {
-      device.is_blocked = !device.is_blocked
-      notifySuccess(`Device ${device.is_blocked ? 'blocked' : 'unblocked'} successfully`)
+      await fetchDevices()
+      notifySuccess(`Device block status updated successfully`)
     }
   } catch (err) {
     notifyError(err.response?.data?.detail || `Failed to ${action} device`)

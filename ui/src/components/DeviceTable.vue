@@ -120,22 +120,29 @@
                     
                     <span v-if="device.is_blocked"
                           class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 flex items-center gap-1"
-                          v-tooltip="'Internet Access Blocked via OpenWrt'">
+                          v-tooltip="'Internet Access Blocked'">
                       <component :is="Ban" class="h-3 w-3" /> Blocked
+                    </span>
+
+                    <span v-if="device.is_manual_unblock && (device.is_scheduled_block || device.is_quota_exceeded)"
+                          class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1"
+                          v-tooltip="'Access manually restored by administrator override'">
+                      <component :is="ShieldCheck" class="h-3 w-3" /> Override Active
                     </span>
                     
                     <span v-if="device.has_schedule"
                           class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 flex items-center gap-1"
-                          :class="{ 'animate-pulse ring-1 ring-rose-500/50': device.is_scheduled_block }"
-                          v-tooltip="device.is_scheduled_block ? 'Currently blocked by schedule' : 'Has recurring schedules defined'">
+                          :class="{ 'animate-pulse ring-1 ring-rose-500/50': device.is_scheduled_block && !device.is_manual_unblock }"
+                          v-tooltip="device.is_scheduled_block ? (device.is_manual_unblock ? 'Scheduled block is bypassed by manual override' : 'Currently blocked by schedule') : 'Has recurring schedules defined'">
                       <component :is="Clock" class="h-3 w-3" /> 
-                      {{ device.is_scheduled_block ? 'Scheduled (Active)' : 'Scheduled' }}
+                      {{ device.is_scheduled_block ? (device.is_manual_unblock ? 'Scheduled (Bypassed)' : 'Scheduled (Active)') : 'Scheduled' }}
                     </span>
                     
                     <div v-if="device.is_quota_exceeded"
                           class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 flex items-center gap-1"
-                          v-tooltip="'Internet Data Quota Exceeded'">
-                      <component :is="Zap" class="h-3 w-3" /> Quota
+                          v-tooltip="device.is_manual_unblock ? 'Quota block is bypassed by manual override' : 'Internet Data Quota Exceeded'">
+                      <component :is="Zap" class="h-3 w-3" />
+                      {{ device.is_manual_unblock ? 'Quota (Bypassed)' : 'Quota' }}
                     </div>
 
                     <span v-if="device.attributes?.connection_type === 'wireless'"
