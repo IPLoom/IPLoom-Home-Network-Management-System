@@ -535,6 +535,8 @@ async def update_device_fields(device_id: str, fields: Dict[str, Any]) -> Option
     # Check if we need to call OpenWrt for IP reservation BEFORE updating the database
     wrt_action = None
     mac = old_dev.get("mac") if old_dev else None
+    from app.services.devices import format_mac
+    mac_clean = format_mac(mac) if mac else ""
     ip = old_dev.get("ip") if old_dev else None
     
     # Use the requested hostname if available, otherwise fallback to existing
@@ -542,13 +544,13 @@ async def update_device_fields(device_id: str, fields: Dict[str, Any]) -> Option
     req_name = fields.get("name")
     hostname = req_display or req_name or (old_dev.get("display_name") or old_dev.get("name")) if old_dev else None
 
-    if old_dev and mac and ip and "ip_type" in fields:
+    if old_dev and mac_clean and ip and "ip_type" in fields:
         old_ip_type = old_dev.get("ip_type") or "dynamic"
         new_ip_type = fields["ip_type"]
         if old_ip_type != new_ip_type:
-            if new_ip_type == "static":
+            if new_ip_type == "reserved":
                 wrt_action = "reserve"
-            elif new_ip_type == "dynamic":
+            elif old_ip_type == "reserved" and new_ip_type in ("dynamic", "static"):
                 wrt_action = "unreserve"
 
     if wrt_action:
@@ -569,9 +571,9 @@ async def update_device_fields(device_id: str, fields: Dict[str, Any]) -> Option
                 from app.services.integrations.openwrt import OpenWRTClient
                 client = OpenWRTClient(openwrt_config["url"], openwrt_config["username"], openwrt_config.get("password"))
                 if wrt_action == "reserve":
-                    await asyncio.to_thread(client.reserve_ip, mac, ip, hostname)
+                    await asyncio.to_thread(client.reserve_ip, mac_clean, ip, hostname)
                 elif wrt_action == "unreserve":
-                    await asyncio.to_thread(client.unreserve_ip, mac)
+                    await asyncio.to_thread(client.unreserve_ip, mac_clean)
             except Exception as e:
                 logger.error(f"Failed to {wrt_action} IP on OpenWrt: {e}")
                 # Raise immediately so the local database is not updated

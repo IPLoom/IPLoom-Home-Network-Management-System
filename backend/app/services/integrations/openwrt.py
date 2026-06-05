@@ -14,6 +14,18 @@ import time
 
 logger = logging.getLogger(__name__)
 
+def sanitize_hostname(name: str) -> str:
+    if not name:
+        return ""
+    # Replace any character that is not alphanumeric or hyphen with a hyphen
+    sanitized = re.sub(r'[^a-zA-Z0-9-]', '-', name)
+    # Replace multiple consecutive hyphens with a single hyphen
+    sanitized = re.sub(r'-+', '-', sanitized)
+    # Strip leading and trailing hyphens
+    sanitized = sanitized.strip('-')
+    # Limit length to 63 chars
+    return sanitized[:63].lower()
+
 class OpenWRTClient:
     def __init__(self, base_url, username, password=None):
         self.base_url = base_url.rstrip('/')
@@ -284,6 +296,7 @@ class OpenWRTClient:
                 conn_temp.close()
             
             leases = self.get_dhcp_leases()
+            static_leases = self.get_static_leases()
             wireless_assoc = self.get_wireless_devices() if is_ap else {}
             traffic_data = self.get_traffic_stats()
             traffic_deltas = traffic_data["deltas"]
@@ -350,16 +363,20 @@ class OpenWRTClient:
                     existing_mac = row[7]
 
                     # Determine IP and IP Type
-                    if lease and lease.get("expires", 0) > 0:
+                    if mac in static_leases:
+                        ip_type = "reserved"
+                        ip = lease["ip"] if lease else static_leases[mac]["ip"]
+                        hostname = static_leases[mac].get("name") or (lease["hostname"] if lease else None)
+                    elif lease and lease.get("expires", 0) > 0:
                         ip = lease["ip"]
                         ip_type = "dynamic"
                         hostname = lease["hostname"] if lease["hostname"] and lease["hostname"] != "*" else None
                         attrs["dhcp_expires"] = lease["expires"]
                         if hostname: attrs["dhcp_hostname"] = hostname
                     else:
-                        # Static / No Lease - use existing DB info
+                        # Static / No Lease - use existing DB info if it's already set to a valid state
                         ip = lease["ip"] if lease else existing_ip
-                        ip_type = "static" 
+                        ip_type = existing_ip_type if existing_ip_type in ("static", "dynamic", "reserved") else "static"
                         hostname = lease["hostname"] if lease else None
 
                     # Use lease hostname if available
@@ -634,6 +651,10 @@ class OpenWRTClient:
         """Add or update a static DHCP lease for a MAC address on OpenWrt."""
         logger.info(f"OpenWRT: Reserving IP {ip} for MAC {mac}")
         mac = mac.lower()
+        if hostname:
+            hostname = sanitize_hostname(hostname)
+        if not hostname:
+            hostname = f"device-{mac.replace(':', '')[-4:]}"
         
         # 1. Fetch existing static leases and validate
         existing_leases = self.get_static_leases()
@@ -673,7 +694,7 @@ class OpenWRTClient:
             "type": "host",
             "section": section_name,
             "values": {
-                "name": hostname or f"Device-{mac[-5:]}",
+                "name": hostname,
                 "mac": mac,
                 "ip": ip
             }

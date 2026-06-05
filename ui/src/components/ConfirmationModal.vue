@@ -23,9 +23,9 @@
             </div>
         </template>
 
-        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-            {{ message }}
-        </p>
+        <div class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+            <slot>{{ message }}</slot>
+        </div>
 
         <template #footer>
             <Button 

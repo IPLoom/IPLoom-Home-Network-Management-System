@@ -396,17 +396,29 @@
 
                         <Popover ref="ipPopover"
                           :pt="{ content: 'w-[280px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden p-2 focus:outline-none space-y-1' }">
-                          <button type="button" @click="form.ip_type = 'dynamic'; ipPopover.hide()"
+                          <button type="button" @click="selectIpType('dynamic')"
                             class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left rounded-xl hover:bg-blue-600 hover:text-white transition-colors border-none bg-transparent cursor-pointer"
                             :class="form.ip_type === 'dynamic' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
                             Dynamic (DHCP)
                           </button>
-                          <button type="button" @click="form.ip_type = 'static'; ipPopover.hide()"
+                          <button type="button" @click="selectIpType('static')"
                             class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left rounded-xl hover:bg-blue-600 hover:text-white transition-colors border-none bg-transparent cursor-pointer"
                             :class="form.ip_type === 'static' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
-                            Static Reservation
+                            Static IP (On Device)
+                          </button>
+                          <button type="button" @click="selectIpType('reserved')"
+                            class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left rounded-xl hover:bg-blue-600 hover:text-white transition-colors border-none bg-transparent cursor-pointer"
+                            :class="form.ip_type === 'reserved' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'">
+                            Reserved (Router DHCP)
                           </button>
                         </Popover>
+                      </div>
+                      <div v-if="form.ip_type === 'dynamic'" class="mt-2 text-right">
+                        <button type="button" @click="selectIpType('reserved')"
+                          class="text-[10px] text-blue-500 hover:text-blue-600 bg-transparent border-none cursor-pointer font-bold uppercase tracking-wider flex items-center gap-1 justify-end w-full">
+                          <Info class="w-3 h-3" />
+                          <span>Configure Router Reservation</span>
+                        </button>
                       </div>
                     </div>
 
@@ -1181,6 +1193,46 @@
     message="This will remove the manual access override. The device will return to being governed by its active schedule and quota rules. If a schedule or quota block is currently in effect, the device will be blocked again."
     confirmText="Remove Override" type="danger" :loading="processingOverride" @close="isUndoOverrideModalOpen = false"
     @confirm="undoManualOverride" />
+
+  <ConfirmationModal :isOpen="showReserveConfirmModal" title="OpenWrt IP Reservation Preview"
+    message=""
+    confirmText="Confirm Reservation" :loading="isSaving" @close="cancelReservation"
+    @confirm="confirmReservation">
+    <div class="space-y-4 my-2">
+      <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">
+        Review the static DHCP lease configuration that will be written to the OpenWrt router:
+      </p>
+
+      <div class="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800/80 space-y-3">
+        <!-- IP Address Row -->
+        <div class="flex items-center justify-between text-xs">
+          <span class="font-semibold text-slate-400 uppercase tracking-wider text-[10px]">IP Address</span>
+          <span class="font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-lg">{{ device?.ip }}</span>
+        </div>
+
+        <!-- MAC Address Row -->
+        <div class="flex items-center justify-between text-xs border-t border-slate-100 dark:border-slate-800/40 pt-3">
+          <span class="font-semibold text-slate-400 uppercase tracking-wider text-[10px]">MAC Address</span>
+          <span class="font-mono font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2.5 py-1 rounded-lg">{{ device?.mac?.toUpperCase() }}</span>
+        </div>
+
+        <!-- Hostname Row -->
+        <div class="flex items-center justify-between text-xs border-t border-slate-100 dark:border-slate-800/40 pt-3">
+          <span class="font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Router Hostname</span>
+          <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg">"{{ previewSanitizedHostname }}"</span>
+        </div>
+      </div>
+
+      <!-- Sanitization Info Alert -->
+      <div class="flex gap-2.5 p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-[11px] text-amber-700 dark:text-amber-300">
+        <Info class="w-4 h-4 shrink-0 text-amber-500 mt-0.5" />
+        <div class="space-y-0.5 font-medium leading-relaxed">
+          <div class="font-bold uppercase tracking-wider text-[9px] text-amber-800 dark:text-amber-400">DNS Sanitization Active</div>
+          Spaces and special characters were sanitized to comply with RFC 1123 hostnames. This ensures compatibility and prevents DHCP server crashes.
+        </div>
+      </div>
+    </div>
+  </ConfirmationModal>
 </template>
 
 <script setup>
@@ -1244,6 +1296,7 @@ const { notifySuccess, notifyError } = useNotifications()
 const isSaving = ref(false)
 const isLookingUpVendor = ref(false)
 const showVendorConfirmModal = ref(false)
+const showReserveConfirmModal = ref(false)
 const pendingVendorName = ref('')
 const signalHistory = ref([])
 const isManualOverrideModalOpen = ref(false)
@@ -1383,9 +1436,46 @@ const formatTime = (ts) => {
   return formatDate(ts)
 }
 
+const sanitizeHostname = (name) => {
+  if (!name) return ""
+  let sanitized = name.replace(/[^a-zA-Z0-9-]/g, '-')
+  sanitized = sanitized.replace(/-+/g, '-')
+  sanitized = sanitized.replace(/^-+|-+$/g, '')
+  return sanitized.slice(0, 63).toLowerCase()
+}
+
+const previewSanitizedHostname = computed(() => {
+  const nameToSanitize = form.display_name || form.name || (device.value ? (device.value.display_name || device.value.name) : '')
+  return sanitizeHostname(nameToSanitize)
+})
+
+const selectIpType = (type) => {
+  if (type === 'reserved') {
+    if (!device.value?.mac || device.value.mac === 'unknown' || device.value.mac === 'N/A') {
+      notifyError('Cannot reserve IP for a device without a valid MAC address')
+      return
+    }
+    showReserveConfirmModal.value = true
+  } else {
+    form.ip_type = type
+  }
+  if (ipPopover.value) ipPopover.value.hide()
+}
+
+const cancelReservation = () => {
+  showReserveConfirmModal.value = false
+}
+
+const confirmReservation = async () => {
+  showReserveConfirmModal.value = false
+  form.ip_type = 'reserved'
+  await saveChanges()
+}
+
 const getIPAllocationLabel = (val) => {
-  if (val === 'static') return 'Static IP'
+  if (val === 'static') return 'Static IP (On Device)'
   if (val === 'dynamic') return 'Dynamic (DHCP)'
+  if (val === 'reserved') return 'Reserved (Router DHCP)'
   return 'Unknown / Unmanaged'
 }
 
